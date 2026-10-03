@@ -54,7 +54,7 @@ jobs:
       contents: write   # tag og release paa GitHub - aldrig et push til main (26/9)
       id-token: write   # npm trusted publishing + MCP-registret via github-oidc
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           ref: ${{ inputs.genoptag && format('v{0}', inputs.version) || '' }}
