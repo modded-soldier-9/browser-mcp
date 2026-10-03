@@ -1,10 +1,131 @@
 /**
- * Agent360 Browser MCP — Background Service Worker
+ * Browser MCP — Persistent Background Worker (MV2 & MV3 Compatible)
  *
- * Handles Chrome API calls relayed from the offscreen document.
+ * Handles Chrome API calls and WebSocket bridge commands.
  * Each MCP session (port) gets its own Chrome Tab Group with color coding.
  * Tabs are isolated per session — no cross-session interference.
  */
+
+// ── Manifest V2 Persistent Background Compatibility Layer (Brave / Chromium) ──
+if (typeof chrome !== 'undefined' && !chrome.offscreen) {
+  if (!chrome.action && chrome.browserAction) {
+    chrome.action = chrome.browserAction;
+  }
+
+  // Zero-latency in-memory message bus when background.js and offscreen.js share
+  // the persistent MV2 background page (since chrome.runtime.sendMessage only
+  // delivers to OTHER extension frames like popup.html, not same-frame listeners).
+  if (!chrome.__bmcpMv2Bus) {
+    chrome.__bmcpMv2Bus = true;
+    const localListeners = [];
+    const origAdd = chrome.runtime?.onMessage?.addListener?.bind(chrome.runtime.onMessage);
+    const origSend = chrome.runtime?.sendMessage?.bind(chrome.runtime);
+
+    if (origAdd) {
+      chrome.runtime.onMessage.addListener = function (fn) {
+        localListeners.push(fn);
+        return origAdd(fn);
+      };
+    }
+
+    if (origSend) {
+      chrome.runtime.sendMessage = function (message, optionsOrCallback, maybeCallback) {
+        const cb = typeof optionsOrCallback === 'function' ? optionsOrCallback : maybeCallback;
+        let handledAsync = false;
+        let responded = false;
+        let resolvePromise = null;
+        const p = new Promise((r) => { resolvePromise = r; });
+
+        const sendResponse = (res) => {
+          if (responded) return;
+          responded = true;
+          if (cb) {
+            try { cb(res); } catch {}
+          }
+          if (resolvePromise) resolvePromise(res);
+        };
+
+        for (const listener of localListeners) {
+          try {
+            const ret = listener(message, { id: chrome.runtime?.id }, sendResponse);
+            if (ret === true) {
+              handledAsync = true;
+            } else if (ret && typeof ret.then === 'function') {
+              handledAsync = true;
+              ret.then(sendResponse).catch(() => {});
+            }
+          } catch {}
+        }
+
+        // Broadcast to popup.html if open
+        try { origSend(message, () => { void chrome.runtime?.lastError; }); } catch {}
+
+        if (handledAsync || responded) {
+          return cb ? undefined : p;
+        }
+        return cb ? undefined : Promise.resolve();
+      };
+    }
+  }
+
+  // Polyfill chrome.scripting.executeScript for Manifest V2 using tabs.executeScript + CDP Runtime.evaluate
+  if (!chrome.scripting) {
+    chrome.scripting = {
+      executeScript: async function (opts, cb) {
+        const tabId = opts?.target?.tabId;
+        const func = opts?.func;
+        const args = opts?.args || [];
+        const allFrames = !!opts?.target?.allFrames;
+        const frameIds = opts?.target?.frameIds;
+        const isAsyncOrMain = opts?.world === 'MAIN' || /^\s*async\b/.test(String(func));
+        const expr = `(${String(func)})(...${JSON.stringify(args)})`;
+
+        const finish = (res) => {
+          if (cb) { try { cb(res); } catch {} }
+          return res;
+        };
+
+        if (!isAsyncOrMain && chrome.tabs?.executeScript) {
+          try {
+            const details = { code: expr, allFrames };
+            if (Array.isArray(frameIds) && frameIds.length > 0) details.frameId = frameIds[0];
+            const raw = await new Promise((resolve, reject) => {
+              chrome.tabs.executeScript(tabId, details, (res) => {
+                if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+                else resolve(res || []);
+              });
+            });
+            return finish(raw.map((r, i) => ({
+              frameId: Array.isArray(frameIds) && frameIds[i] !== undefined ? frameIds[i] : i,
+              result: r,
+            })));
+          } catch {}
+        }
+
+        // Fallback / MAIN world / async function execution via CDP Runtime.evaluate
+        try {
+          await debuggerAttach(tabId);
+          const evalRes = await cdpSend(tabId, 'Runtime.evaluate', {
+            expression: expr,
+            returnByValue: true,
+            awaitPromise: true,
+          });
+          if (evalRes?.exceptionDetails) {
+            throw new Error(evalRes.exceptionDetails.exception?.description || evalRes.exceptionDetails.text || 'Script error');
+          }
+          return finish([{ frameId: 0, result: evalRes?.result?.value }]);
+        } catch (err) {
+          if (cb) {
+            chrome.runtime.lastError = { message: err?.message || String(err) };
+            try { cb(undefined); } finally { chrome.runtime.lastError = null; }
+            return undefined;
+          }
+          throw err;
+        }
+      },
+    };
+  }
+}
 
 // ── Session Tab Management ─────────────────────────────────────────────────
 
@@ -1989,6 +2110,10 @@ function ensureOffscreen() {
 
 // Luk den gamle bro og byg en frisk - i koeen, efter det der allerede er i gang.
 function genbygOffscreen() {
+  if (!chrome.offscreen) {
+    chrome.runtime.sendMessage({ type: 'bmcp_scan_now' }).catch(() => {});
+    return Promise.resolve();
+  }
   return iOffscreenKoe(async () => {
     try {
       if (await chrome.offscreen.hasDocument()) await chrome.offscreen.closeDocument();
@@ -2000,6 +2125,7 @@ function genbygOffscreen() {
 }
 
 async function ensureOffscreenIndre() {
+  if (!chrome.offscreen) return;
   const findes = await chrome.offscreen.hasDocument();
 
   if (findes) {

@@ -107,7 +107,12 @@ test('server.json-beskrivelsen kan slippe gennem MCP-registret', () => {
 test('manifestet peger paa de filer der findes', () => {
   const m = json('extension/manifest.json');
   const alle = new Set(filer('extension'));
-  const peger = [m.background?.service_worker, m.action?.default_popup].filter(Boolean);
+  const peger = [
+    m.background?.service_worker,
+    ...(m.background?.scripts || []),
+    m.action?.default_popup,
+    m.browser_action?.default_popup,
+  ].filter(Boolean);
   for (const ikon of Object.values(m.icons || {})) peger.push(ikon);
   for (const p of peger) assert.ok(alle.has(p), `manifest.json peger paa "${p}" som ikke findes i extension/`);
   // offscreen.html/js indlaeses i koden, ikke i manifestet - tjek dem eksplicit.

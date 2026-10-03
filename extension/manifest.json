@@ -1,5 +1,5 @@
 {
-  "manifest_version": 3,
+  "manifest_version": 2,
   "name": "Browser MCP",
   "version": "2.0.0",
   "description": "Browser MCP: Direct, persistent AI agent bridge to your real browser session. 40 tools, rock-solid stability.",
@@ -7,16 +7,12 @@
     "tabs",
     "tabGroups",
     "cookies",
-    "scripting",
     "activeTab",
     "storage",
     "alarms",
-    "offscreen",
     "notifications",
     "webNavigation",
-    "debugger"
-  ],
-  "host_permissions": [
+    "debugger",
     "<all_urls>"
   ],
   "icons": {
@@ -24,13 +20,15 @@
     "48": "icons/icon-48.png",
     "128": "icons/icon-128.png"
   },
-  "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' ws://127.0.0.1:* http://127.0.0.1:*"
-  },
+  "content_security_policy": "script-src 'self'; object-src 'self'; connect-src 'self' ws://127.0.0.1:* http://127.0.0.1:*",
   "background": {
-    "service_worker": "background.js"
+    "scripts": [
+      "background.js",
+      "offscreen.js"
+    ],
+    "persistent": true
   },
-  "action": {
+  "browser_action": {
     "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon-16.png",

@@ -48,7 +48,11 @@ async function kodeAftryk() {
 }
 
 function minVersion() {
-  try { return new URLSearchParams(location.search).get('v') || null; } catch { return null; }
+  try {
+    const v = new URLSearchParams(location.search).get('v');
+    if (v) return v;
+  } catch {}
+  try { return chrome.runtime?.getManifest?.()?.version || null; } catch { return null; }
 }
 
 // Portomraadet kommer fra dokumentets egen adresse, sat af background.js ud fra chrome.storage.local.
