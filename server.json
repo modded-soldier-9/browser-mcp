@@ -1,20 +1,20 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.Agent360dk/browser-mcp",
-  "title": "Agent360 Browser MCP",
-  "description": "Drive your real, logged-in Chrome from any AI agent - 40 tools. Needs our Chrome extension too.",
-  "websiteUrl": "https://browsermcp.dev",
+  "name": "browser-mcp",
+  "title": "Browser MCP",
+  "description": "Drive your real, logged-in browser from any AI agent - 40 tools. Needs Browser MCP extension.",
+  "websiteUrl": "https://github.com/Agent360dk/browser-mcp",
   "repository": {
     "url": "https://github.com/Agent360dk/browser-mcp",
     "source": "github"
   },
-  "version": "1.30.1",
+  "version": "2.0.0",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
-      "identifier": "@agent360/browser-mcp",
-      "version": "1.30.1",
+      "identifier": "browser-mcp",
+      "version": "2.0.0",
       "transport": {
         "type": "stdio"
       }

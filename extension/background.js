@@ -644,7 +644,25 @@ function cdpMedFrist(tabId, method, params) {
   ]).finally(() => clearTimeout(ur));
 }
 
+async function ensureTabActive(tabId) {
+  try {
+    const tab = await chrome.tabs.get(tabId).catch(() => null);
+    if (tab && !tab.active) {
+      await chrome.tabs.update(tabId, { active: true }).catch(() => null);
+    }
+    if (tab && tab.windowId !== undefined) {
+      const win = await chrome.windows.get(tab.windowId).catch(() => null);
+      if (win && win.state === 'minimized') {
+        await chrome.windows.update(tab.windowId, { state: 'normal' }).catch(() => null);
+      }
+    }
+  } catch {}
+}
+
 async function cdpSend(tabId, method, params = {}) {
+  if (String(method).startsWith('Input.')) {
+    await ensureTabActive(tabId);
+  }
   await debuggerAttach(tabId);
   let lastMsg = '';
   // 4 total attempts (initial + 3 retries) for read-only methods; backoff 100/300/500ms.
@@ -964,10 +982,23 @@ async function debuggerClick(tabId, x, y) {
     //    view / double-submits).
     await cdpSend(tabId, 'Runtime.evaluate', {
       expression: `(() => {
-        let el = document.elementFromPoint(${x}, ${y});
+        const isOverlayNode = (node) => {
+          if (!node || !node.tagName) return false;
+          const tag = node.tagName.toUpperCase();
+          const id = node.id || '';
+          const cls = typeof node.className === 'string' ? node.className : '';
+          return tag === 'BROWSER-SKILL-OVERLAY' ||
+                 id === 'a360-overlay' ||
+                 id.startsWith('bmcp-') ||
+                 cls.includes('browser-mcp-indicator') ||
+                 cls.includes('bmcp-overlay');
+        };
+        const elements = document.elementsFromPoint ? document.elementsFromPoint(${x}, ${y}) : [];
+        let el = elements.find(n => !isOverlayNode(n)) || document.elementFromPoint(${x}, ${y});
         let host = el;
         for (let i = 0; i < 20 && host && host.shadowRoot; i++) {
-          const inner = host.shadowRoot.elementFromPoint(${x}, ${y});
+          const innerEls = host.shadowRoot.elementsFromPoint ? host.shadowRoot.elementsFromPoint(${x}, ${y}) : [];
+          const inner = innerEls.find(n => !isOverlayNode(n)) || host.shadowRoot.elementFromPoint(${x}, ${y});
           if (!inner || inner === host) break;
           el = inner; host = inner;
         }
@@ -1299,11 +1330,18 @@ async function debuggerFill(tabId, selector, value) {
         (function() {
           const el = document.activeElement;
           if (!el || !('value' in el)) return false;
+          if (el._valueTracker) {
+            try { el._valueTracker.setValue(''); } catch {}
+          }
           const proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
           const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
           if (setter) setter.call(el, ''); else el.value = '';
-          el.dispatchEvent(new Event('input', { bubbles: true }));
-          el.dispatchEvent(new Event('change', { bubbles: true }));
+          try {
+            el.dispatchEvent(new InputEvent('input', { bubbles: true, composed: true, inputType: 'deleteContentBackward' }));
+          } catch {
+            el.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+          }
+          el.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
           return true;
         })()
       `);
@@ -1834,7 +1872,7 @@ async function offscreenSvarer() {
   try {
     const svar = await Promise.race([
       chrome.runtime.sendMessage({ type: 'bmcp_ping' }),
-      new Promise((_, afvis) => setTimeout(() => afvis(new Error('intet svar')), 1500)),
+      new Promise((_, afvis) => setTimeout(() => afvis(new Error('intet svar')), 3500)),
     ]);
     if (svar?.ok !== true) return false;
     // "Svarer den?" er ikke nok — den skal ogsaa vaere den udgave vi koerer nu.
@@ -2081,6 +2119,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return;
   }
 
+  if (msg.type === 'bmcp_keepalive') {
+    return true;
+  }
+
   if (msg.type === 'reconnect') {
     // FEJL RETTET 19/8: der var ingen fangst her. Lykkedes closeDocument()
     // men fejlede ensureOffscreen() — fx fordi dokumentet stadig var ved at
@@ -2093,6 +2135,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       // IKKE lader fejlen forsvinde.
       try {
         await genbygOffscreen();
+        // Immediately ask offscreen to scan all candidate ports
+        chrome.runtime.sendMessage({ type: 'bmcp_scan_now' }).catch(() => {});
       } catch (e) {
         console.error('[BG] kunne ikke genskabe offscreen:', e?.message || e);
         setTimeout(() => ensureOffscreen().catch(console.error), 2000);
@@ -2958,10 +3002,31 @@ async function setCombobox(tabId, selector, values, opts = {}) {
       for (let i = 0; i < waitIterations; i++) {
         await new Promise(r => setTimeout(r, 100));
         const found = await debuggerEval(tabId, `(() => {
-          const lbs = document.querySelectorAll('[role="listbox"], [role="grid"][aria-label*="suggest" i], [class*="autocomplete" i] [class*="option" i], [class*="menu" i][role]:not([aria-hidden="true"])');
+          const listboxSelectors = [
+            '[role="listbox"]',
+            '.react-select__menu',
+            '[class*="select__menu" i]',
+            '[class*="-menu"]',
+            '[data-radix-select-content]',
+            '.ant-select-dropdown',
+            '[role="grid"][aria-label*="suggest" i]',
+            '[class*="autocomplete" i]'
+          ].join(', ');
+          const lbs = document.querySelectorAll(listboxSelectors);
           for (const lb of lbs) {
-            if (lb.offsetHeight === 0) continue;
-            const opts = lb.querySelectorAll('[role="option"], [role="menuitem"], [data-option-index], [class*="option" i]:not([class*="optgroup" i])');
+            if (lb.offsetHeight === 0 && lb.offsetWidth === 0) continue;
+            const optionSelectors = [
+              '[role="option"]',
+              '.react-select__option',
+              '[class*="select__option" i]',
+              '[class*="-option"]',
+              '[data-radix-collection-item]',
+              '.ant-select-item-option',
+              '[role="menuitem"]',
+              '[data-option-index]',
+              'li'
+            ].join(', ');
+            const opts = lb.querySelectorAll(optionSelectors);
             if (opts.length > 0) return true;
           }
           return false;
@@ -2976,42 +3041,73 @@ async function setCombobox(tabId, selector, values, opts = {}) {
 
       // Find and click matching option
       const click = await safeExecuteScript(tabId, (query) => {
-        const lbs = [...document.querySelectorAll('[role="listbox"], [role="grid"][aria-label*="suggest" i], [class*="autocomplete" i], [class*="menu" i][role]:not([aria-hidden="true"])')]
-          .filter(lb => lb.offsetHeight > 0);
+        const listboxSelectors = [
+          '[role="listbox"]',
+          '.react-select__menu',
+          '[class*="select__menu" i]',
+          '[class*="-menu"]',
+          '[data-radix-select-content]',
+          '.ant-select-dropdown',
+          '[role="grid"][aria-label*="suggest" i]',
+          '[class*="autocomplete" i]'
+        ].join(', ');
+        const lbs = [...document.querySelectorAll(listboxSelectors)]
+          .filter(lb => lb.offsetHeight > 0 || lb.offsetWidth > 0);
 
         const queryLower = query.toLowerCase();
         const allOptions = [];
+        const optionSelectors = [
+          '[role="option"]',
+          '.react-select__option',
+          '[class*="select__option" i]',
+          '[class*="-option"]',
+          '[data-radix-collection-item]',
+          '.ant-select-item-option',
+          '[role="menuitem"]',
+          '[data-option-index]'
+        ].join(', ');
+
         for (const lb of lbs) {
-          const opts = [...lb.querySelectorAll('[role="option"], [role="menuitem"], [data-option-index]')];
+          let opts = [...lb.querySelectorAll(optionSelectors)];
           if (opts.length === 0) {
-            opts.push(...lb.querySelectorAll('li, [class*="option" i]:not([class*="optgroup" i])'));
+            opts = [...lb.querySelectorAll('li, [class*="option" i]:not([class*="optgroup" i])')];
           }
           const enabled = opts.filter(o =>
             o.getAttribute('aria-disabled') !== 'true' &&
             !o.classList.contains('disabled') &&
-            o.offsetHeight > 0
+            !o.classList.contains('react-select__option--is-disabled') &&
+            (o.offsetHeight > 0 || o.offsetWidth > 0 || (o.getClientRects && o.getClientRects().length > 0))
           );
           allOptions.push(...enabled);
         }
 
+        const triggerClick = (target) => {
+          try { target.scrollIntoView({ block: 'nearest', behavior: 'instant' }); } catch {}
+          target.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, view: window }));
+          target.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, view: window }));
+          target.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true, view: window }));
+          target.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, view: window }));
+          target.click();
+        };
+
         for (const o of allOptions) {
           const text = (o.textContent || '').trim().toLowerCase();
           if (text === queryLower) {
-            o.click();
+            triggerClick(o);
             return { ok: true, method: 'exact', text: o.textContent.trim() };
           }
         }
         for (const o of allOptions) {
           const text = (o.textContent || '').trim().toLowerCase();
           if (text.startsWith(queryLower)) {
-            o.click();
+            triggerClick(o);
             return { ok: true, method: 'startsWith', text: o.textContent.trim() };
           }
         }
         for (const o of allOptions) {
           const text = (o.textContent || '').trim().toLowerCase();
           if (text.includes(queryLower)) {
-            o.click();
+            triggerClick(o);
             return { ok: true, method: 'contains', text: o.textContent.trim() };
           }
         }
@@ -3922,11 +4018,18 @@ async function dispatch(port, method, params) {
           el.scrollIntoView({ block: 'center', behavior: 'instant' });
           el.focus();
           // Use nativeInputValueSetter to bypass React controlled input
+          if (el._valueTracker) {
+            try { el._valueTracker.setValue(''); } catch {}
+          }
           const proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
           const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
           if (setter) setter.call(el, val); else el.value = val;
-          el.dispatchEvent(new Event('input', { bubbles: true }));
-          el.dispatchEvent(new Event('change', { bubbles: true }));
+          try {
+            el.dispatchEvent(new InputEvent('input', { bubbles: true, composed: true, inputType: 'insertText', data: val }));
+          } catch {
+            el.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+          }
+          el.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
           return { ok: true };
         }, [parsed.selector, params.value]);
         if (scriptResult.cspBlocked) return { ok: false, error: e.message, method: 'debugger' };
@@ -5104,10 +5207,10 @@ async function dispatch(port, method, params) {
 
             const overlay = document.createElement('div');
             overlay.id = 'a360-overlay';
-            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:2147483647;display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,sans-serif;animation:a360-fade-in 0.3s ease-out';
+            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:2147483647;display:flex;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,sans-serif;animation:a360-fade-in 0.3s ease-out;pointer-events:none;';
 
             const card = document.createElement('div');
-            card.style.cssText = 'background:#1e293b;border-radius:12px;padding:24px;max-width:420px;width:90%;color:#e2e8f0;box-shadow:0 20px 60px rgba(0,0,0,0.5);animation:a360-slide-up 0.4s ease-out';
+            card.style.cssText = 'background:#1e293b;border-radius:12px;padding:24px;max-width:420px;width:90%;color:#e2e8f0;box-shadow:0 20px 60px rgba(0,0,0,0.5);animation:a360-slide-up 0.4s ease-out;pointer-events:auto;';
 
             const h = document.createElement('div');
             h.style.cssText = 'font-size:14px;font-weight:600;color:#3b82f6;margin-bottom:4px';

@@ -320,6 +320,14 @@ function createWSS(port = BASE_PORT) {
       // tegn fra en sokkel der aldrig hilste. Kun objekter er beskeder.
       if (!msg || typeof msg !== 'object' || Array.isArray(msg)) return;
 
+      if (msg.type === 'ping') {
+        try { ws.send(JSON.stringify({ type: 'pong' })); } catch {}
+        return;
+      }
+      if (msg.type === 'pong') {
+        return;
+      }
+
       // Identitets-haandtryk fra offscreen-dokumentet (v1.28+).
       if (msg.type === 'hello') {
         // MAALT 23/8: her stod `conn.extensionId = msg.extensionId` - altsaa lod
@@ -1447,4 +1455,9 @@ process.stdin.on('end', () => gracefulShutdown('stdin closed'));
 
 const transport = new StdioServerTransport();
 await mcpServer.connect(transport);
-process.stderr.write(`[MCP] Agent360 Browser MCP server running (stdio)\n`);
+process.stderr.write(`[MCP] Browser MCP server running (stdio)\n`);
+if (process.env.BROWSER_MCP_LAZY_PORT !== '1') {
+  sikrePort().catch((err) => {
+    process.stderr.write(`[MCP] Initial port bind deferred: ${err?.message || err}\n`);
+  });
+}

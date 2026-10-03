@@ -60,7 +60,7 @@ async function ledigtSpaend(forsoeg = 40) {
 }
 const BASE = await ledigtSpaend();
 const MAX = BASE + 4;
-const ENV = { ...process.env, BROWSER_MCP_BASE_PORT: String(BASE), BROWSER_MCP_MAX_PORT: String(MAX) };
+const ENV = { ...process.env, BROWSER_MCP_BASE_PORT: String(BASE), BROWSER_MCP_MAX_PORT: String(MAX), BROWSER_MCP_LAZY_PORT: '1' };
 
 const boerneprocesser = [];
 const blokke = [];

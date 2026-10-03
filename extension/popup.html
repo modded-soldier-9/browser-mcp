@@ -1,103 +1,540 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
+    :root {
+      --bg: #0b0f17;
+      --card: #121824;
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-hover: rgba(255, 255, 255, 0.03);
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.2);
+      --green: #10b981;
+      --green-glow: rgba(16, 185, 129, 0.35);
+      --amber: #f59e0b;
+      --amber-glow: rgba(245, 158, 11, 0.25);
+      --red: #f43f5e;
+      --red-glow: rgba(244, 63, 94, 0.25);
+      --radius: 10px;
+    }
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { width: 320px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; padding: 16px; }
-    h1 { font-size: 13px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
-    h1 span { color: #3b82f6; }
-    .status { display: flex; align-items: center; gap: 8px; padding: 10px; border-radius: 8px; background: #1e293b; margin-bottom: 8px; }
-    .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    .dot.on { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
-    .dot.off { background: #ef4444; }
-    .label { font-size: 12px; }
-    .section-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; margin: 10px 0 4px; font-weight: 600; }
-    .sessions { display: flex; flex-direction: column; gap: 6px; }
-    .session-card { padding: 8px 10px; background: #1e293b; border-radius: 8px; border-left: 3px solid; }
-    .session-header { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
-    .session-tabs { font-size: 10px; color: #94a3b8; }
-    .session-tabs div { margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .empty { font-size: 11px; color: #475569; text-align: center; padding: 12px; background: #1e293b; border-radius: 8px; }
-    .log { max-height: 120px; overflow-y: auto; background: #1e293b; border-radius: 8px; padding: 6px 10px; }
-    .log-entry { font-size: 10px; padding: 2px 0; border-bottom: 1px solid #0f172a; display: flex; gap: 6px; align-items: baseline; }
-    .log-entry:last-child { border-bottom: none; }
-    .log-time { color: #475569; min-width: 45px; }
-    .log-method { font-weight: 500; }
-    .log-session { font-size: 9px; color: #64748b; }
-    .log-safe { color: #22c55e; }
-    .log-sensitive { color: #f59e0b; }
-    button { width: 100%; padding: 7px; border: none; border-radius: 6px; background: #1e293b; color: #94a3b8; font-size: 11px; cursor: pointer; margin-top: 4px; }
-    button:hover { background: #334155; color: #e2e8f0; }
-    .color-blue { border-color: #3b82f6; } .color-blue .session-header { color: #3b82f6; }
-    .color-green { border-color: #22c55e; } .color-green .session-header { color: #22c55e; }
-    .color-yellow { border-color: #eab308; } .color-yellow .session-header { color: #eab308; }
-    .color-red { border-color: #ef4444; } .color-red .session-header { color: #ef4444; }
-    .color-pink { border-color: #ec4899; } .color-pink .session-header { color: #ec4899; }
-    .color-purple { border-color: #a855f7; } .color-purple .session-header { color: #a855f7; }
-    .color-cyan { border-color: #06b6d4; } .color-cyan .session-header { color: #06b6d4; }
-    .color-orange { border-color: #f97316; } .color-orange .session-header { color: #f97316; }
-    /* Shown only while the MCP server is missing - the store can't install it for you */
-    .setup { display: none; background: #1e293b; border: 1px solid #334155; border-left: 3px solid #f59e0b; border-radius: 8px; padding: 10px; margin-bottom: 8px; }
+    body {
+      width: 340px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text-main);
+      padding: 14px;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .brand-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 5px;
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+    h1 {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    h1 span { color: var(--accent); }
+    .version-tag {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-dim);
+      background: rgba(255, 255, 255, 0.05);
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid var(--card-border);
+    }
+
+    /* Status Card */
+    .status-card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 11px 12px;
+      margin-bottom: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+    .dot-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      transition: background 0.25s ease, box-shadow 0.25s ease;
+    }
+    .dot.on {
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green-glow);
+      animation: pulse-ring 2.4s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+    }
+    .dot.off {
+      background: var(--red);
+      box-shadow: 0 0 6px var(--red-glow);
+    }
+    .dot.scanning {
+      background: var(--amber);
+      box-shadow: 0 0 8px var(--amber-glow);
+      animation: pulse-ring 1.2s infinite;
+    }
+    @keyframes pulse-ring {
+      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+      70% { box-shadow: 0 0 0 7px rgba(16, 185, 129, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+    .status-text {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-main);
+      line-height: 1.3;
+    }
+    .sublabel {
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+    .port-pill {
+      font-size: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: var(--accent);
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 5px;
+      padding: 1px 6px;
+      font-weight: 500;
+    }
+
+    /* Section Titles */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 10px 0 6px;
+    }
+    .section-title {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-dim);
+      font-weight: 700;
+    }
+    .badge-count {
+      font-size: 9px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+      padding: 1px 6px;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+
+    /* Setup Banner */
+    .setup {
+      display: none;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-left: 3px solid var(--amber);
+      border-radius: var(--radius);
+      padding: 11px;
+      margin-bottom: 10px;
+      animation: fadeIn 0.2s ease-out;
+    }
     .setup.show { display: block; }
-    .setup p { font-size: 11px; line-height: 1.5; color: #94a3b8; margin-bottom: 8px; }
-    .setup p b { color: #e2e8f0; }
-    .setup code { display: block; background: #0f172a; border-radius: 6px; padding: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; color: #22c55e; word-break: break-all; margin-bottom: 6px; }
-    /* De andre klienters kommandoer staar inde i en saetning - de maa ikke blive til blokke som hovedkommandoen. */
-    .setup p.clients code { display: inline; padding: 1px 5px; margin: 0; font-size: 10px; }
-    .setup .row { display: flex; gap: 6px; }
-    .setup .row button, .setup .row a { flex: 1; margin: 0; padding: 6px; border-radius: 6px; background: #334155; color: #e2e8f0; font-size: 11px; text-align: center; text-decoration: none; border: none; cursor: pointer; }
-    .setup .row a:hover, .setup .row button:hover { background: #475569; }
-    /* Shown once both halves are up but the agent has not touched a tab yet - the
-       moment a new user checks "did it work?" and needs to know what to say next. */
-    .try { display: none; background: #1e293b; border: 1px solid #334155; border-left: 3px solid #22c55e; border-radius: 8px; padding: 10px; margin-bottom: 8px; }
+    .setup p {
+      font-size: 11px;
+      line-height: 1.45;
+      color: var(--text-muted);
+      margin-bottom: 7px;
+    }
+    .setup p b { color: var(--text-main); }
+    .cmd-box {
+      position: relative;
+      margin-bottom: 8px;
+    }
+    .setup code {
+      display: block;
+      background: #080c14;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 10px;
+      color: #34d399;
+      word-break: break-all;
+      line-height: 1.4;
+    }
+    .setup p.clients {
+      font-size: 10px;
+      color: var(--text-dim);
+      margin-top: 6px;
+    }
+    .setup p.clients code {
+      display: inline;
+      padding: 1px 4px;
+      margin: 0;
+      font-size: 9.5px;
+      background: rgba(255, 255, 255, 0.05);
+      color: #cbd5e1;
+    }
+    .setup .row {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .setup .row button, .setup .row a {
+      flex: 1;
+      margin: 0;
+      padding: 6px 10px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.07);
+      color: var(--text-main);
+      font-size: 11px;
+      font-weight: 500;
+      text-align: center;
+      text-decoration: none;
+      border: 1px solid var(--card-border);
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .setup .row button:hover, .setup .row a:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+    .setup .row button:active {
+      transform: scale(0.98);
+    }
+
+    /* Try Banner */
+    .try {
+      display: none;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-left: 3px solid var(--green);
+      border-radius: var(--radius);
+      padding: 11px;
+      margin-bottom: 10px;
+      animation: fadeIn 0.2s ease-out;
+    }
     .try.show { display: block; }
-    .try p { font-size: 11px; line-height: 1.5; color: #94a3b8; margin-bottom: 8px; }
-    .try p b { color: #e2e8f0; }
-    .try .prompt { display: block; background: #0f172a; border-radius: 6px; padding: 8px; font-size: 11px; color: #e2e8f0; margin-bottom: 6px; font-style: italic; }
-    .try a { display: block; text-align: center; padding: 6px; border-radius: 6px; background: #334155; color: #e2e8f0; font-size: 11px; text-decoration: none; }
-    .try a:hover { background: #475569; }
-    </style>
+    .try p {
+      font-size: 11px;
+      line-height: 1.45;
+      color: var(--text-muted);
+      margin-bottom: 7px;
+    }
+    .try p b { color: var(--text-main); }
+    .try .prompt {
+      display: block;
+      background: #080c14;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 6px;
+      padding: 7px 9px;
+      font-size: 10.5px;
+      color: #e2e8f0;
+      margin-bottom: 6px;
+      font-style: italic;
+    }
+    .try a {
+      display: block;
+      text-align: center;
+      padding: 6px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-main);
+      font-size: 11px;
+      text-decoration: none;
+      border: 1px solid var(--card-border);
+      transition: background 0.15s ease;
+    }
+    .try a:hover { background: rgba(255, 255, 255, 0.1); }
+
+    /* Sessions */
+    .sessions { display: flex; flex-direction: column; gap: 6px; }
+    .session-card {
+      padding: 9px 11px;
+      background: var(--card);
+      border-radius: var(--radius);
+      border: 1px solid var(--card-border);
+      border-left: 3.5px solid #3b82f6;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+    .session-card:hover {
+      background: #151d2c;
+    }
+    .session-header {
+      font-size: 11.5px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .session-tabs {
+      font-size: 10px;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .session-tabs div {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .session-tabs div::before {
+      content: "•";
+      color: var(--accent);
+      font-size: 12px;
+      line-height: 1;
+    }
+    .empty {
+      font-size: 11px;
+      color: var(--text-dim);
+      text-align: center;
+      padding: 12px;
+      background: var(--card);
+      border-radius: var(--radius);
+      border: 1px dashed var(--card-border);
+    }
+
+    /* Action Log */
+    .log {
+      max-height: 125px;
+      overflow-y: auto;
+      background: var(--card);
+      border-radius: var(--radius);
+      border: 1px solid var(--card-border);
+      padding: 6px 9px;
+    }
+    .log::-webkit-scrollbar {
+      width: 4px;
+    }
+    .log::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+    }
+    .log-entry {
+      font-size: 10px;
+      padding: 3px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .log-entry:last-child { border-bottom: none; }
+    .log-time {
+      color: var(--text-dim);
+      min-width: 44px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 9px;
+    }
+    .log-method {
+      font-weight: 600;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 9.5px;
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+    .log-session {
+      font-size: 9px;
+      color: var(--text-dim);
+      margin-left: auto;
+    }
+    .log-safe {
+      color: #34d399;
+      background: rgba(16, 185, 129, 0.1);
+    }
+    .log-sensitive {
+      color: #fbbf24;
+      background: rgba(245, 158, 11, 0.1);
+    }
+
+    /* Buttons */
+    .btn-row {
+      display: flex;
+      gap: 7px;
+      margin-top: 10px;
+    }
+    button.btn-primary {
+      flex: 2;
+      padding: 8px 12px;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 7px;
+      background: linear-gradient(180deg, #0284c7, #0369a1);
+      color: #fff;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25);
+      transition: all 0.15s ease;
+    }
+    button.btn-primary:hover {
+      background: linear-gradient(180deg, #0369a1, #075985);
+      border-color: rgba(56, 189, 248, 0.5);
+    }
+    button.btn-primary:active {
+      transform: scale(0.98);
+    }
+    button.btn-secondary {
+      flex: 1;
+      padding: 8px 10px;
+      border: 1px solid var(--card-border);
+      border-radius: 7px;
+      background: var(--card);
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    button.btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+    }
+    button.btn-secondary:active {
+      transform: scale(0.98);
+    }
+
+    /* Colors */
+    .color-blue { border-left-color: #3b82f6; } .color-blue .session-header { color: #60a5fa; }
+    .color-green { border-left-color: #10b981; } .color-green .session-header { color: #34d399; }
+    .color-yellow { border-left-color: #f59e0b; } .color-yellow .session-header { color: #fbbf24; }
+    .color-red { border-left-color: #ef4444; } .color-red .session-header { color: #f87171; }
+    .color-pink { border-left-color: #ec4899; } .color-pink .session-header { color: #f472b6; }
+    .color-purple { border-left-color: #a855f7; } .color-purple .session-header { color: #c084fc; }
+    .color-cyan { border-left-color: #06b6d4; } .color-cyan .session-header { color: #22d3ee; }
+    .color-orange { border-left-color: #f97316; } .color-orange .session-header { color: #fb923c; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-3px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
 </head>
 <body>
-  <h1><span>Agent360</span> Browser MCP</h1>
+  <div class="header">
+    <div class="brand">
+      <div class="brand-icon">B</div>
+      <h1>Browser MCP</h1>
+    </div>
+    <span class="version-tag">v2.0.0</span>
+  </div>
 
-  <div class="status">
-    <div class="dot off" id="dot"></div>
-    <span class="label" id="label">Checking…</span>
+  <div class="status-card">
+    <div class="status">
+      <div class="dot-wrapper">
+        <div class="dot off" id="dot"></div>
+      </div>
+      <div class="status-text">
+        <div class="label" id="label">Checking…</div>
+        <div class="sublabel" id="sublabel">Scanning local bridge on 127.0.0.1</div>
+      </div>
+      <div id="portBadge" class="port-pill" style="display:none">9876</div>
+    </div>
   </div>
 
   <div class="setup" id="setup">
-    <p><b>Already registered the server?</b> Then this is normal: the server only takes a port the first time your agent actually uses the browser. Ask it for a screenshot once, and this turns into "Connected".</p>
-    <p><b>Otherwise: this extension is only half of Browser MCP.</b> It needs a local MCP server to talk to - the Chrome Web Store cannot install that part. Register it once, then restart your agent. Claude Code:</p>
-    <code id="setupCmd">claude mcp add --scope user browser-mcp -- npx @agent360/browser-mcp@latest</code>
+    <p><b>MCP Server standby:</b> The bridge listens on ports 9876-9895 when an agent initiates browser tools.</p>
+    <p><b>Register server locally:</b> Ensure the MCP server is configured in your client. Claude Code command:</p>
+    <div class="cmd-box">
+      <code id="setupCmd">claude mcp add --scope user browser-mcp -- npx @agent360/browser-mcp@latest</code>
+    </div>
     <p class="clients">Codex: <code>codex mcp add browser-mcp -- npx @agent360/browser-mcp@latest</code><br>
-      Cursor, VS Code and the rest: run <code>npx @agent360/browser-mcp install</code> - it registers with the clients you have.</p>
+      Cursor, VS Code and others: run <code>npx @agent360/browser-mcp install</code> to register with your installed clients.</p>
     <div class="row">
       <button id="copyCmd">Copy command</button>
-      <a href="https://browsermcp.dev/docs/install-claude-code/" target="_blank" rel="noopener">Setup guide</a>
+      <a href="https://browsermcp.dev/docs/install-claude-code/" target="_blank" rel="noopener">Documentation</a>
     </div>
   </div>
 
   <div class="try" id="try">
-    <p><b>Connected - you're ready.</b> Nothing happens until you ask your agent for something. Try saying:</p>
+    <p><b>Connected and ready:</b> Ask your agent to interact with the browser:</p>
     <span class="prompt">"Take a screenshot of my current Chrome tab."</span>
-    <span class="prompt">"Open my Gmail tab and tell me who sent my last 3 emails."</span>
-    <a href="https://browsermcp.dev/#try" target="_blank" rel="noopener">More things to try</a>
+    <span class="prompt">"Open my Gmail tab and check latest updates."</span>
+    <a href="https://browsermcp.dev/#try" target="_blank" rel="noopener">Explore capability matrix</a>
   </div>
 
-  <div class="section-title">Sessions</div>
+  <div class="section-header">
+    <div class="section-title">Active Sessions</div>
+    <span class="badge-count" id="sessionCountBadge">0</span>
+  </div>
   <div id="sessions" class="sessions">
-    <div class="empty">No tabs claimed yet</div>
+    <div class="empty">No browser tabs claimed yet</div>
   </div>
 
-  <div class="section-title">Action Log</div>
+  <div class="section-header">
+    <div class="section-title">Action Stream</div>
+    <span class="badge-count" id="logCountBadge">0</span>
+  </div>
   <div class="log" id="log">
-    <div class="empty">No actions yet</div>
+    <div class="empty">No actions logged yet</div>
   </div>
 
-  <button id="reconnect">Reconnect</button>
-  <button id="clearLog" style="margin-top:4px">Clear log</button>
+  <div class="btn-row">
+    <button id="reconnect" class="btn-primary">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+      Reconnect
+    </button>
+    <button id="clearLog" class="btn-secondary">Clear log</button>
+  </div>
 
   <script src="popup.js"></script>
 </body>

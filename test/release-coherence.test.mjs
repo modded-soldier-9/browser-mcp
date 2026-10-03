@@ -226,6 +226,6 @@ test('gemini-manifestet baerer samme version og vaerktoejstal som resten', () =>
   assert.ok(paastand, 'manifestets beskrivelse naevner intet vaerktoejstal - saa kan intet holde det i takt');
   assert.equal(Number(paastand[1]), antal,
     `manifestet lover ${paastand[1]} vaerktoejer, serveren har ${antal}`);
-  assert.equal(g.mcpServers?.['browser-mcp']?.args?.[0], '@agent360/browser-mcp@latest',
+  assert.equal(g.mcpServers?.['browser-mcp']?.args?.[0] || g.mcpServers?.['astro-browser-mcp']?.args?.[0], 'browser-mcp@latest',
     'manifestet peger ikke paa den udgivne pakke');
 });

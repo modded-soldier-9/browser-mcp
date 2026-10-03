@@ -22,7 +22,7 @@ import { spawnSync } from 'node:child_process';
 const rod = dirname(dirname(fileURLToPath(import.meta.url)));
 const cli = join(rod, 'mcp-server/bin/cli.js');
 
-function installer({ klienter = [], codeKanAddMcp = true, cursor = false, cursorIndhold } = {}) {
+function installer({ klienter = [], codeKanAddMcp = true, cursor = false, cursorIndhold, opencode = false, opencodeIndhold } = {}) {
   const hjem = mkdtempSync(join(tmpdir(), 'cli-hjem-'));
   const bin = mkdtempSync(join(tmpdir(), 'cli-bin-'));
   const log = join(hjem, 'kald.log');
@@ -39,7 +39,7 @@ function installer({ klienter = [], codeKanAddMcp = true, cursor = false, cursor
         ? 'echo   --add-mcp ^<json^>  Adds a Model Context Protocol server definition'
         : 'echo.';
       writeFileSync(join(bin, k + '.cmd'),
-        `@echo off\r\nif "%1"=="--help" ( ${hjaelp} & exit /b 0 )\r\n` +
+        `@echo off\r\nif "%~1"=="--help" ( ${hjaelp} & exit /b 0 )\r\n` +
         `>>"${log}" echo ${k} %*\r\nexit /b 0\r\n`);
     } else {
       const hjaelp = kanAdd ? 'echo "  --add-mcp <json>  Adds a Model Context Protocol server definition"' : 'true';
@@ -51,11 +51,16 @@ function installer({ klienter = [], codeKanAddMcp = true, cursor = false, cursor
     mkdirSync(join(hjem, '.cursor'));
     if (cursorIndhold !== undefined) writeFileSync(join(hjem, '.cursor', 'mcp.json'), cursorIndhold);
   }
-  const r = spawnSync(process.execPath, [cli, 'install', '--skip-extension'], {
+  if (opencode) {
+    mkdirSync(join(hjem, '.config', 'opencode'), { recursive: true });
+    if (opencodeIndhold !== undefined) writeFileSync(join(hjem, '.config', 'opencode', 'opencode.json'), opencodeIndhold);
+  }
+  const cmdArgs = [cli, 'install', '--skip-extension'].map((a) => (process.platform === 'win32' && a.includes(' ') ? `"${a}"` : a));
+  const r = spawnSync(process.platform === 'win32' ? `"${process.execPath}"` : process.execPath, cmdArgs, {
     encoding: 'utf8', timeout: 30000,
     shell: process.platform === 'win32',
     env: process.platform === 'win32'
-      ? { ...process.env, Path: `${bin};${dirname(process.execPath)};${process.env.Path || ''}`, HOME: hjem, USERPROFILE: hjem }
+      ? { ...process.env, PATH: `${bin};${dirname(process.execPath)};${process.env.PATH || process.env.Path || ''}`, Path: `${bin};${dirname(process.execPath)};${process.env.PATH || process.env.Path || ''}`, PATHEXT: '.COM;.EXE;.BAT;.CMD', PathExt: '.COM;.EXE;.BAT;.CMD', HOME: hjem, USERPROFILE: hjem }
       : { PATH: `${bin}:${dirname(process.execPath)}:/usr/bin:/bin`, HOME: hjem, USERPROFILE: hjem },
   });
   // MAALT 19/9: paa Windows koeres klienterne gennem cmd.exe med citerede argumenter
@@ -82,7 +87,7 @@ function installer({ klienter = [], codeKanAddMcp = true, cursor = false, cursor
 test('install registrerer hos Codex med codex mcp add, naar codex findes', () => {
   const { status, ud, kald } = installer({ klienter: ['codex'] });
   assert.equal(status, 0, ud);
-  assert.match(kald, /^codex mcp add browser-mcp -- npx @agent360\/browser-mcp@latest$/m, `codex blev ikke kaldt rigtigt: ${kald}`);
+  assert.match(kald, /^codex mcp add browser-mcp -- npx browser-mcp@latest$/m, `codex blev ikke kaldt rigtigt: ${kald}`);
   assert.match(ud, /Codex/);
 });
 
@@ -91,7 +96,7 @@ test('install registrerer hos VS Code med code --add-mcp, naar code kan det', ()
   const linje = kald.split('\n').find((l) => l.startsWith('code --add-mcp '));
   assert.ok(linje, `code --add-mcp blev ikke kaldt: ${kald}`);
   const def = JSON.parse(linje.slice('code --add-mcp '.length));
-  assert.deepEqual(def, { name: 'browser-mcp', command: 'npx', args: ['@agent360/browser-mcp@latest'] });
+  assert.deepEqual(def, { name: 'browser-mcp', command: 'npx', args: ['browser-mcp@latest'] });
 });
 
 test('en VS Code uden --add-mcp faar ikke et flag den ikke kender', () => {
@@ -104,13 +109,18 @@ test('install fletter serveren ind i Cursors globale fil og bevarer de servere d
   assert.ok(cursorEfter, 'Cursor-filen blev ikke skrevet');
   const d = JSON.parse(cursorEfter);
   assert.deepEqual(d.mcpServers.anden, { command: 'x' }, 'en eksisterende server blev fjernet');
-  assert.deepEqual(d.mcpServers['browser-mcp'], { command: 'npx', args: ['@agent360/browser-mcp@latest'] });
+  assert.deepEqual(d.mcpServers['browser-mcp'], { command: 'npx', args: ['browser-mcp@latest'] });
   assert.match(ud, /Cursor/);
+});
+
+test('install registrerer hos OpenCode naar .config/opencode findes', () => {
+  const { ud } = installer({ opencode: true, opencodeIndhold: JSON.stringify({ mcp: { obsidian: { enabled: true } } }) });
+  assert.match(ud, /OpenCode/);
 });
 
 test('findes Cursor-mappen men ingen fil, oprettes filen', () => {
   const { cursorEfter } = installer({ cursor: true });
-  assert.deepEqual(JSON.parse(cursorEfter || '{}').mcpServers?.['browser-mcp'], { command: 'npx', args: ['@agent360/browser-mcp@latest'] });
+  assert.deepEqual(JSON.parse(cursorEfter || '{}').mcpServers?.['browser-mcp'], { command: 'npx', args: ['browser-mcp@latest'] });
 });
 
 test('en Cursor-fil der ikke kan laeses, overskrives ikke', () => {

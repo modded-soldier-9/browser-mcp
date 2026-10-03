@@ -1,26 +1,72 @@
 // ── Status ──────────────────────────────────────────────────────────────────
 
-// mcpCount = agent clients on the socket. `sessions` = agents that have actually claimed a
-// tab. They differ, and showing "Connected - 1 session" above "No active sessions" read as a
-// contradiction at exactly the moment a new user checks whether the install worked.
-function paintStatus(connected, count, sessionCount) {
-  document.getElementById('dot').className = `dot ${connected ? 'on' : 'off'}`;
-  document.getElementById('label').textContent = !connected
-    ? 'Not connected - nothing on ports 9876-9895 yet'
-    : sessionCount > 0
-      ? `Connected - ${sessionCount} active session${sessionCount === 1 ? '' : 's'}`
-      : `Connected - ready (${count} agent${count === 1 ? '' : 's'} listening)`;
-  // The Chrome Web Store can only install the extension. If nothing is listening on
-  // ports 9876-9895, the user almost certainly never ran the npx install - say so.
-  document.getElementById('setup').classList.toggle('show', !connected);
-  // Connected but idle: they got it working and now need to know what to say.
-  document.getElementById('try').classList.toggle('show', connected && sessionCount === 0);
+function paintStatus(connected, count, sessionCount, ports = []) {
+  const dot = document.getElementById('dot');
+  const label = document.getElementById('label');
+  const sublabel = document.getElementById('sublabel');
+  const portBadge = document.getElementById('portBadge');
+  const sessionCountBadge = document.getElementById('sessionCountBadge');
+
+  if (sessionCountBadge) {
+    sessionCountBadge.textContent = String(sessionCount || 0);
+  }
+
+  dot.className = `dot ${connected ? 'on' : 'off'}`;
+
+  if (!connected) {
+    label.textContent = 'Disconnected';
+    if (sublabel) sublabel.textContent = 'Standby - scanning ports 9876-9895';
+    if (portBadge) portBadge.style.display = 'none';
+  } else if (sessionCount > 0) {
+    label.textContent = `Connected (${sessionCount} session${sessionCount === 1 ? '' : 's'})`;
+    if (sublabel) sublabel.textContent = `${count} agent client${count === 1 ? '' : 's'} attached`;
+    if (portBadge) {
+      portBadge.style.display = 'inline-block';
+      portBadge.textContent = ports && ports.length ? `:${ports[0]}` : 'Active';
+    }
+  } else {
+    label.textContent = `Connected - ready`;
+    if (sublabel) sublabel.textContent = `${count} agent${count === 1 ? '' : 's'} listening on bridge`;
+    if (portBadge) {
+      portBadge.style.display = 'inline-block';
+      portBadge.textContent = ports && ports.length ? `:${ports[0]}` : 'Ready';
+    }
+  }
+
+  // Setup assistance drawer when MCP server is not reachable
+  const setupEl = document.getElementById('setup');
+  if (setupEl) {
+    setupEl.classList.toggle('show', !connected);
+  }
+
+  // Help prompts when connected and waiting for first tool action
+  const tryEl = document.getElementById('try');
+  if (tryEl) {
+    tryEl.classList.toggle('show', connected && sessionCount === 0);
+  }
 }
 
 function refreshStatus() {
-  chrome.storage.local.get({ mcpConnected: false, mcpCount: 0, sessions: {} }, (result) => {
-    paintStatus(result.mcpConnected === true, result.mcpCount || 0,
-                Object.keys(result.sessions || {}).length);
+  chrome.storage.local.get({ mcpConnected: false, mcpCount: 0, mcpPorts: [], sessions: {} }, (result) => {
+    paintStatus(
+      result.mcpConnected === true,
+      result.mcpCount || 0,
+      Object.keys(result.sessions || {}).length,
+      result.mcpPorts || []
+    );
+  });
+
+  // Query offscreen bridge for live real-time status
+  chrome.runtime.sendMessage({ type: 'bmcp_get_status' }, (response) => {
+    if (chrome.runtime.lastError || !response || !response.ok) return;
+    chrome.storage.local.get({ sessions: {} }, ({ sessions = {} }) => {
+      paintStatus(
+        response.connected === true,
+        response.count || 0,
+        Object.keys(sessions).length,
+        response.ports || []
+      );
+    });
   });
 }
 
@@ -31,22 +77,29 @@ refreshStatus();
 function renderSessions() {
   chrome.storage.local.get({ sessions: {} }, ({ sessions }) => {
     const container = document.getElementById('sessions');
-    const entries = Object.entries(sessions);
+    const entries = Object.entries(sessions || {});
+
+    const sessionCountBadge = document.getElementById('sessionCountBadge');
+    if (sessionCountBadge) {
+      sessionCountBadge.textContent = String(entries.length);
+    }
 
     if (!entries.length) {
-      container.innerHTML = '<div class="empty">No tabs claimed yet</div>';
+      container.innerHTML = '<div class="empty">No browser tabs claimed yet</div>';
       return;
     }
 
-    // Fetch tab info for each session
+    // Fetch tab info for each active session
     const promises = entries.map(async ([port, session]) => {
       const tabInfos = [];
       for (const tabId of session.tabIds || []) {
         try {
           const tab = await chrome.tabs.get(tabId);
+          const title = tab.title || '';
           const url = tab.url || '';
-          const display = url.length > 40 ? url.slice(0, 40) + '…' : url;
-          tabInfos.push(display);
+          const display = title ? (title.length > 32 ? title.slice(0, 32) + '…' : title)
+                                : (url.length > 36 ? url.slice(0, 36) + '…' : url);
+          tabInfos.push({ id: tabId, display, url });
         } catch {}
       }
       return { port, session, tabInfos };
@@ -56,11 +109,14 @@ function renderSessions() {
       container.innerHTML = results.map(({ port, session, tabInfos }) => {
         const color = session.color || 'blue';
         const tabHtml = tabInfos.length
-          ? tabInfos.map(u => `<div>• ${u}</div>`).join('')
-          : '<div>No tabs</div>';
+          ? tabInfos.map(t => `<div title="${t.url || ''}">${t.display}</div>`).join('')
+          : '<div>No tabs assigned</div>';
         return `
           <div class="session-card color-${color}">
-            <div class="session-header">${session.label} <span style="font-weight:normal;font-size:10px;color:#64748b">port ${port}</span></div>
+            <div class="session-header">
+              <span>${session.label}</span>
+              <span style="font-weight:normal;font-size:10px;color:#64748b;font-family:ui-monospace,monospace">port ${port}</span>
+            </div>
             <div class="session-tabs">${tabHtml}</div>
           </div>`;
       }).join('');
@@ -75,39 +131,80 @@ renderSessions();
 function renderLog() {
   chrome.storage.local.get({ actionLog: [] }, ({ actionLog }) => {
     const container = document.getElementById('log');
-    if (!actionLog.length) {
-      container.innerHTML = '<div class="empty">No actions yet</div>';
+    const entries = Array.isArray(actionLog) ? actionLog : [];
+
+    const logCountBadge = document.getElementById('logCountBadge');
+    if (logCountBadge) {
+      logCountBadge.textContent = String(entries.length);
+    }
+
+    if (!entries.length) {
+      container.innerHTML = '<div class="empty">No actions logged yet</div>';
       return;
     }
-    container.innerHTML = actionLog.slice(0, 30).map(entry => {
-      const time = new Date(entry.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    container.innerHTML = entries.slice(0, 40).map(entry => {
+      const time = new Date(entry.time).toLocaleTimeString([], {
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      });
       const cat = entry.category || 'safe';
       const cls = cat === 'sensitive' ? 'log-sensitive' : 'log-safe';
-      return `<div class="log-entry"><span class="log-time">${time}</span><span class="log-method ${cls}">${entry.method}</span><span class="log-session">${entry.session || ''}</span></div>`;
+      return `
+        <div class="log-entry">
+          <span class="log-time">${time}</span>
+          <span class="log-method ${cls}">${entry.method}</span>
+          <span class="log-session">${entry.session || ''}</span>
+        </div>`;
     }).join('');
   });
 }
 
 renderLog();
 
-// ── Buttons ─────────────────────────────────────────────────────────────────
+// ── Real-time Updates ───────────────────────────────────────────────────────
 
-document.getElementById('reconnect').addEventListener('click', () => {
-  chrome.runtime.sendMessage({ type: 'reconnect' });
-  document.getElementById('label').textContent = 'Reconnecting…';
-  setTimeout(() => {
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== 'local') return;
+  if (changes.mcpConnected || changes.mcpCount || changes.mcpPorts || changes.sessions) {
     refreshStatus();
     renderSessions();
-  }, 3000);
+  }
+  if (changes.actionLog) {
+    renderLog();
+  }
+});
+
+// ── Controls & Actions ──────────────────────────────────────────────────────
+
+document.getElementById('reconnect').addEventListener('click', () => {
+  const dot = document.getElementById('dot');
+  const label = document.getElementById('label');
+  const sublabel = document.getElementById('sublabel');
+
+  if (dot) dot.className = 'dot scanning';
+  if (label) label.textContent = 'Reconnecting…';
+  if (sublabel) sublabel.textContent = 'Probing ports 9876-9895';
+
+  chrome.runtime.sendMessage({ type: 'reconnect' });
+  chrome.runtime.sendMessage({ type: 'bmcp_scan_now' }).catch(() => {});
+
+  [300, 800, 1500].forEach((delay) => {
+    setTimeout(() => {
+      refreshStatus();
+      renderSessions();
+      renderLog();
+    }, delay);
+  });
 });
 
 document.getElementById('copyCmd').addEventListener('click', (e) => {
-  navigator.clipboard.writeText(document.getElementById('setupCmd').textContent.trim());
+  const cmd = document.getElementById('setupCmd').textContent.trim();
+  navigator.clipboard.writeText(cmd);
+  const orig = e.target.textContent;
   e.target.textContent = 'Copied!';
-  setTimeout(() => { e.target.textContent = 'Copy command'; }, 1500);
+  setTimeout(() => { e.target.textContent = orig; }, 1500);
 });
 
 document.getElementById('clearLog').addEventListener('click', () => {
   chrome.storage.local.set({ actionLog: [] }, renderLog);
 });
-

@@ -26,7 +26,7 @@ const skipExtension = process.argv.includes('--skip-extension');
 // Serverdefinitionen alle klienter registreres med. Staar her, fordi install() koeres straks nedenfor.
 const SERVER_NAVN = 'browser-mcp';
 const SERVER_KOMMANDO = 'npx';
-const SERVER_ARGS = ['@agent360/browser-mcp@latest'];
+const SERVER_ARGS = ['browser-mcp@latest'];
 
 if (command === '--version' || command === '-v') {
   // MAALT 13/9: `--version` faldt igennem til hjaelpeteksten. Det er det foerste en bruger
@@ -41,15 +41,13 @@ if (command === '--version' || command === '-v') {
   await import('../index.js');
 } else {
   console.log(`
-Browser MCP by Agent360 - control your real Chrome from Claude Code
+Browser MCP - control your real browser from Claude Code, OpenCode, and AI agents
 
 Usage:
-  npx @agent360/browser-mcp install                   Extension files + register the server
-  npx @agent360/browser-mcp install --skip-extension  Register the server only
-                                                      (use this if you installed the
-                                                       extension from the Chrome Web Store)
-  npx @agent360/browser-mcp                           Start MCP server (called by your client)
-  npx @agent360/browser-mcp --version                 Print the installed version
+  npx browser-mcp install                   Extension files + register the server
+  npx browser-mcp install --skip-extension  Register the server only
+  npx browser-mcp                           Start MCP server (called by your client)
+  npx browser-mcp --version                 Print the installed version
 
 Docs: https://github.com/Agent360dk/browser-mcp
 `);
@@ -82,8 +80,8 @@ function koerKlient(kommando, args, valg = {}) {
 
 function registerWithClaudeCode() {
   try {
-    koerKlient('claude', ['mcp', 'add', '--scope', 'user', 'browser-mcp',
-                            '--', 'npx', '@agent360/browser-mcp@latest'],
+    koerKlient('claude', ['mcp', 'add', '--scope', 'user', SERVER_NAVN,
+                            '--', SERVER_KOMMANDO, ...SERVER_ARGS],
                  { stdio: 'pipe' });
     console.log('✅ Registered with Claude Code (claude mcp add --scope user)');
     return true;
@@ -96,12 +94,11 @@ function registerWithClaudeCode() {
     // `claude` not on PATH, or a different client entirely. Do not pretend it worked.
     console.log('⚠️  Could not register automatically (the `claude` command was not found).');
     console.log('   Register the server yourself - Claude Code:');
-    console.log('     claude mcp add --scope user browser-mcp -- npx @agent360/browser-mcp@latest');
+    console.log(`     claude mcp add --scope user ${SERVER_NAVN} -- ${SERVER_KOMMANDO} ${SERVER_ARGS.join(' ')}`);
     console.log('   Codex:');
-    console.log('     codex mcp add browser-mcp -- npx @agent360/browser-mcp@latest');
-    console.log('   Cursor / VS Code / other - add to that client\'s MCP config:');
-    console.log('     {"mcpServers": {"browser-mcp": {"command": "npx", "args": ["@agent360/browser-mcp@latest"]}}}');
-    console.log('   Guides: https://browsermcp.dev/docs/install-claude-code/');
+    console.log(`     codex mcp add ${SERVER_NAVN} -- ${SERVER_KOMMANDO} ${SERVER_ARGS.join(' ')}`);
+    console.log('   Cursor / VS Code / Antigravity / other - add to client\'s MCP config:');
+    console.log(`     {"mcpServers": {"${SERVER_NAVN}": {"command": "${SERVER_KOMMANDO}", "args": ${JSON.stringify(SERVER_ARGS)}}}}`);
     return false;
   }
 }
@@ -149,7 +146,70 @@ function registerWithVSCode() {
   }
 }
 
-// Cursor har ingen kommando. Dens globale fil er ~/.cursor/mcp.json; den flettes, og alt andet i den bevares.
+function registerWithAntigravity() {
+  const geminiDir = join(homedir(), '.gemini', 'config');
+  if (!existsSync(geminiDir)) return null; // Antigravity is not installed or configured
+  const configFile = join(geminiDir, 'mcp_config.json');
+  let cfg = { mcpServers: {} };
+  if (existsSync(configFile)) {
+    try {
+      cfg = JSON.parse(readFileSync(configFile, 'utf8'));
+    } catch {
+      console.log(`⚠️  Antigravity config found at ${configFile}, but could not be parsed.`);
+      return false;
+    }
+  }
+  cfg.mcpServers = cfg.mcpServers || {};
+  if (cfg.mcpServers['astro-browser-mcp']) {
+    delete cfg.mcpServers['astro-browser-mcp'];
+  }
+  cfg.mcpServers[SERVER_NAVN] = {
+    command: 'node',
+    args: [join(pkgRoot, 'bin', 'cli.js')]
+  };
+  writeFileSync(configFile, JSON.stringify(cfg, null, 2) + '\n');
+  console.log(`✅ Registered with Antigravity IDE (${configFile})`);
+  return true;
+}
+
+function registerWithOpenCode() {
+  const opencodeDir = join(homedir(), '.config', 'opencode');
+  if (!existsSync(opencodeDir)) return null; // OpenCode is not installed or configured
+  const candidateFiles = [
+    join(opencodeDir, 'opencode.json'),
+    join(opencodeDir, 'opencode.jsonc')
+  ].filter(f => existsSync(f));
+  const filesToUpdate = candidateFiles.length ? candidateFiles : [join(opencodeDir, 'opencode.json')];
+
+  const serverDef = {
+    type: 'local',
+    command: ['node', join(pkgRoot, 'bin', 'cli.js')],
+    enabled: true,
+  };
+
+  let anyUpdated = false;
+  for (const configFile of filesToUpdate) {
+    let cfg = { mcp: {} };
+    if (existsSync(configFile)) {
+      try {
+        cfg = JSON.parse(readFileSync(configFile, 'utf8'));
+      } catch {
+        console.log(`⚠️  OpenCode config found at ${configFile}, but could not be parsed.`);
+        continue;
+      }
+    }
+    cfg.mcp = cfg.mcp || {};
+    if (cfg.mcp['astro-browser-mcp']) {
+      delete cfg.mcp['astro-browser-mcp'];
+    }
+    cfg.mcp[SERVER_NAVN] = serverDef;
+    writeFileSync(configFile, JSON.stringify(cfg, null, 2) + '\n');
+    console.log(`✅ Registered with OpenCode (${configFile})`);
+    anyUpdated = true;
+  }
+  return anyUpdated;
+}
+
 function registerWithCursor() {
   const mappe = join(homedir(), '.cursor');
   if (!existsSync(mappe)) return null;   // Cursor er ikke installeret
@@ -180,11 +240,10 @@ function install({ skipExtension = false } = {}) {
   const extensionDir = join(home, '.browser-mcp', 'extension');
   const sourceExtension = join(pkgRoot, 'extension');
 
-  console.log('\n🔧 Browser MCP by Agent360\n');
-  console.log('Browser MCP is two halves and needs both: a Chrome extension, and this MCP');
-  console.log('server registered with your AI client.\n');
+  console.log('\n🚀 Browser MCP v2.0.0\n');
+  console.log('Browser MCP connects your AI agents directly to your real browser session.\n');
 
-  // 1. Extension files (skipped when the user already has it from the Chrome Web Store)
+  // 1. Extension files
   if (skipExtension) {
     console.log('⏭  Skipping extension files (--skip-extension)');
   } else {
@@ -199,6 +258,8 @@ function install({ skipExtension = false } = {}) {
 
   // 2. Register the server with every client that is installed
   registerWithClaudeCode();
+  registerWithAntigravity();
+  registerWithOpenCode();
   registerWithCodex();
   registerWithVSCode();
   registerWithCursor();
@@ -207,41 +268,27 @@ function install({ skipExtension = false } = {}) {
   if (skipExtension) {
     console.log(`
 📋 Last step:
-  1. Make sure the Agent360 Browser MCP extension is enabled at chrome://extensions
+  1. Make sure the Browser MCP extension is enabled at chrome://extensions or brave://extensions
   2. Restart your AI client so it picks up the server
-  3. Ask your agent to use the browser once - a green badge appears on the extension icon the first
-     time it is actually used, not on restart. Grey before that is normal.`);
+  3. Ask your agent to use the browser once - status turns connected immediately.`);
   } else {
     console.log(`
-📋 Load the extension in Chrome (one time only):
-  1. Open Chrome
-  2. Go to chrome://extensions (type it in the address bar)
+📋 Load the extension in Chrome / Brave (one time only):
+  1. Open Chrome or Brave
+  2. Go to chrome://extensions (or brave://extensions)
   3. Enable "Developer mode" (toggle in top right corner)
   4. Click "Load unpacked" button (top left)
   5. Navigate to and select this folder:
      ${extensionDir}
-  6. The extension "Agent360 Browser MCP" appears with a puzzle icon
-  7. Restart your AI client - the browser tools are now available
-
-  Prefer a one-click, auto-updating extension instead of loading unpacked?
-  https://chromewebstore.google.com/detail/agent360-browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl
-  (then re-run this command with --skip-extension)`);
+  6. The extension "Browser MCP" appears
+  7. Start or restart your AI client - the browser tools are immediately active!`);
   }
 
   console.log(`
-🔄 Auto-updates:
-   - MCP server: always fetches latest from npm (npx @latest)
-   - Chrome Web Store extension: Chrome updates it after Google approves each
-     version (usually 1-3 days). Nothing here can speed that up.
-   - Unpacked extension in ~/.browser-mcp/extension/: files are refreshed when the
-     npm version is newer, and the bridge reloads itself
-
-💡 Help shape Browser MCP:
-   - Public wishlist:  https://github.com/Agent360dk/browser-mcp/blob/main/WISHLIST.md
-   - Use-case gallery: https://github.com/Agent360dk/browser-mcp/blob/main/USE_CASES.md
-   - Got an idea, bug, or cool thing you built? Just ask Claude - it can draft + submit for you.
-
-📖 Docs: https://browsermcp.dev
+🔄 Silent Headless Execution:
+   - MCP server runs in the background silently via stdio.
+   - No open terminal windows or persistent CMD tabs required.
+   - Ultra-low latency WebSocket bridge on 127.0.0.1:9876 with automatic keepalive.
 `);
 }
 

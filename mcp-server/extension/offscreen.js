@@ -103,7 +103,7 @@ const connections = new Map(); // port → WebSocket
 //
 // Sidegevinst: det er sikrere. Foer aabnede udvidelsen blindt en WebSocket mod
 // hvad der nu maatte lytte paa 9876-9895.
-const PROBE_TIMEOUT_MS = 400;
+const PROBE_TIMEOUT_MS = 800;
 let skanner = false;
 
 async function harServer(port) {
@@ -170,6 +170,7 @@ async function scanPorts() {
     for (const port of levende) {
       if (port !== null) tryConnect(port);
     }
+    if (typeof updateStatus === 'function') updateStatus();
   } finally {
     clearTimeout(ventil);
     skanner = false;
@@ -255,9 +256,16 @@ function tryConnect(port) {
     let cmd;
     try { cmd = JSON.parse(event.data); } catch { return; }
 
+    if (!cmd || typeof cmd !== 'object') return;
+    if (cmd.type === 'ping') {
+      try { ws.send(JSON.stringify({ type: 'pong' })); } catch {}
+      return;
+    }
+    if (cmd.type === 'pong') return;
+
     // 26/9: `null` er gyldig JSON - kun objekter med en `method` er kommandoer (serveren sender
     // intet andet; en 1.30.0-servers parringskvittering ignoreres dermed ogsaa).
-    if (!cmd || typeof cmd !== 'object' || typeof cmd.method !== 'string') return;
+    if (typeof cmd.method !== 'string') return;
 
     const { id, method, params, pid } = cmd;
 
@@ -289,6 +297,8 @@ function tryConnect(port) {
       updateStatus();
       // Notify background to release tabs for this session
       chrome.runtime.sendMessage({ type: 'session_disconnect', port }).catch(() => {});
+      // Fast reconnect attempt in case the server bounced
+      setTimeout(scanPorts, 500);
     }
   };
 
@@ -336,6 +346,41 @@ chrome.runtime.onMessage.addListener((msg) => {
   try { ws.close(); } catch {}
   // ws.onclose handler removes from connections + notifies background
 });
+
+// Listen for on-demand port scan triggers
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg?.type === 'bmcp_scan_now') {
+    scanPorts();
+    sendResponse({ ok: true });
+    return true;
+  }
+  if (msg?.type === 'bmcp_get_status') {
+    updateStatus();
+    sendResponse({
+      ok: true,
+      connected: connections.size > 0,
+      count: connections.size,
+      ports: [...connections.keys()],
+    });
+    return true;
+  }
+});
+
+// Client-side heartbeat to keep WebSocket and TCP connections warm and alive
+setInterval(() => {
+  for (const [, ws] of connections) {
+    if (ws.readyState === WebSocket.OPEN) {
+      try { ws.send(JSON.stringify({ type: 'ping' })); } catch {}
+    }
+  }
+}, 12000);
+
+// Keep background service worker active while connections exist
+setInterval(() => {
+  if (connections.size > 0) {
+    chrome.runtime.sendMessage({ type: 'bmcp_keepalive' }).catch(() => {});
+  }
+}, 20000);
 
 // Initial scan + frequent rescan for new servers
 scanPorts();

@@ -22,7 +22,7 @@
   "mcp": {
     "browser-mcp": {
       "type": "local",
-      "command": ["npx", "-y", "@agent360/browser-mcp@latest"]
+      "command": ["browser-mcp"]
     }
   }
 }
@@ -56,7 +56,7 @@ opencode: [browser_navigate]
 opencode does not. It takes one array with the executable first:
 
 ```json
-"command": ["npx", "-y", "@agent360/browser-mcp@latest"]
+"command": ["browser-mcp"]
 ```
 
 If you copy a config from a Claude Code or Cursor guide, this is the line that breaks, and the failure looks like the server never starting rather than a config error.

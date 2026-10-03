@@ -18,3 +18,7 @@ __pycache__/
 # Chrome for Testing, hentet af scripts/flow-isoleret.mjs. ~360 MB binaer - hoerer
 # ikke i git. Hentes paa ny med: npx @puppeteer/browsers install chrome@stable
 chrome/
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/
+*.tgz
