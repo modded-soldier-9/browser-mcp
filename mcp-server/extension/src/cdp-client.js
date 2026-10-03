@@ -54,7 +54,15 @@ export async function detachDebugger(tabId) {
   } catch {}
 }
 
+const lastTabFocusAt = new Map();
+try {
+  chrome.tabs?.onActivated?.addListener(() => lastTabFocusAt.clear());
+  chrome.windows?.onFocusChanged?.addListener(() => lastTabFocusAt.clear());
+} catch {}
+
 export async function ensureForegroundExecution(tabId) {
+  const now = Date.now();
+  if (now - (lastTabFocusAt.get(tabId) || 0) < 1500) return;
   try {
     await chrome.tabs.update(tabId, { active: true }).catch(() => null);
     const tab = await chrome.tabs.get(tabId).catch(() => null);
@@ -70,6 +78,7 @@ export async function ensureForegroundExecution(tabId) {
     if (attachedTabs.has(tabId)) {
       await chrome.debugger.sendCommand({ tabId }, 'Page.bringToFront', {}).catch(() => null);
     }
+    lastTabFocusAt.set(tabId, Date.now());
   } catch {}
 }
 

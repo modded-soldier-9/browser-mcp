@@ -86,3 +86,28 @@ export async function extractList(tabId, { selector, container = null, max_rows 
 
   return await evaluateScript(tabId, code);
 }
+
+export async function getInteractiveSnapshot(tabId, maxItems = 20) {
+  const code = `
+    (() => {
+      const selector = 'button, a[href], input:not([type="hidden"]), select, textarea, [role="button"], [role="combobox"]';
+      const nodes = Array.from(document.querySelectorAll(selector));
+      const interactive = [];
+      for (const el of nodes) {
+        if (interactive.length >= ${maxItems}) break;
+        const r = el.getBoundingClientRect();
+        if (r.width <= 0 || r.height <= 0) continue;
+        const tag = el.tagName.toLowerCase();
+        const label = (el.innerText || el.getAttribute('aria-label') || el.getAttribute('placeholder') || el.name || '').trim().slice(0, 50);
+        const id = el.id ? '#' + el.id : '';
+        interactive.push({ tag, id, label });
+      }
+      return {
+        url: location.href,
+        title: document.title,
+        interactive,
+      };
+    })()
+  `;
+  return await evaluateScript(tabId, code).catch(() => null);
+}

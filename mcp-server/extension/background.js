@@ -644,7 +644,15 @@ function cdpMedFrist(tabId, method, params) {
   ]).finally(() => clearTimeout(ur));
 }
 
+const lastTabFocusAt = new Map();
+try {
+  chrome.tabs?.onActivated?.addListener(() => lastTabFocusAt.clear());
+  chrome.windows?.onFocusChanged?.addListener(() => lastTabFocusAt.clear());
+} catch {}
+
 async function ensureTabActive(tabId) {
+  const now = Date.now();
+  if (now - (lastTabFocusAt.get(tabId) || 0) < 1500) return;
   try {
     await chrome.tabs.update(tabId, { active: true }).catch(() => null);
     const tab = await chrome.tabs.get(tabId).catch(() => null);
@@ -660,6 +668,7 @@ async function ensureTabActive(tabId) {
     if (debuggerAttached.has(tabId)) {
       await chrome.debugger.sendCommand({ tabId }, 'Page.bringToFront', {}).catch(() => null);
     }
+    lastTabFocusAt.set(tabId, Date.now());
   } catch {}
 }
 
@@ -862,11 +871,8 @@ async function typeCharsAttached(tabId, text) {
     await tastParAttached(tabId,
       { text: char, key: char, ...(code ? { code } : {}), unmodifiedText: char },
       { key: char, ...(code ? { code } : {}) });
-    // Human-like typing: random 30-120ms, occasional longer pause
-    const pause = (i > 0 && i % (7 + Math.floor(Math.random() * 5)) === 0)
-      ? 150 + Math.random() * 200  // thinking pause every ~10 chars
-      : 30 + Math.random() * 90;   // normal keystroke
-    await new Promise(r => setTimeout(r, pause));
+    // Fast micro-cadence (6ms) instead of 30-350ms artificial human pauses
+    await new Promise(r => setTimeout(r, 6));
   }
 }
 
@@ -1028,7 +1034,7 @@ async function debuggerClick(tabId, x, y) {
     await dispatchTaalmodigt(tabId, {
       type: 'mouseMoved', x, y,
     });
-    await new Promise(r => setTimeout(r, 30));
+    await new Promise(r => setTimeout(r, 10));
     // 2. mousePressed + mouseReleased. The `buttons` bitmask (1 while pressed,
     //    0 on release) plus a small press→release gap are REQUIRED for Chrome to
     //    synthesize a *trusted* 'click' from the pair. Without them, web-components
@@ -1041,7 +1047,7 @@ async function debuggerClick(tabId, x, y) {
       await dispatchTaalmodigt(tabId, {
         type: 'mousePressed', x, y, button: 'left', buttons: 1, clickCount: 1,
       });
-      await new Promise(r => setTimeout(r, 30));
+      await new Promise(r => setTimeout(r, 15));
     } catch (e) { trykFejl = e; }
     try {
       await dispatchTaalmodigt(tabId, {
@@ -1053,7 +1059,7 @@ async function debuggerClick(tabId, x, y) {
     //    the trusted click in step 2 did not already handle it). Settle delay lets
     //    SPA re-renders (Google Ads) detach the element first. Fires a full pointer
     //    + mouse sequence on the shadow-pierced target, then React/Angular handlers.
-    await new Promise(r => setTimeout(r, 120));
+    await new Promise(r => setTimeout(r, 50));
     // MAALT 9/9-2026: oprydningen (removeEventListener + delete) laa FOER reserveloesningen
     // fyrede. Derfor kunne intet observere om det syntetiske klik virkede, og udtrykket
     // svarede landed:false som et GAET. Paa en div-baseret dropdown betoed det
@@ -1785,7 +1791,7 @@ function parseSelector(selector) {
   return { type: 'css', selector };
 }
 
-async function resolveElement(tabId, selectorStr) {
+async function resolveElementOnce(tabId, selectorStr) {
   const parsed = parseSelector(selectorStr);
 
   if (parsed.type === 'css') {
@@ -1860,6 +1866,16 @@ async function resolveElement(tabId, selectorStr) {
     })()
   `);
   return result ? { ...result, method: 'debugger' } : null;
+}
+
+async function resolveElement(tabId, selectorStr) {
+  let lastResult = null;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    lastResult = await resolveElementOnce(tabId, selectorStr);
+    if (lastResult && !lastResult.hidden) return lastResult;
+    if (attempt < 4) await new Promise(r => setTimeout(r, 75));
+  }
+  return lastResult;
 }
 
 // ── Offscreen Document Setup ───────────────────────────────────────────────
