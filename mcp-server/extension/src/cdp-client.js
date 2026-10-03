@@ -56,24 +56,28 @@ export async function detachDebugger(tabId) {
 
 export async function ensureForegroundExecution(tabId) {
   try {
+    await chrome.tabs.update(tabId, { active: true }).catch(() => null);
     const tab = await chrome.tabs.get(tabId).catch(() => null);
-    if (tab && !tab.active) {
-      await chrome.tabs.update(tabId, { active: true }).catch(() => null);
-    }
     if (tab && tab.windowId !== undefined) {
       const win = await chrome.windows.get(tab.windowId).catch(() => null);
-      if (win && win.state === 'minimized') {
-        await chrome.windows.update(tab.windowId, { state: 'normal' }).catch(() => null);
+      if (win && (win.state === 'minimized' || !win.focused)) {
+        await chrome.windows.update(tab.windowId, {
+          focused: true,
+          ...(win.state === 'minimized' ? { state: 'normal' } : {}),
+        }).catch(() => null);
       }
+    }
+    if (attachedTabs.has(tabId)) {
+      await chrome.debugger.sendCommand({ tabId }, 'Page.bringToFront', {}).catch(() => null);
     }
   } catch {}
 }
 
 export async function sendCommand(tabId, method, params = {}) {
+  await attachDebugger(tabId);
   if (method.startsWith('Input.')) {
     await ensureForegroundExecution(tabId);
   }
-  await attachDebugger(tabId);
   const timeoutMs = debuggerCommandTimeouts[method] || debuggerCommandTimeouts.default;
 
   return new Promise((resolve, reject) => {

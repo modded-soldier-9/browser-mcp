@@ -646,24 +646,28 @@ function cdpMedFrist(tabId, method, params) {
 
 async function ensureTabActive(tabId) {
   try {
+    await chrome.tabs.update(tabId, { active: true }).catch(() => null);
     const tab = await chrome.tabs.get(tabId).catch(() => null);
-    if (tab && !tab.active) {
-      await chrome.tabs.update(tabId, { active: true }).catch(() => null);
-    }
     if (tab && tab.windowId !== undefined) {
       const win = await chrome.windows.get(tab.windowId).catch(() => null);
-      if (win && win.state === 'minimized') {
-        await chrome.windows.update(tab.windowId, { state: 'normal' }).catch(() => null);
+      if (win && (win.state === 'minimized' || !win.focused)) {
+        await chrome.windows.update(tab.windowId, {
+          focused: true,
+          ...(win.state === 'minimized' ? { state: 'normal' } : {}),
+        }).catch(() => null);
       }
+    }
+    if (debuggerAttached.has(tabId)) {
+      await chrome.debugger.sendCommand({ tabId }, 'Page.bringToFront', {}).catch(() => null);
     }
   } catch {}
 }
 
 async function cdpSend(tabId, method, params = {}) {
+  await debuggerAttach(tabId);
   if (String(method).startsWith('Input.')) {
     await ensureTabActive(tabId);
   }
-  await debuggerAttach(tabId);
   let lastMsg = '';
   // 4 total attempts (initial + 3 retries) for read-only methods; backoff 100/300/500ms.
   // Handles aggressive auto-detach on anti-automation sites (Apple ASC, Salesforce, etc.)
@@ -968,6 +972,7 @@ async function tolkManglendeSettle(tabId, settle, urlFoer) {
 
 async function debuggerClick(tabId, x, y) {
   await debuggerAttach(tabId);
+  await ensureTabActive(tabId);
   // Er museknappen sendt ned, kan klikket vaere landet - saa maa en fejl bagefter ikke fore til et klik til.
   let trykSendt = false;
   try {
