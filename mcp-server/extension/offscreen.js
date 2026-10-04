@@ -347,8 +347,7 @@ chrome.runtime.onMessage.addListener((msg) => {
       ws.send(JSON.stringify({ type: 'terminate' }));
     }
   } catch {}
-  try { ws.close(); } catch {}
-  // ws.onclose handler removes from connections + notifies background
+  // Keep the WebSocket connection alive and ready for subsequent commands and other chats
 });
 
 // Listen for on-demand port scan triggers

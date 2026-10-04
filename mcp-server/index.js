@@ -387,11 +387,15 @@ function createWSS(port = BASE_PORT) {
           process.stderr.write('[MCP] terminate ignoreret - kom fra en inaktiv udvidelses-forbindelse\n');
           return;
         }
-        // AENDRET 7/9: her stod `gracefulShutdown`. En chat der var faerdig med browseren
-        // mistede altsaa browseren HELT - og porten blev alligevel hverken frigivet hurtigt
-        // nok til andre (processen doede foerst efter oprydning) eller genvundet af chatten
-        // selv. Nu slippes kun porten; naeste browser-kald tager en ny (se sikrePort).
-        frigivPort('udvidelsen meldte: sidste fane lukket');
+        // Do not drop the port or shut down wss when a session closes its tabs (formerly called gracefulShutdown);
+        // keeping the bridge open ensures the extension stays connected for future tabs and other chats.
+        if (process.env.BROWSER_MCP_RELEASE_ON_TERMINATE === '1') {
+          frigivPort('udvidelsen meldte: sidste fane lukket');
+        } else {
+          laastForbindelse = null;
+          harSendtKommando = false;
+          process.stderr.write(`[MCP] session tabs closed - port ${activePort} stays active and ready\n`);
+        }
         return;
       }
 
@@ -1412,6 +1416,9 @@ if (!vagtKaede.length) {
 process.stderr.write(`[MCP] vagt-kaede: ${vagtKaede.join(' → ')}\n`);
 
 parentCheck = setInterval(() => {
+  if (process.platform === 'win32' && process.stdin && !process.stdin.destroyed && process.stdin.readable) {
+    return;
+  }
   const doede = vagtKaede.filter((pid) => ledErDoedt(pid));
   if (!doede.length) return;
 
