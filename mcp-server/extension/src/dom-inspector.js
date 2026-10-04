@@ -27,7 +27,24 @@ export async function getPageContent(tabId, { selector = null, format = 'text', 
     (() => {
       const root = ${selector ? `document.querySelector(${JSON.stringify(selector)})` : 'document.body'};
       if (!root) return { error: 'selector not found' };
-      const raw = ${format === 'html' ? 'root.outerHTML' : 'root.innerText'};
+      let raw = ${format === 'html' ? 'root.outerHTML' : '(root.innerText || "")'};
+      ${!selector && format === 'text' ? `
+        try {
+          const frames = Array.from(document.querySelectorAll('iframe'));
+          for (const f of frames) {
+            try {
+              const doc = f.contentDocument || f.contentWindow?.document;
+              if (doc && doc.body) {
+                const fText = (doc.body.innerText || '').trim();
+                if (fText) {
+                  const label = f.getAttribute('src') || f.title || 'iframe';
+                  raw += '\\n\\n--- [Frame: ' + label + '] ---\\n' + fText;
+                }
+              }
+            } catch {}
+          }
+        } catch {}
+      ` : ''}
       const truncated = raw.length > ${max_chars};
       return {
         content: truncated ? raw.slice(0, ${max_chars}) : raw,

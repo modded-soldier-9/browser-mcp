@@ -213,6 +213,7 @@ function getSession(port, pid) {
     sessions.set(port, {
       tabIds: new Set(),
       activeTabId: null,
+      agentTabs: new Map(), // subagent/agentId -> tabId mapping for parallel multi-agent flows
       groupId: null,
       nummer,
       color: SESSION_COLORS[(nummer - 1) % SESSION_COLORS.length],
@@ -456,10 +457,24 @@ function persistSessions() {
   chrome.storage.local.set({ sessions: data });
 }
 
-// Get the active tab for this session (last navigated), or create one.
+// ── Tab Action Mutex for Multi-Agent Concurrency ───────────────────────────
+// Serializes CDP commands on the same tab to avoid 'Another debugger is attached'
+const tabLocks = new Map(); // tabId -> Promise chain
+function withTabLock(tabId, fn) {
+  if (!tabId || typeof tabId !== 'number') return fn();
+  const prev = tabLocks.get(tabId) || Promise.resolve();
+  const next = prev.catch(() => {}).then(fn);
+  tabLocks.set(tabId, next);
+  next.finally(() => {
+    if (tabLocks.get(tabId) === next) tabLocks.delete(tabId);
+  });
+  return next;
+}
+
+// Get the active tab for this session (last navigated), or target tab specified by multi-agent flow.
 // activate=false (default): runs in background — no focus stealing.
 // activate=true: only for commands that NEED visible tab (screenshot, ask_user, navigate, execute_script).
-async function getSessionTab(port, activate = false) {
+async function getSessionTab(port, activate = false, targetTabId = null, agentId = null) {
   const session = getSession(port);
   let target = null;
   // Remember our OWN about:blank placeholder so we reuse it instead of spawning another
@@ -472,8 +487,43 @@ async function getSessionTab(port, activate = false) {
     return true;
   };
 
-  // Prefer the active (last navigated) tab
-  if (session.activeTabId) {
+  // 1. Explicit targetTabId (allows orchestrator to direct actions to specific tabs)
+  if (targetTabId != null) {
+    const numId = Number(targetTabId);
+    if (Number.isInteger(numId) && numId > 0) {
+      try {
+        const tab = await chrome.tabs.get(numId);
+        if (tab && !tab.url.startsWith('chrome://')) {
+          if (!session.tabIds.has(numId)) {
+            await addTabToSession(port, numId);
+          }
+          if (agentId) {
+            if (!session.agentTabs) session.agentTabs = new Map();
+            session.agentTabs.set(agentId, numId);
+          }
+          target = tab;
+        }
+      } catch {}
+    }
+  }
+
+  // 2. Subagent affinity (subagents like planner/e2e keep their own active tab in session)
+  if (!target && agentId) {
+    if (!session.agentTabs) session.agentTabs = new Map();
+    const subTabId = session.agentTabs.get(agentId);
+    if (subTabId) {
+      try {
+        const tab = await chrome.tabs.get(subTabId);
+        if (consider(tab)) target = tab;
+      } catch {
+        session.agentTabs.delete(agentId);
+        session.tabIds.delete(subTabId);
+      }
+    }
+  }
+
+  // 3. Prefer the active (last navigated) tab
+  if (!target && session.activeTabId) {
     try {
       const tab = await chrome.tabs.get(session.activeTabId);
       if (consider(tab)) target = tab;
@@ -484,7 +534,7 @@ async function getSessionTab(port, activate = false) {
     }
   }
 
-  // Fallback: any usable session tab
+  // 4. Fallback: any usable session tab
   if (!target) {
     for (const tabId of session.tabIds) {
       try {
@@ -496,29 +546,26 @@ async function getSessionTab(port, activate = false) {
     }
   }
 
-  // Reuse our own blank placeholder rather than spawning yet another one (FIX-4).
+  // 5. Reuse our own blank placeholder rather than spawning yet another one (FIX-4).
   if (!target && blankFallback) {
     target = blankFallback;
     session.activeTabId = target.id;
     persistSessions();
   }
 
-  // No usable tab at all — create ONE placeholder and pin it as the active tab so the
+  // 6. No usable tab at all — create ONE placeholder and pin it as the active tab so the
   // NEXT call reuses it (FIX-4) instead of creating a fresh about:blank every time.
   if (!target) {
     target = await chrome.tabs.create({ url: 'about:blank', active: false });
     await addTabToSession(port, target.id);
     session.activeTabId = target.id;
+    if (agentId) {
+      if (!session.agentTabs) session.agentTabs = new Map();
+      session.agentTabs.set(agentId, target.id);
+    }
     persistSessions();
-    // fall through to the activate branch (SC-3: previously returned early, skipping it)
   }
 
-  // Activate the tab WITHOUT stealing the user\'s focus (FIX-1). This is a BACKGROUND tool:
-  // screenshot/press_key run constantly, so we must NOT chrome.windows.update({focused:true})
-  // here — that yanked Chrome to the foreground on every action. We only (a) un-minimize a
-  // minimized window (needed so it can composite) and (b) make the tab active within its
-  // window. The truly-occluded (covered) case is handled as a bounded last-resort
-  // raise-and-restore inside the screenshot handler only.
   if (activate) {
     try {
       if (target.windowId != null) {
@@ -599,8 +646,8 @@ async function debuggerAttach(tabId) {
   }
   throw new Error(
     `Debugger attach failed after 3 attempts (tab ${tabId}). Last: ${lastMsg}. ` +
-    `If persistent: the page may be continuously reloading (dev-server mid-build — wait, then retry), ` +
-    `or the user canceled Chrome\'s debugger banner — reload Browser MCP (chrome://extensions/ → ↻) or restart Chrome.`
+    `If persistent: restart Chrome completely (quit browser and reopen) - extension-reload is not enough if Chrome dismissed the debugger banner. ` +
+    `If on a local dev server, wait for the bundle to finish building, then retry.`
   );
 }
 
@@ -1775,6 +1822,22 @@ async function scriptingClick(tabId, selector) {
           }
         }
         if (!el) return { ok: false, reason: 'not_found' };
+        // Label fallback for zero-dimension styled checkboxes, toggles, and switches
+        try {
+          const r0 = el.getBoundingClientRect();
+          if (r0.width <= 0 || r0.height <= 0) {
+            let label = el.id ? document.querySelector('label[for="' + CSS.escape(el.id) + '"]') : null;
+            if (!label) label = el.closest ? el.closest('label') : null;
+            if (!label && el.parentElement) label = el.parentElement.querySelector('label');
+            if (!label && el.getAttribute && el.getAttribute('aria-labelledby')) {
+              label = document.getElementById(el.getAttribute('aria-labelledby'));
+            }
+            if (label) {
+              const lr = label.getBoundingClientRect();
+              if (lr.width > 0 && lr.height > 0) el = label;
+            }
+          }
+        } catch {}
         el.scrollIntoView({ block: 'center', behavior: 'instant' });
         // Sign-off 11/9 (Astra og Fable, begge reproduceret): paa en baggrundsfane blev et klik der krævede isTrusted,
         // eller kun lyttede paa pointerdown, meldt ok:true uden nogen virkning. Klikket maaler nu sidens reaktion med
@@ -1938,6 +2001,23 @@ async function resolveElementOnce(tabId, selectorStr) {
       // paa hvad der nu laa der (logo, menu, link) — og svarede ok:true. Det er ikke en
       // rapporteringsfejl men en handlingsfejl: vi klikker et andet sted end der blev bedt om.
       if (r.width <= 0 || r.height <= 0) {
+        // Label fallback for styled toggles, switches, and checkboxes (e.g. M365, Bookings, Namecheap, Tailwind)
+        let label = null;
+        if (el.id) {
+          try { label = root.querySelector(`label[for="${CSS.escape(el.id)}"]`); } catch {}
+        }
+        if (!label) label = el.closest ? el.closest('label') : null;
+        if (!label && el.parentElement) label = el.parentElement.querySelector('label');
+        if (!label && el.getAttribute && el.getAttribute('aria-labelledby')) {
+          try { label = document.getElementById(el.getAttribute('aria-labelledby')); } catch {}
+        }
+        if (label) {
+          label.scrollIntoView({ block: 'center', behavior: 'instant' });
+          const lr = label.getBoundingClientRect();
+          if (lr.width > 0 && lr.height > 0) {
+            return { x: lr.x + lr.width / 2, y: lr.y + lr.height / 2, tag: label.tagName, found: true, viaLabel: true };
+          }
+        }
         return { found: false, hidden: true, tag: el.tagName, rect: { w: r.width, h: r.height } };
       }
       return { x: r.x + r.width / 2, y: r.y + r.height / 2, tag: el.tagName, found: true };
@@ -1962,6 +2042,22 @@ async function resolveElementOnce(tabId, selectorStr) {
           el.scrollIntoView({ block: 'center', behavior: 'instant' });
           const r = el.getBoundingClientRect();
           if (r.width <= 0 || r.height <= 0) {
+            let label = null;
+            if (el.id) {
+              try { label = document.querySelector('label[for="' + CSS.escape(el.id) + '"]'); } catch {}
+            }
+            if (!label) label = el.closest ? el.closest('label') : null;
+            if (!label && el.parentElement) label = el.parentElement.querySelector('label');
+            if (!label && el.getAttribute && el.getAttribute('aria-labelledby')) {
+              try { label = document.getElementById(el.getAttribute('aria-labelledby')); } catch {}
+            }
+            if (label) {
+              label.scrollIntoView({ block: 'center', behavior: 'instant' });
+              const lr = label.getBoundingClientRect();
+              if (lr.width > 0 && lr.height > 0) {
+                return { x: lr.x + lr.width / 2, y: lr.y + lr.height / 2, tag: label.tagName, found: true, viaLabel: true };
+              }
+            }
             return { found: false, hidden: true, tag: el.tagName, rect: { w: r.width, h: r.height } };
           }
           return { x: r.x + r.width/2, y: r.y + r.height/2, tag: el.tagName, found: true };
@@ -3440,14 +3536,21 @@ async function interceptFileChooser(tabId, selector, fileList) {
 // ── Command Dispatcher ──────────────────────────────────────────────────────
 
 async function dispatch(port, method, params) {
+  const explicitTabId = params?.tab_id ?? params?.tabId ?? null;
+  const agentId = params?.agent_id ?? params?.subagent ?? null;
+
   switch (method) {
     case 'navigate': {
       const session = getSession(port);
-      let tab = await getSessionTab(port);
+      // In multi-agent / subagent flows, if this agent does not yet have a tab and did not specify one,
+      // create a dedicated tab for this agent so it doesn't overwrite a sibling agent's tab.
+      const shouldCreateForSubagent = agentId && !explicitTabId && !session.agentTabs?.has(agentId) && session.tabIds.size > 0;
+      const isNewTab = params.new_tab || shouldCreateForSubagent;
+      let tab = await getSessionTab(port, false, explicitTabId, agentId);
 
       // Always reuse the active tab — navigate in place, don't create new tabs
-      // Only create new tab if explicitly requested via new_tab param
-      if (params.new_tab) {
+      // Only create new tab if explicitly requested via new_tab param or subagent auto-allocation
+      if (isNewTab) {
         // EKSPERIMENT 19/9 (vindues-hypotesen, 1.30). Hele vores fejlklasse kommer af at
         // Chrome ikke leverer Input.* til en fane der ikke er den viste i sit vindue - og
         // maalingen 19/9 viste at det er en klasse konkurrenterne IKKE har, fordi de koerer
@@ -3563,14 +3666,19 @@ async function dispatch(port, method, params) {
         setTimeout(() => { chrome.tabs.onUpdated.removeListener(listener); resolve(); }, 15000);
       });
 
-      // Set as active tab for this session
+      // Set as active tab for this session / subagent
       session.activeTabId = tab.id;
+      if (agentId) {
+        if (!session.agentTabs) session.agentTabs = new Map();
+        session.agentTabs.set(agentId, tab.id);
+      }
       persistSessions();
       const updated = await chrome.tabs.get(tab.id);
 
       // Check for CAPTCHA after navigation
       const captcha = await detectCaptcha(tab.id);
       const result = { title: updated.title, url: updated.url, tab_id: tab.id, session: session.label };
+      if (agentId) result.agent_id = agentId;
       if (captcha && captcha.found) {
         result.captcha_detected = captcha.types.join(', ');
         result.hint = `CAPTCHA detected: ${captcha.types.join(', ')}. Use browser_solve_captcha to handle it.`;
@@ -3579,7 +3687,7 @@ async function dispatch(port, method, params) {
     }
 
     case 'get_page_content': {
-      const tab = await getSessionTab(port);
+      const tab = await getSessionTab(port, false, explicitTabId, agentId);
       if (tab.url.startsWith('chrome://')) throw new Error('Cannot access chrome:// pages');
       const format = params.format || 'text';
       // MAALT 17/9 mod Stripe Dashboard: `format:'html'` svarede 1.042.782 tegn, og der var
@@ -3593,7 +3701,26 @@ async function dispatch(port, method, params) {
         const rod = sel ? document.querySelector(sel) : null;
         if (sel && !rod) return { fundet: false };
         const n = rod || document.documentElement;
-        return { fundet: true, tekst: fmt === 'html' ? n.outerHTML : (rod ? rod.innerText : document.body.innerText) };
+        let t = fmt === 'html' ? n.outerHTML : (rod ? rod.innerText : (document.body ? document.body.innerText : ''));
+        // Include readable iframe contents for full-page text requests (e.g. portal blades, widgets, docs)
+        if (!sel && fmt === 'text') {
+          try {
+            const iframes = Array.from(document.querySelectorAll('iframe'));
+            for (const ifr of iframes) {
+              try {
+                const doc = ifr.contentDocument || ifr.contentWindow?.document;
+                if (doc && doc.body) {
+                  const ifrTxt = (doc.body.innerText || '').trim();
+                  if (ifrTxt) {
+                    const src = ifr.getAttribute('src') || ifr.title || 'iframe';
+                    t += `\n\n--- [Frame: ${src}] ---\n` + ifrTxt;
+                  }
+                }
+              } catch {}
+            }
+          } catch {}
+        }
+        return { fundet: true, tekst: t };
       }, [format, vaelger]);
 
       let raa;
@@ -3831,6 +3958,16 @@ async function dispatch(port, method, params) {
       if (typeof params.code !== 'string' || !params.code.trim()) {
         return { ok: false, error: 'Missing code. Pass a JavaScript EXPRESSION in `code` (e.g. an IIFE: (() => {...; return x;})()). `return ...` at top level is invalid — the handler wraps code in parentheses.' };
       }
+
+      // Auto-wrap top-level await or statements in an async IIFE if not already wrapped
+      let normalizedCode = params.code.trim();
+      const needsAsyncWrapper = /\b(await|const|let|var|return|if|for|while)\b/.test(normalizedCode) &&
+        !/^\s*\(\s*(async\s*)?\(\s*\)\s*=>\s*\{[\s\S]*\}\s*\)\s*\(\s*\)\s*;?\s*$/.test(normalizedCode);
+      if (needsAsyncWrapper) {
+        normalizedCode = `(async () => {\n${normalizedCode}\n})()`;
+      }
+      params.code = normalizedCode;
+
       const tab = await getSessionTab(port);
       if (tab.url.startsWith('chrome://')) throw new Error('Cannot execute scripts on chrome:// pages');
 
@@ -5520,7 +5657,25 @@ async function dispatch(port, method, params) {
     case 'switch_tab': {
       const session = getSession(port);
       if (!session.tabIds.has(params.tab_id)) {
-        throw new Error(`Tab ${params.tab_id} does not belong to this session (${session.label})`);
+        // Sticky-transfer across subagents and reconnects (fixes session drift)
+        let transferred = false;
+        for (const [otherPort, otherSession] of sessions) {
+          if (otherSession.tabIds && otherSession.tabIds.has(params.tab_id)) {
+            otherSession.tabIds.delete(params.tab_id);
+            if (otherSession.activeTabId === params.tab_id) otherSession.activeTabId = null;
+            session.tabIds.add(params.tab_id);
+            transferred = true;
+            break;
+          }
+        }
+        if (!transferred) {
+          try {
+            await chrome.tabs.get(params.tab_id);
+            session.tabIds.add(params.tab_id);
+          } catch {
+            throw new Error(`Tab ${params.tab_id} does not belong to this session (${session.label})`);
+          }
+        }
       }
       const tab = await chrome.tabs.update(params.tab_id, { active: true });
       // Gør ogsaa VINDUET forrest. Uden det bliver fanen aktiv inde i sit vindue —
@@ -5547,7 +5702,22 @@ async function dispatch(port, method, params) {
       const session = getSession(port);
       const tabId = params.tab_id;
       if (!session.tabIds.has(tabId)) {
-        throw new Error(`Tab ${tabId} does not belong to this session (${session.label})`);
+        for (const [otherPort, otherSession] of sessions) {
+          if (otherSession.tabIds && otherSession.tabIds.has(tabId)) {
+            otherSession.tabIds.delete(tabId);
+            if (otherSession.activeTabId === tabId) otherSession.activeTabId = null;
+            session.tabIds.add(tabId);
+            break;
+          }
+        }
+        if (!session.tabIds.has(tabId)) {
+          try {
+            await chrome.tabs.get(tabId);
+            session.tabIds.add(tabId);
+          } catch {
+            throw new Error(`Tab ${tabId} does not belong to this session (${session.label})`);
+          }
+        }
       }
       // Maerk lukningen som agentens egen. Ellers laeser onRemoved den tomme session som
       // "brugeren er faerdig" og lukker serveren ned midt i samtalen (MAALT 22/8).

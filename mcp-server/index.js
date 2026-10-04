@@ -759,12 +759,24 @@ const mcpServer = new Server(
   { capabilities: { tools: {} }, instructions: INSTRUCTIONS },
 );
 
-mcpServer.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: TOOLS,
-}));
+mcpServer.setRequestHandler(ListToolsRequestSchema, async () => {
+  const stripPrefix = process.env.BROWSER_MCP_STRIP_TOOL_PREFIX === '1';
+  if (stripPrefix) {
+    return {
+      tools: TOOLS.map(t => ({
+        ...t,
+        name: t.name.startsWith('browser_') ? t.name.slice('browser_'.length) : t.name,
+      })),
+    };
+  }
+  return { tools: TOOLS };
+});
 
 mcpServer.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
+  let { name, arguments: args } = request.params;
+  if (!name.startsWith('browser_') && !SERVER_LOKALE.has(name)) {
+    name = `browser_${name}`;
+  }
   lastActivity = Date.now();
 
   try {
