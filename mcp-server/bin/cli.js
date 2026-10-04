@@ -34,6 +34,12 @@ if (command === '--version' || command === '-v') {
   console.log(JSON.parse(readFileSync(join(pkgRoot, 'package.json'), 'utf8')).version);
 } else if (command === 'install') {
   install({ skipExtension });
+} else if (command === 'serve') {
+  console.log('[Browser MCP] Running persistent bridge server on ws://127.0.0.1:9876...');
+  process.env.BROWSER_MCP_STANDALONE = '1';
+  process.stdin.resume();
+  autoUpdateExtension();
+  await import('../index.js');
 } else if (!command) {
   // No subcommand = start MCP server (Claude Code calls this)
   // Auto-update extension files if installed via npx
