@@ -1,10 +1,8 @@
 {
   "mcpServers": {
     "browser-mcp": {
-      "command": "node",
-      "args": [
-        "C:/Users/modded/Documents/GitHub/astro broswer/browser-mcp/mcp-server/bin/cli.js"
-      ],
+      "command": "C:/Users/modded/Documents/GitHub/browser-mcp/bin/browser-mcp.exe",
+      "args": [],
       "timeout_ms": 30000,
       "maxConcurrentCalls": 1,
       "scope": "session"
