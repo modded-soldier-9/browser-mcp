@@ -139,8 +139,8 @@ test('en hardlink til en fil udenfor overskrives ikke', { timeout: 45000 }, asyn
 
 // MAALT 11/9 (Astra R5 F10, samme klasse): med arbejdsmappen "/" blev praefikset "//", og en sti i en
 // almindelig mappe blev afvist som "udenfor".
-// Platformens egen rod: "/" paa mac og Linux, "C:\\" (eller hvad drevet nu hedder) paa Windows.
-const roden = parse(process.cwd()).root;
+// Platformens egen rod for arbejdsmappen: "/" paa mac og Linux, "C:\\" (eller hvad drevet nu hedder) paa Windows.
+const roden = parse(arbejd).root;
 
 test('arbejdsmappen "/" afviser ikke en almindelig sti (F10)', { timeout: 45000 }, async () => {
   const maal = join(arbejd, 'inde', 'rod.png');
