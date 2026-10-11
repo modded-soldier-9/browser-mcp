@@ -1,0 +1,32 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "browser-mcp",
+  "title": "Browser MCP",
+  "description": "Drive your real, logged-in browser from any AI agent - 40 tools. Needs Browser MCP extension.",
+  "websiteUrl": "https://github.com/modded-soldier-9/browser-mcp",
+  "repository": {
+    "url": "https://github.com/modded-soldier-9/browser-mcp",
+    "source": "github"
+  },
+  "version": "2.0.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "browser-mcp",
+      "version": "2.0.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ],
+  "icons": [
+    {
+      "src": "https://browsermcp.dev/logo.svg",
+      "mimeType": "image/svg+xml",
+      "sizes": [
+        "any"
+      ]
+    }
+  ]
+}

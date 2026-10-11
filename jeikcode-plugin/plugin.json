@@ -1,0 +1,29 @@
+﻿{
+  "name": "browser-mcp",
+  "version": "2.0.0",
+  "description": "Native JeikCode browser automation plugin driving real Brave and Chrome browser sessions with 40 tools, token preservation, and multi-session isolation.",
+  "author": "JeikCode AI & Agent360",
+  "license": "MIT",
+  "skills": [
+    "skills/browser-mcp"
+  ],
+  "mcpServers": {
+    "browser-mcp": {
+      "command": "C:/Users/modded/Documents/GitHub/browser-mcp/bin/browser-mcp.exe",
+      "args": [],
+      "timeout_ms": 30000,
+      "maxConcurrentCalls": 1,
+      "scope": "session"
+    }
+  },
+  "keywords": [
+    "browser",
+    "browser-automation",
+    "brave",
+    "chrome",
+    "jeikcode",
+    "mcp",
+    "devtools",
+    "web"
+  ]
+}

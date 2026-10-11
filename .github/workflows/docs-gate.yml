@@ -1,0 +1,54 @@
+name: docs-gate
+
+# Structural guard for browsermcp.dev (GitHub Pages serves docs/ from main).
+# Two steps:
+#   1. regen-diff - scripts/generate-docs.py must reproduce the committed HTML
+#      byte-for-byte. Kills hand-edit drift (sources in content/ are the truth).
+#      Note: a page whose front-matter publish_date has just passed will fail
+#      this step on purpose - that is the "content is due, regen + commit" signal.
+#   2. check-docs - tool-count vs tools.js, leak markers, internal links,
+#      canonical/og meta, sitemap coverage (scripts/check-docs.py, stdlib only).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'content/**'
+      - 'scripts/generate-docs.py'
+      - 'scripts/check-docs.py'
+      - 'mcp-server/tools.js'
+      - '.github/workflows/docs-gate.yml'
+  # ⛔ MAALT 21/9: her stod det SAMME paths-filter som paa push, og `gate` er et PAAKRAEVET
+  # tjek paa main. En PR der ikke roerer en af de stier faar aldrig et gate-loeb, og et
+  # paakraevet tjek der aldrig koerer kan aldrig opfyldes: PR'en er blokeret for evigt.
+  # Dependabots #22 (setup-node i tests.yml) sad fast fra 13. til 21. september af netop
+  # den grund, og #21 slap kun igennem fordi den tilfaeldigvis ogsaa roerte DENNE fil.
+  # Jobbet er et python-script over 39 filer uden browser, saa det koster sekunder at
+  # lade det koere paa hver PR. Det er billigere end en PR ingen kan flette.
+  pull_request:
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Generatoren udleder datePublished/dateModified med 'git log', og
+          # release-coherence-testen laeser 'git tag'. En shallow klon har hverken
+          # historik eller tags - saa begge porte fejlede paa noget der var i orden.
+          fetch-depth: 0
+
+      - name: regen-diff (generator output == committed HTML)
+        run: |
+          python3 scripts/generate-docs.py
+          # --porcelain catches BOTH modified tracked files AND untracked new pages;
+          # `git diff --exit-code` silently ignores untracked files (a new page 404s in prod but passes CI).
+          if [ -n "$(git status --porcelain -- docs/)" ]; then
+            echo '::error::docs/ HTML differs from generator output - edit content/*.md and re-run scripts/generate-docs.py (never hand-edit docs/ HTML)'
+            git status --porcelain -- docs/
+            exit 1
+          fi
+
+      - name: check-docs (tool-count · leaks · links · meta · sitemap)
+        run: python3 scripts/check-docs.py

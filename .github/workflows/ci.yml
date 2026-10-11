@@ -1,0 +1,114 @@
+name: CI & Quality Gates
+
+on:
+  pull_request:
+    branches: [main, beta]
+  push:
+    branches: [main, beta]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  version-consistency:
+    name: Version Consistency Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify Version Parity Across Manifests
+        run: |
+          node -e "
+          import { readFileSync } from 'node:fs';
+          const p1 = JSON.parse(readFileSync('package.json', 'utf8')).version;
+          const p2 = JSON.parse(readFileSync('mcp-server/package.json', 'utf8')).version;
+          const m1 = JSON.parse(readFileSync('extension/manifest.json', 'utf8')).version;
+          const m2 = JSON.parse(readFileSync('mcp-server/extension/manifest.json', 'utf8')).version;
+          const cargo = readFileSync('crates/browser-mcp-server/Cargo.toml', 'utf8');
+          const cMatch = cargo.match(/version\s*=\s*\"([^\"]+)\"/)?.[1];
+          console.log('Versions:', { rootPkg: p1, mcpPkg: p2, extManifest: m1, distManifest: m2, cargoVersion: cMatch });
+          if (p1 !== p2 || p1 !== m1 || p1 !== m2 || p1 !== cMatch) {
+            console.error('Version mismatch detected across manifests!');
+            process.exit(1);
+          }
+          console.log('All manifests are 100% in sync!');
+          "
+
+  extension-quality:
+    name: Extension Syntax & Distribution Parity
+    needs: version-consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run Extension Build & Sync Gate
+        run: node scripts/build-extension.mjs
+
+  rust-quality:
+    name: Rust Server Quality (${{ matrix.os }})
+    needs: version-consistency
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.88.0
+      - name: Check Rust Server Compilation
+        run: cargo check --package browser-mcp-server --release
+      - name: Run Rust Server Unit Tests
+        run: cargo test --package browser-mcp-server
+
+  node-test-suite:
+    name: Test Suite Matrix (${{ matrix.os }} · Node ${{ matrix.node }})
+    needs: extension-quality
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: ['20', '22']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: mcp-server/package-lock.json
+      - name: Install dependencies
+        working-directory: mcp-server
+        run: npm ci --no-audit --no-fund
+      - name: Run Complete Test Suite (86 Test Suites)
+        working-directory: mcp-server
+        run: npm test
+
+  pr-gate:
+    name: Quality Gate (All Checks Passing)
+    needs: [version-consistency, extension-quality, rust-quality, node-test-suite]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Overall Status
+        run: |
+          if [ "${{ needs.version-consistency.result }}" != "success" ] || \
+             [ "${{ needs.extension-quality.result }}" != "success" ] || \
+             [ "${{ needs.rust-quality.result }}" != "success" ] || \
+             [ "${{ needs.node-test-suite.result }}" != "success" ]; then
+            echo "Quality gate failed: Not all required CI checks succeeded."
+            exit 1
+          fi
+          echo "All quality gates passed! Ready for merge."

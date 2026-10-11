@@ -1,0 +1,115 @@
+name: udgivelse
+
+# Udgivelsen af browser-mcp - fra GitHub i stedet for fra Gustavs Mac, og UDEN npm-noegle.
+#
+# Hvorfor den findes (24/9): en noegle fra `npm login` doede efter et doegn, og npm fjerner direkte
+# udgivelse med granular noegle i januar 2027. Her beviser GitHub selv over for npm hvem der udgiver
+# («trusted publishing»), ved hver udgivelse. Intet at gemme, intet der udloeber.
+#
+# Sikringerne, i raekkefoelge:
+#  1. Spaerren skal vaere groen FOER udgivelsen overhovedet starter (job «spaerre» -> «needs»).
+#  2. En RIGTIG udgivelse bruger miljoeet «udgivelse», som kraever Gustavs klik og kun maa koere
+#     fra main. Det er hans ja i mekanisk form.
+#  3. Resten er det samme udgivelses-script som paa hans Mac - skrevet om, ikke genopfundet
+#     (Fable 24/9: 847 linjer der er maalt og rettet i ugevis skal ikke skrives forfra).
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versionen der udgives, fx 1.30.1'
+        required: true
+      ship:
+        description: 'Udgiv for alvor. Uden flueben er det en proevekoersel der intet sender ud.'
+        type: boolean
+        default: false
+      genoptag:
+        description: 'Genoptag efter en fejl EFTER butikstrinnet: springer Chrome Web Store over (butikken afviser samme version to gange).'
+        type: boolean
+        default: false
+
+# 26/9: kun én udgivelse ad gangen. To samtidige ville aendre de samme kanaler.
+concurrency:
+  group: udgivelse
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  spaerre:
+    uses: ./.github/workflows/spaerre.yml
+    # 27/9 (Astra R3): ved genoptagelse er kandidaten den TAGGEDE commit, ikke main's spids - og
+    # spaerren skal teste den samme commit som udgives.
+    with:
+      ref: ${{ inputs.genoptag && format('v{0}', inputs.version) || '' }}
+
+  udgiv:
+    needs: spaerre
+    runs-on: macos-latest
+    timeout-minutes: 45
+    # Kun en rigtig udgivelse faar miljoeet - og dermed Gustavs godkendelse og butikkens noegler.
+    # En proevekoersel koerer uden, og springer derfor butikstrinnet over (siges hoejt nedenfor).
+    environment: ${{ inputs.ship && 'udgivelse' || '' }}
+    permissions:
+      contents: write   # tag og release paa GitHub - aldrig et push til main (26/9)
+      id-token: write   # npm trusted publishing + MCP-registret via github-oidc
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.genoptag && format('v{0}', inputs.version) || '' }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      # Trusted publishing kraever npm >= 11.5.1. Node 22 leverer npm 10.x (maalt paa Gustavs Mac:
+      # 10.9.4). Uden opgraderingen falder npm stille tilbage til «ingen legitimation».
+      # Laast til den version proevekoerslen 36013325037 brugte (24/9); «latest» kan skifte
+      # major under os paa udgivelsesdagen. npm 12 kraever Node >= 22.22.2 (runneren har 22.23.2).
+      - name: opgrader npm til trusted publishing
+        run: npm install -g npm@12.1.0 && npm --version
+
+      - name: installer mcp-publisher
+        run: brew install mcp-publisher
+
+      # 26/9 (Astra, PR #31): `npm ci`, ikke `npm install`. install omskrev lockfilen, og ship doer paa
+      # et beskidt traee. ci roerer aldrig lockfilen - og fejler hoejt hvis den er ude af trit.
+      - name: installer serveren
+        run: npm ci --prefix mcp-server --no-audit --no-fund
+
+      - name: git-identitet
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: udgivelses-scriptet
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+          CWS_EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
+          CWS_PUBLISHER_ID: ${{ secrets.CWS_PUBLISHER_ID }}
+          VERSION: ${{ inputs.version }}
+          SHIP: ${{ inputs.ship }}
+          GENOPTAG: ${{ inputs.genoptag }}
+          # Spaerrens RESULTAT, ikke et flag: kun det maa fjerne advarslen «udgiver i blinde».
+          SPAERRE_RESULTAT: ${{ needs.spaerre.result }}
+        run: |
+          flag=(--skip-local --skip-flow)
+          # --skip-flow: spaerren HAR koert - i jobbet ovenfor, og dette job kan ikke starte uden.
+          # --skip-local: at genindlaese udvidelsen paa en Mac er Gustavs maskine, ikke runnerens.
+          if [[ "$SHIP" == "true" ]]; then
+            flag=(--ship "${flag[@]}")
+            if [[ "$GENOPTAG" == "true" ]]; then
+              # --genoptag kraever tagget paa HEAD og at butikken selv svarer at den har versionen.
+              echo "::notice::Genoptagelse: scriptet tjekker tag og butik foer det springer butikstrinnet over."
+              flag+=(--genoptag)
+            fi
+          else
+            echo "::notice::Proevekoersel: intet sendes ud. Butikkens noegler findes kun i miljoeet «udgivelse», saa butikstrinnet springes over."
+            flag+=(--skip-cws)
+          fi
+          ./runbrowsermcpupdate.sh "$VERSION" "${flag[@]}"

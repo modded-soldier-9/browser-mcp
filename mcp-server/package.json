@@ -1,0 +1,77 @@
+{
+  "name": "browser-mcp",
+  "version": "2.0.0",
+  "description": "Browser MCP - Direct, rock-solid browser automation connecting AI agents directly to your real browser session with human-in-the-loop support. 40 tools, any MCP client, MIT.",
+  "mcpName": "browser-mcp",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "browser-mcp": "./bin/cli.js"
+  },
+  "files": [
+    "index.js",
+    "tools.js",
+    "vagt.js",
+    "lib/",
+    "bin/",
+    "extension/",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test ../test/*.test.mjs",
+    "build": "node ../scripts/build-extension.mjs",
+    "flow": "node ../test/flow/run.mjs",
+    "sessions": "node ../test/flow/sessions.mjs",
+    "feedback": "node ../scripts/feedback-report.mjs",
+    "start": "node index.js",
+    "publish:cws": "../scripts/publish-cws.sh",
+    "publish:cws:draft": "../scripts/publish-cws.sh --draft",
+    "samtidighed": "node ../test/flow/samtidighed.mjs",
+    "flow:isoleret": "node ../scripts/flow-isoleret.mjs"
+  },
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "browser",
+    "browser-mcp",
+    "browser-automation",
+    "chrome",
+    "chrome-extension",
+    "claude",
+    "claude-code",
+    "ai-agent",
+    "captcha",
+    "captcha-solver",
+    "human-in-the-loop",
+    "web-automation",
+    "playwright-alternative",
+    "selenium-alternative"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "author": {
+    "name": "Mohamed Elsheikh",
+    "email": "moddedsoldier@gmail.com",
+    "url": "https://github.com/modded-soldier-9"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/modded-soldier-9/browser-mcp",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/modded-soldier-9/browser-mcp.git"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "ws": "^8.21.3"
+  },
+  "overrides": {
+    "fast-uri": "^3.1.7",
+    "hono": "^4.13.7",
+    "ip-address": "^10.3.1",
+    "@hono/node-server": "^1.19.15",
+    "body-parser": "^2.2.3",
+    "qs": "^6.16.0"
+  }
+}

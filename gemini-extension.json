@@ -1,0 +1,13 @@
+{
+  "name": "browser-mcp",
+  "version": "2.0.0",
+  "description": "Any MCP client drives the browser you are already signed into, without approving every session. Browser MCP extension plus a local server. 40 tools, 20 sessions, MIT.",
+  "mcpServers": {
+    "browser-mcp": {
+      "command": "npx",
+      "args": [
+        "browser-mcp@latest"
+      ]
+    }
+  }
+}
