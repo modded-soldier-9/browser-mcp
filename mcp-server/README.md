@@ -32,6 +32,7 @@
   <p>
     🌐 <strong>Source Repository</strong>: <a href="https://github.com/modded-soldier-9/browser-mcp"><strong>https://github.com/modded-soldier-9/browser-mcp</strong></a>
   </p>
+  <!-- latest release v2.0.0 (2026-10-11) -->
   <p>
     <a href="https://github.com/modded-soldier-9/browser-mcp">
       <img src="https://raw.githubusercontent.com/Agent360dk/browser-mcp/main/assets/demo.gif" alt="Browser MCP Demo" />
