@@ -159,21 +159,27 @@ async fn handle_request(
 
             // Path sandboxing for screenshot and uploads
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            let mut save_path: Option<PathBuf> = None;
             if method == "screenshot" {
                 if let Some(path_str) = args.get("path").and_then(|v| v.as_str()) {
-                    if let Err(err_msg) = sandbox::resolve_screenshot_path(path_str, &cwd) {
-                        return Some(JsonRpcResponse {
-                            jsonrpc: "2.0".to_string(),
-                            id,
-                            result: Some(serde_json::to_value(CallToolResult {
-                                content: vec![ToolContent::Text(TextContent {
-                                    content_type: "text".to_string(),
-                                    text: err_msg,
-                                })],
-                                is_error: Some(true),
-                            }).unwrap()),
-                            error: None,
-                        });
+                    match sandbox::resolve_screenshot_path(path_str, &cwd) {
+                        Ok(target) => {
+                            save_path = Some(target);
+                        }
+                        Err(err_msg) => {
+                            return Some(JsonRpcResponse {
+                                jsonrpc: "2.0".to_string(),
+                                id,
+                                result: Some(serde_json::to_value(CallToolResult {
+                                    content: vec![ToolContent::Text(TextContent {
+                                        content_type: "text".to_string(),
+                                        text: err_msg,
+                                    })],
+                                    is_error: Some(true),
+                                }).unwrap()),
+                                error: None,
+                            });
+                        }
                     }
                 }
             } else if method == "upload_file" || method == "drop_file" {
@@ -227,15 +233,33 @@ async fn handle_request(
                             } else {
                                 (img_str.trim_start_matches("data:image/png;base64,"), "image/png")
                             };
+
+                            let mut contents = Vec::new();
+                            if let Some(target) = save_path {
+                                if let Some(parent) = target.parent() {
+                                    let _ = std::fs::create_dir_all(parent);
+                                }
+                                if let Some(bytes) = protocol::decode_base64(data) {
+                                    if std::fs::write(&target, bytes).is_ok() {
+                                        contents.push(ToolContent::Text(TextContent {
+                                            content_type: "text".to_string(),
+                                            text: format!("Screenshot successfully saved to: {}", target.display()),
+                                        }));
+                                    }
+                                }
+                            }
+
+                            contents.push(ToolContent::Image(ImageContent {
+                                content_type: "image".to_string(),
+                                data: data.to_string(),
+                                mime_type: mime.to_string(),
+                            }));
+
                             return Some(JsonRpcResponse {
                                 jsonrpc: "2.0".to_string(),
                                 id,
                                 result: Some(serde_json::to_value(CallToolResult {
-                                    content: vec![ToolContent::Image(ImageContent {
-                                        content_type: "image".to_string(),
-                                        data: data.to_string(),
-                                        mime_type: mime.to_string(),
-                                    })],
+                                    content: contents,
                                     is_error: None,
                                 }).unwrap()),
                                 error: None,

@@ -57,3 +57,29 @@ pub struct CallToolResult {
     #[serde(rename = "isError", skip_serializing_if = "Option::is_none")]
     pub is_error: Option<bool>,
 }
+
+pub fn decode_base64(input: &str) -> Option<Vec<u8>> {
+    let mut table = [255u8; 256];
+    for (i, &b) in b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".iter().enumerate() {
+        table[b as usize] = i as u8;
+    }
+    let bytes: Vec<u8> = input.bytes().filter(|&b| !b.is_ascii_whitespace() && b != b'=').collect();
+    let mut out = Vec::with_capacity(bytes.len() * 3 / 4);
+    for chunk in bytes.chunks(4) {
+        let b0 = *table.get(*chunk.get(0)? as usize)?;
+        let b1 = *table.get(*chunk.get(1)? as usize)?;
+        if b0 == 255 || b1 == 255 { return None; }
+        out.push((b0 << 2) | (b1 >> 4));
+        if let Some(&c2) = chunk.get(2) {
+            let b2 = table[c2 as usize];
+            if b2 == 255 { return None; }
+            out.push(((b1 & 0x0f) << 4) | (b2 >> 2));
+            if let Some(&c3) = chunk.get(3) {
+                let b3 = table[c3 as usize];
+                if b3 == 255 { return None; }
+                out.push(((b2 & 0x03) << 6) | b3);
+            }
+        }
+    }
+    Some(out)
+}
