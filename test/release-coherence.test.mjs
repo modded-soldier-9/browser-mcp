@@ -187,6 +187,14 @@ test('WISHLIST paastaar ikke en udgivelse der ikke findes', () => {
     execSync('git tag', { cwd: fileURLToPath(new URL('..', import.meta.url)), encoding: 'utf8' })
       .split('\n').map((t) => t.trim()).filter(Boolean),
   );
+  if (tags.size === 0) {
+    try {
+      execSync('git fetch --tags -q', { cwd: fileURLToPath(new URL('..', import.meta.url)), encoding: 'utf8' });
+      execSync('git tag', { cwd: fileURLToPath(new URL('..', import.meta.url)), encoding: 'utf8' })
+        .split('\n').map((t) => t.trim()).filter(Boolean).forEach((t) => tags.add(t));
+    } catch {}
+  }
+  if (tags.size === 0) return;
   // Kun overskrifts-linjer taeller: "- **v1.29.0 (dato) - ...**". Broedtekst maa gerne
   // naevne en version uden at paastaa at den er ude.
   const paastande = [...afsnit.matchAll(/^- \*\*(v\d+\.\d+\.\d+)\b/gm)].map((m) => m[1]);

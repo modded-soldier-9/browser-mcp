@@ -18,7 +18,7 @@
     "README.md"
   ],
   "scripts": {
-    "test": "node --test ../test/*.test.mjs",
+    "test": "node ../scripts/run-tests.mjs",
     "build": "node ../scripts/build-extension.mjs",
     "flow": "node ../test/flow/run.mjs",
     "sessions": "node ../test/flow/sessions.mjs",

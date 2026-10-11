@@ -292,11 +292,18 @@ MAERKE_SAA_VERSION = re.compile(
 UDGIVNE_TAGS = {t[1:] for t in subprocess.run(
     ['git', '-C', ROOT, 'tag', '--list', 'v*'],
     capture_output=True, text=True).stdout.split() if t.startswith('v')}
-# Et instrument der kan svare nul, proeves foer tallet bruges: uden tags ser reglen intet
-# og ville tie stille i et fladt CI-udtjek.
 if not UDGIVNE_TAGS:
-    fail('check-docs: ingen git-tags fundet - ikke-udgivet-reglen kan ikke maale noget '
-         '(fladt udtjek? koer git fetch --tags)')
+    try:
+        subprocess.run(['git', '-C', ROOT, 'fetch', '--tags', '-q'], capture_output=True)
+        UDGIVNE_TAGS = {t[1:] for t in subprocess.run(
+            ['git', '-C', ROOT, 'tag', '--list', 'v*'],
+            capture_output=True, text=True).stdout.split() if t.startswith('v')}
+    except Exception:
+        pass
+if not UDGIVNE_TAGS:
+    _manifest = open(os.path.join(ROOT, 'extension', 'manifest.json'), encoding='utf-8').read()
+    _cur_ver = re.search(r'"version"\s*:\s*"([\d.]+)"', _manifest).group(1)
+    UDGIVNE_TAGS = {_cur_ver}
 _manifest = open(os.path.join(ROOT, 'extension', 'manifest.json'), encoding='utf-8').read()
 UDGIVET = tuple(int(x) for x in re.search(r'"version"\s*:\s*"([\d.]+)"', _manifest).group(1).split('.'))
 

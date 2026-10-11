@@ -55,10 +55,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: 1.88.0
+          toolchain: stable
           targets: ${{ matrix.target }}
       - name: Compile Release Binary
-        run: cargo build --package browser-mcp-server --release
+        run: cargo build --manifest-path crates/browser-mcp-server/Cargo.toml --release
       - name: Prepare Artifact
         shell: bash
         run: |
