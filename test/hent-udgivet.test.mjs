@@ -15,7 +15,8 @@ const rod = dirname(dirname(fileURLToPath(import.meta.url)));
 // 27/9: hent-udgivet.py koerer kun i spaerre.yml paa macos-latest. Paa Windows finder Python `npm.cmd`
 // i stedet for proevens falske npm, og npm-linket er ikke en symlink der kan koeres - miljoe, ikke kode.
 const KUN_MACOS = process.platform === 'win32' && 'hent-udgivet.py koerer kun paa macOS (spaerre.yml)';
-const py = (kode) => execFileSync('python3', ['-c', `import importlib.util, sys, json
+const PY = process.platform === 'win32' ? 'python' : 'python3';
+const py = (kode) => execFileSync(PY, ['-c', `import importlib.util, sys, json
 spec = importlib.util.spec_from_file_location('h', ${JSON.stringify(join(rod, 'scripts/hent-udgivet.py'))})
 h = importlib.util.module_from_spec(spec); spec.loader.exec_module(h)
 ${kode}`], { encoding: 'utf8' }).trim();
@@ -43,7 +44,7 @@ crx = b'Cr24\\x03\\x00\\x00\\x00' + b'\\x00' * 40 + b.getvalue()
 h.pak_crx_ud(crx, ${JSON.stringify(d)})
 print(open(os.path.join(${JSON.stringify(d)}, 'manifest.json')).read())`);
     assert.equal(ud, '{"version":"9.9.9"}');
-    const fejl = spawnSync('python3', ['-c', `import importlib.util
+    const fejl = spawnSync(PY, ['-c', `import importlib.util
 spec = importlib.util.spec_from_file_location('h', ${JSON.stringify(join(rod, 'scripts/hent-udgivet.py'))})
 h = importlib.util.module_from_spec(spec); spec.loader.exec_module(h)
 h.pak_crx_ud(b'<html>fejlside</html>', ${JSON.stringify(d)})`], { encoding: 'utf8' });
@@ -117,7 +118,7 @@ test('hent_udvidelse: hver hentning faar sin egen mappe - en genbrugt --ud bland
   const repo = repoMedTag(TAG);
   const ud = mkdtempSync(join(tmpdir(), 'hent-ud-'));
   try {
-    const hent = (filer) => spawnSync('python3', ['-c', `import importlib.util, sys, os
+    const hent = (filer) => spawnSync(PY, ['-c', `import importlib.util, sys, os
 spec = importlib.util.spec_from_file_location('h', ${JSON.stringify(join(rod, 'scripts/hent-udgivet.py'))})
 h = importlib.util.module_from_spec(spec); spec.loader.exec_module(h)
 ${crxPy(filer)}
@@ -153,7 +154,7 @@ ${link ? `mkdir -p "$P/node_modules/.bin"; ln -sf ../@agent360/browser-mcp/bin/c
 `);
   execFileSync('chmod', ['+x', join(shim, 'npm')]);
   try {
-    return spawnSync('python3', ['-c', `import importlib.util
+    return spawnSync(PY, ['-c', `import importlib.util
 spec = importlib.util.spec_from_file_location('h', ${JSON.stringify(join(rod, 'scripts/hent-udgivet.py'))})
 h = importlib.util.module_from_spec(spec); spec.loader.exec_module(h)
 print(h.hent_server('9.9.9', ${JSON.stringify(join(d, 'ud'))}))`], { encoding: 'utf8', env: { ...process.env, PATH: `${shim}:${process.env.PATH}` } });

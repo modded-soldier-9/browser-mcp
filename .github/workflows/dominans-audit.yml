@@ -13,8 +13,6 @@ name: dominans-audit
 # Manual run any time from the Actions tab (workflow_dispatch).
 
 on:
-  schedule:
-    - cron: "0 7 1 * *"   # 1st of each month, 07:00 UTC = 09:00 Europe/Copenhagen
   workflow_dispatch: {}
 
 permissions:
@@ -31,7 +29,7 @@ jobs:
       SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
       SENDGRID_FROM_EMAIL: ${{ secrets.SENDGRID_FROM_EMAIL }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
 
       - name: Run dominans-audit
         id: audit
@@ -72,7 +70,7 @@ jobs:
           # groen, sagde emnefeltet "maanedstjek OK" mens rapporten under den var roed.
           # Et falsk groent er praecis den fejlklasse vagten findes for.
           VAGT_STATUS: ${{ steps.vagt.outputs.status }}
-          MAIL_TO: gustav@agent360.dk
+          MAIL_TO: moddedsoldier@gmail.com
         run: |
           python3 - <<'PY'
           import os, json, urllib.request

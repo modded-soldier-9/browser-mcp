@@ -31,10 +31,6 @@ on:
         description: 'Commit/tag der testes (tom = den der udloeste koerslen). Genoptagelse sender tagget.'
         type: string
         default: ''
-  # 25/9: INGEN stifilter. Spaerren skal kunne vaere et paakraevet tjek paa main, og et paakraevet
-  # tjek der aldrig starter, staar som «Expected» for evigt - saa kan en PR der kun roerer docs
-  # aldrig merges. Et filter der springer den over er en port der aldrig kan passere.
-  pull_request:
 
 permissions:
   contents: read

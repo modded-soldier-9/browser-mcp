@@ -46,6 +46,7 @@ test('en kilde der SKAL have vaerktoejer, maa ikke kunne pinnes med nul', () => 
 // MAALT 19/9: foerste udgave af netop denne proeve laeste kildeteksten, og en mutation der
 // erstattede `if not fandtes:` med `if False:` slap igennem - `raise SystemExit` stod der
 // jo stadig. Samme fejl som husets gamle fane-vagt: den vogtede en saetning, ikke en egenskab.
+const PY = process.platform === 'win32' ? 'python' : 'python3';
 const koerMaal = (tekst) => {
   const kode = `
 import importlib.util, sys
@@ -57,7 +58,7 @@ try:
 except SystemExit as e:
     print('SYSTEMEXIT:' + str(e)[:60])
 `.replace('%TEKST%', tekst);
-  return execFileSync('python3', ['-c', kode], { encoding: 'utf8' }).trim();
+  return execFileSync(PY, ['-c', kode], { encoding: 'utf8' }).trim();
 };
 
 test('et citat der ikke findes i kilden, maa ikke kunne pinnes', () => {
@@ -77,7 +78,7 @@ test('vaerktoejs-udtraekket finder BEGGE husers navneformer', () => {
   // kalibrering mod et kendt-sandt tilfaelde: Microsoft praefikser med browser_,
   // Google lister uden praefiks som overskrifter. Et udtraek der kun kan det ene,
   // svarer nul paa det andet - og nul lignede laenge et gyldigt svar.
-  const ud = execFileSync('python3', ['-c', `
+  const ud = execFileSync(PY, ['-c', `
 import importlib.util, sys
 spec = importlib.util.spec_from_file_location('v', ${JSON.stringify(VAGT)})
 m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
@@ -134,7 +135,7 @@ except SystemExit as e:
     rc = e.code
 print('RC=' + str(rc))
 `.replace('%FOER%', foerTekst).replace('%EFTER%', efterTekst);
-  return execFileSync('python3', ['-c', kode], { encoding: 'utf8' });
+  return execFileSync(PY, ['-c', kode], { encoding: 'utf8' });
 };
 
 // En kilde der opfylder begge kalibreringer: har vaerktoejer OG begge citater.

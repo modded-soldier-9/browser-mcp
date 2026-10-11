@@ -14,6 +14,7 @@ PAGES=[
  ('browsermcp-docs-install-codex.md','Docs','Codex','/docs/install-codex'),
  ('browsermcp-docs-install-cursor.md','Docs','Cursor','/docs/install-cursor'),
  ('browsermcp-docs-install-vscode.md','Docs','VS Code','/docs/install-vscode'),
+ ('browsermcp-docs-install-jeikcode.md','Docs','Install for JeikCode','/docs/install-jeikcode'),
  ('browsermcp-docs-install-cline.md','Docs','Install for Cline','/docs/install-cline'),
  ('browsermcp-docs-install-gemini-cli.md','Docs','Install for Gemini CLI','/docs/install-gemini-cli'),
  ('browsermcp-docs-install-copilot.md','Docs','Install for Copilot','/docs/install-copilot'),

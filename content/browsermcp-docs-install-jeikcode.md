@@ -57,7 +57,7 @@ In JeikCode, reload your configuration:
 Now ask JeikCode:
 > Take a screenshot of my current browser tab.
 
-JeikCode will interact directly with your browser, creating a dedicated `JeikCode` tab group and returning live results!
+You get an image back instead of *"I don't have browser access"*. JeikCode interacts directly with your browser, creating a dedicated `JeikCode` tab group and returning live results!
 
 ---
 

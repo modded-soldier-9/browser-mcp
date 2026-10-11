@@ -17,8 +17,9 @@ import { fileURLToPath } from 'node:url';
 
 const rod = dirname(dirname(fileURLToPath(import.meta.url)));
 
+const PY = process.platform === 'win32' ? 'python' : 'python3';
 function fejl(tekst, vaerktoejer = 40, sessioner = 20) {
-  const r = spawnSync('python3', ['-c',
+  const r = spawnSync(PY, ['-c',
     'import sys, json; sys.path.insert(0, "scripts"); from katalog_tal import katalog_fejl; ' +
     'print(json.dumps(katalog_fejl(sys.argv[1], int(sys.argv[2]), int(sys.argv[3]))))',
     tekst, String(vaerktoejer), String(sessioner)], { cwd: rod, encoding: 'utf8' });

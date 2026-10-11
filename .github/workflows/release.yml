@@ -1,0 +1,112 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  check-version:
+    name: Verify Release Tag Parity
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Tag matches Cargo.toml version
+        run: |
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          CARGO_VERSION=$(grep '^version' crates/browser-mcp-server/Cargo.toml | head -1 | cut -d'"' -f2)
+          echo "Tag: $TAG_VERSION, Cargo: $CARGO_VERSION"
+          if [ "$TAG_VERSION" != "$CARGO_VERSION" ]; then
+            echo "::error::Tag version ($TAG_VERSION) does not match Cargo.toml ($CARGO_VERSION)"
+            exit 1
+          fi
+
+  build-rust-binaries:
+    name: Build Native Engine (${{ matrix.target }})
+    needs: [check-version]
+    if: always() && (needs.check-version.result == 'success' || !startsWith(github.ref, 'refs/tags/'))
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary_name: browser-mcp-windows-x64.exe
+            source_path: target/release/browser-mcp-server.exe
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            binary_name: browser-mcp-linux-x64
+            source_path: target/release/browser-mcp-server
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            binary_name: browser-mcp-macos-arm64
+            source_path: target/release/browser-mcp-server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.88.0
+          targets: ${{ matrix.target }}
+      - name: Compile Release Binary
+        run: cargo build --package browser-mcp-server --release
+      - name: Prepare Artifact
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp crates/browser-mcp-server/${{ matrix.source_path }} dist/${{ matrix.binary_name }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.binary_name }}
+          path: dist/${{ matrix.binary_name }}
+          if-no-files-found: error
+
+  package-extension:
+    name: Package Browser Extension
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate and Build Extension
+        run: node scripts/build-extension.mjs
+      - name: Zip Extension
+        run: |
+          mkdir -p dist
+          cd extension
+          zip -r ../dist/browser-mcp-extension.zip .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: browser-mcp-extension.zip
+          path: dist/browser-mcp-extension.zip
+
+  create-release:
+    name: Publish GitHub Release
+    needs: [build-rust-binaries, package-extension]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+      - name: Publish Release to GitHub
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

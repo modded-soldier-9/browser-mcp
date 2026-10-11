@@ -41,6 +41,28 @@ jobs:
           console.log('All manifests are 100% in sync!');
           "
 
+  docs-quality:
+    name: Docs Site Quality Gate
+    needs: version-consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify docs generator output matches committed HTML
+        run: |
+          python3 scripts/generate-docs.py
+          if [ -n "$(git status --porcelain -- docs/)" ]; then
+            echo "::error::docs/ HTML differs from generator output. Edit content/*.md and re-run scripts/generate-docs.py"
+            git status --porcelain -- docs/
+            exit 1
+          fi
+      - name: Run docs integrity and link check
+        run: python3 scripts/check-docs.py
+
   extension-quality:
     name: Extension Syntax & Distribution Parity
     needs: version-consistency
@@ -98,13 +120,14 @@ jobs:
 
   pr-gate:
     name: Quality Gate (All Checks Passing)
-    needs: [version-consistency, extension-quality, rust-quality, node-test-suite]
+    needs: [version-consistency, docs-quality, extension-quality, rust-quality, node-test-suite]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Check Overall Status
         run: |
           if [ "${{ needs.version-consistency.result }}" != "success" ] || \
+             [ "${{ needs.docs-quality.result }}" != "success" ] || \
              [ "${{ needs.extension-quality.result }}" != "success" ] || \
              [ "${{ needs.rust-quality.result }}" != "success" ] || \
              [ "${{ needs.node-test-suite.result }}" != "success" ]; then

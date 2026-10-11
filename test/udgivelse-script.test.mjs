@@ -668,8 +668,9 @@ async function koerOidcTjek(npmSvar) {
   });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   const port = server.address().port;
+  const PY = process.platform === 'win32' ? 'python' : 'python3';
   try {
-    return await new Promise((r) => execFile('python3', [oidcTjek, '@agent360/browser-mcp'], {
+    return await new Promise((r) => execFile(PY, [oidcTjek, '@agent360/browser-mcp'], {
       env: {
         ...process.env,
         ACTIONS_ID_TOKEN_REQUEST_URL: `http://127.0.0.1:${port}/idtoken?api-version=2.0`,
@@ -699,7 +700,8 @@ test('npm-tjek: npm svarer 200 uden token -> nej', async () => {
 });
 
 test('npm-tjek: uden id-token-rettighed -> nej, og det siger hvorfor', async () => {
-  const r = spawnSync('python3', [oidcTjek, '@agent360/browser-mcp'], {
+  const PY = process.platform === 'win32' ? 'python' : 'python3';
+  const r = spawnSync(PY, [oidcTjek, '@agent360/browser-mcp'], {
     env: { PATH: process.env.PATH }, encoding: 'utf8',
   });
   assert.equal(r.status, 1);
@@ -1157,7 +1159,8 @@ test('sitets faste sider faar dagens dato naar filen er beskidt - ellers er prep
       GIT_AUTHOR_DATE: '2020-01-01T12:00:00', GIT_COMMITTER_DATE: '2020-01-01T12:00:00' };
     execFileSync('git', ['init', '-q'], { cwd: d }); writeFileSync(join(d, 'index.html'), 'a');
     execFileSync('git', ['add', 'index.html'], { cwd: d }); execFileSync('git', ['commit', '-q', '-m', 'a'], { cwd: d, env });
-    const kald = () => execFileSync('python3', ['-c', `import os, subprocess
+    const PY = process.platform === 'win32' ? 'python' : 'python3';
+    const kald = () => execFileSync(PY, ['-c', `import os, subprocess
 REPO = ${JSON.stringify(d + '/')}
 TODAY = 'I-DAG'
 __file__ = ${JSON.stringify(join(d, 'x.py'))}
@@ -1180,7 +1183,8 @@ test('sitemap-datoen er den samme foer og efter prepares commit (Astra R3: commi
     execFileSync('git', ['init', '-q'], { cwd: d }); writeFileSync(join(d, 'index.html'), 'v1.30.0');
     execFileSync('git', ['add', 'index.html'], { cwd: d });
     execFileSync('git', ['commit', '-q', '-m', 'gammel'], { cwd: d, env: { ...env, GIT_AUTHOR_DATE: '2020-01-01T12:00:00', GIT_COMMITTER_DATE: '2020-01-01T12:00:00' } });
-    const kald = () => execFileSync('python3', ['-c', `import os, subprocess, datetime
+    const PY = process.platform === 'win32' ? 'python' : 'python3';
+    const kald = () => execFileSync(PY, ['-c', `import os, subprocess, datetime
 REPO = ${JSON.stringify(d + '/')}
 TODAY = datetime.date.today().isoformat()
 __file__ = ${JSON.stringify(join(d, 'x.py'))}
