@@ -110,8 +110,15 @@ function advarOmKonflikt(conn) {
 //
 // ⛔ 26/9: parringen er trukket tilbage i 1.30.1 (se PARRING_TRUKKET_TILBAGE nedenfor), og med
 // den filtret paa `parret`. Broen er igen lokal og uautentificeret for alle - det staar i README.
+const OENSKET_PROFIL = (process.env.BROWSER_MCP_PROFILE || '').trim() || null;
+
 function liveConnections() {
-  return [...connections].filter(c => c.ws.readyState === 1);
+  const levende = [...connections].filter(c => c.ws.readyState === 1);
+  const profil = typeof OENSKET_PROFIL !== 'undefined'
+    ? OENSKET_PROFIL
+    : (typeof process !== 'undefined' && process.env?.BROWSER_MCP_PROFILE ? process.env.BROWSER_MCP_PROFILE.trim() : null);
+  if (!profil) return levende;
+  return levende.filter(c => (c.profile || 'default').toLowerCase() === profil.toLowerCase());
 }
 
 // Valget LAASES for serverens levetid.
@@ -296,7 +303,7 @@ function createWSS(port = BASE_PORT) {
     }
 
     const conn = { ws, seq: ++connSeq, extensionId: fraOrigin, version: null, name: null,
-      harHilst: false, helloId: null, since: Date.now() };
+      profile: 'default', harHilst: false, helloId: null, since: Date.now() };
     connections.add(conn);
     // Har vi endnu ikke sendt en eneste kommando, er ingen faner i spil, og en
     // nytilkommen udvidelse maa gerne komme i betragtning igen.
@@ -345,6 +352,7 @@ function createWSS(port = BASE_PORT) {
         }
         conn.version = typeof msg.version === 'string' ? msg.version : null;
         conn.name = typeof msg.name === 'string' ? msg.name : null;
+        conn.profile = typeof msg.profile === 'string' && msg.profile.trim() ? msg.profile.trim() : 'default';
         // Fingeraftryk af udvidelsens egen background.js (plan 1.10 / R2): versionsnummeret siger ikke hvilken KODE der
         // koerer. Udgivelsens flowtest sammenligner det med repoets fil, saa en gammel kopi med samme nummer ikke kan
         // passere som kandidaten.
@@ -565,6 +573,20 @@ async function sendToExtension(method, params = {}, timeoutMs = 30000, _retries 
     if (_retries > 0) {
       await new Promise(r => setTimeout(r, 1500));
       return sendToExtension(method, params, timeoutMs, _retries - 1, _ekstraRunde, doerAabnetNu);
+    }
+    const profilNavn = typeof OENSKET_PROFIL !== 'undefined'
+      ? OENSKET_PROFIL
+      : (typeof process !== 'undefined' && process.env?.BROWSER_MCP_PROFILE ? process.env.BROWSER_MCP_PROFILE.trim() : null);
+    if (profilNavn) {
+      const aabne = [...connections].filter(c => c.ws.readyState === 1);
+      const tilgaengelige = [...new Set(aabne.map(c => c.profile || 'default'))];
+      if (aabne.length > 0) {
+        throw new Error(
+          `No browser extension connected with profile "${profilNavn}". ` +
+          `Connected browser profiles: [${tilgaengelige.join(', ')}]. ` +
+          `Set BROWSER_MCP_PROFILE="${tilgaengelige[0] || 'default'}" or change the Profile Label in the Browser MCP extension popup.`
+        );
+      }
     }
     // ── Har vi lige aabnet doeren selv? (MAALT 8/9, #16) ─────────────────────
     //

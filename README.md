@@ -56,6 +56,7 @@
 - 🎯 **Zero-Guessing Direct Element Targeting**: Pass snapshot handles directly into interaction tools (`browser_click("e1")`, `browser_fill("e2", "...")`), completely eliminating fragile CSS/XPath guesswork;
 - 🛡️ **Brave & Chrome MV2 Persistent Background Worker**: Rock-solid Manifest V2 persistent background architecture with Universal Promise Promisifier, bypassing the 30-second service-worker idle disconnects of MV3;
 - 🧩 **Multi-Agent Session Isolation**: Dynamic 20-port WebSocket pool (9876 to 9895) allocates each conversation turn into its own color-coded tab group (`JeikCode 1`, `JeikCode 2`, etc.), preventing cross-session contamination;
+- 👥 **Deterministic Multi-Profile Routing (`BROWSER_MCP_PROFILE`)**: Running multiple Chrome or Brave profiles (e.g. Work vs Personal)? Assign profile labels directly in the popup and set `BROWSER_MCP_PROFILE=work` in your agent environment. Agents route exclusively to their designated profile without cross-account contamination;
 - ⚡ **Styled Toggles & Complex UI Handling**: Automatic `<label>` fallback for zero-dimension styled switches (Radix, Shadcn, Tailwind, Fluent UI), and automatic top-level `await` wrapping in `browser_execute_script`;
 - 🔒 **Human-in-the-Loop Safeguards**: Integrated `browser_ask_user` displays non-intrusive in-viewport dialogs when 2FA codes, SMS authenticators, or user confirmations are needed. Credentials are never guessed.
 

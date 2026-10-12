@@ -55,6 +55,25 @@ function minVersion() {
   try { return chrome.runtime?.getManifest?.()?.version || null; } catch { return null; }
 }
 
+let profilCache = null;
+function minProfil() {
+  if (profilCache) return profilCache;
+  try {
+    const p = new URLSearchParams(location.search).get('profile') || new URLSearchParams(location.search).get('profil');
+    if (p && p.trim()) {
+      profilCache = p.trim().replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 32);
+      return profilCache;
+    }
+  } catch {}
+  return 'default';
+}
+
+chrome.runtime?.onMessage?.addListener((msg) => {
+  if (msg?.type === 'bmcp_set_profile' && msg.profile) {
+    profilCache = String(msg.profile).trim().replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 32) || 'default';
+  }
+});
+
 // Portomraadet kommer fra dokumentets egen adresse, sat af background.js ud fra chrome.storage.local.
 // Standarden er 9876-9895. En isoleret testbrowser kan flytte den UDEN at repoets filer aendrer sig, saa
 // kode-aftrykket - og dermed udgivelsens spaerre - er uroert. Vagten staar begge steder: en vaerdi er kun gyldig
@@ -231,9 +250,9 @@ function tryConnect(port) {
     // og udgivelsens gate afviste sin EGEN kandidat - et langsomt svar er ikke et forkert svar. Hilsenen sendes derfor
     // med det aftryk der allerede ER beregnet (som regel intet ved foerste forbindelse), og aftrykket EFTERSENDES.
     const kode = kodeAftrykCache;
-    let hilsen = { type: 'hello', extensionId: null, version: minVersion(), name: null, kode };
+    let hilsen = { type: 'hello', extensionId: null, version: minVersion(), name: null, kode, profile: minProfil() };
     try {
-      hilsen = { type: 'hello', extensionId: chrome.runtime.id, version: minVersion(), name: null, kode };
+      hilsen = { type: 'hello', extensionId: chrome.runtime.id, version: minVersion(), name: null, kode, profile: minProfil() };
     } catch (e) {
       console.warn('[Offscreen] could not build the handshake:', e?.message || e);
     }

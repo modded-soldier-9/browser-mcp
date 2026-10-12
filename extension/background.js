@@ -2318,6 +2318,16 @@ async function portOmraadeFraLager() {
   } catch { return null; }
 }
 
+/** Laeser det valgte profilnavn fra chrome.storage.local (standard er 'default'). */
+async function profilFraLager() {
+  try {
+    const { profileName } = await chrome.storage.local.get({ profileName: null });
+    if (!profileName || typeof profileName !== 'string' || profileName.trim() === 'default') return null;
+    const ren = profileName.trim().replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 32);
+    return ren && ren !== 'default' ? ren : null;
+  } catch { return null; }
+}
+
 // ⛔ MAALT 24/9 - fundet af Astra, bekraeftet her: broen kunne bygges af TRE kaldere paa
 // samme tid - linjen oeverst i «Start», installations-haendelsen og hjerteslaget. Ingen af
 // dem ventede paa de andre. Ved en ny installation fyrer de to foerste naesten samtidig, og
@@ -2438,9 +2448,13 @@ async function ensureOffscreenIndre() {
   // er repoets filer byte-identiske, og udgivelsens kode-aftryk er uroert. (Mit foerste forslag, at flytte portene
   // til manifestet, ville have fjernet dem fra aftrykket - Astra maalte at de ligger i offscreen.js, som hashes.)
   const porteParam = await portOmraadeFraLager();
+  const profilParam = typeof profilFraLager === 'function' ? await profilFraLager() : null;
+  const harQuery = Boolean(minVersion || porteParam);
+  const offscreenUrl = 'offscreen.html' + (minVersion ? '?v=' + encodeURIComponent(minVersion) : '')
+       + (porteParam ? (minVersion ? '&' : '?') + 'porte=' + porteParam : '')
+       + (profilParam && profilParam !== 'default' ? (harQuery ? '&' : '?') + 'profile=' + encodeURIComponent(profilParam) : '');
   await chrome.offscreen.createDocument({
-    url: 'offscreen.html' + (minVersion ? '?v=' + encodeURIComponent(minVersion) : '')
-         + (porteParam ? (minVersion ? '&' : '?') + 'porte=' + porteParam : ''),
+    url: offscreenUrl,
     reasons: ['WORKERS'],
     justification: 'Maintain persistent WebSocket connection to local MCP server',
   });
@@ -2540,6 +2554,20 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       }
     })();
     return;
+  }
+
+  if (msg.type === 'bmcp_get_profile') {
+    profilFraLager().then(p => sendResponse({ profile: p || 'default' }));
+    return true;
+  }
+
+  if (msg.type === 'bmcp_set_profile') {
+    const raw = typeof msg.profile === 'string' ? msg.profile.trim() : 'default';
+    const ren = raw.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 32) || 'default';
+    chrome.storage.local.set({ profileName: ren }, () => {
+      sendResponse({ ok: true, profile: ren });
+    });
+    return true;
   }
 
   if (msg.type === 'ws_status') {

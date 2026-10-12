@@ -22,6 +22,7 @@ pub struct ExtensionConnection {
     pub extension_id: String,
     pub version: Option<String>,
     pub name: Option<String>,
+    pub profile: String,
     pub tx: mpsc::UnboundedSender<String>,
 }
 
@@ -170,6 +171,7 @@ impl Bridge {
                 extension_id: "unknown".to_string(),
                 version: None,
                 name: None,
+                profile: "default".to_string(),
                 tx: out_tx.clone(),
             };
             state.connections.push(conn);
@@ -208,6 +210,12 @@ impl Bridge {
                             }
                             c.version = parsed.get("version").and_then(|v| v.as_str()).map(|s| s.to_string());
                             c.name = parsed.get("name").and_then(|v| v.as_str()).map(|s| s.to_string());
+                            if let Some(prof) = parsed.get("profile").and_then(|v| v.as_str()) {
+                                let clean = prof.trim().to_string();
+                                if !clean.is_empty() {
+                                    c.profile = clean;
+                                }
+                            }
                         }
                         continue;
                     }
@@ -270,16 +278,32 @@ impl Bridge {
             "agentId": jeikcode_session
         }).to_string();
 
+        let requested_profile = std::env::var("BROWSER_MCP_PROFILE")
+            .ok()
+            .map(|s| s.trim().to_lowercase())
+            .filter(|s| !s.is_empty());
+
         {
             let mut state = self.state.write().await;
-            state.pending.insert(id, tx);
-            if let Some(conn) = state.connections.last() {
+            let conn_to_send = if let Some(ref req_prof) = requested_profile {
+                state.connections.iter().rev().find(|c| c.profile.to_lowercase() == *req_prof).cloned()
+            } else {
+                state.connections.last().cloned()
+            };
+
+            if let Some(conn) = conn_to_send {
+                state.pending.insert(id, tx);
                 if let Err(e) = conn.tx.send(cmd_payload) {
                     state.pending.remove(&id);
                     return Err(format!("Failed to send to extension: {}", e));
                 }
+            } else if let Some(ref req_prof) = requested_profile {
+                let available: Vec<String> = state.connections.iter().map(|c| c.profile.clone()).collect();
+                return Err(format!(
+                    "No browser extension connected with profile \"{}\". Connected browser profiles: {:?}. Set BROWSER_MCP_PROFILE or change profile in the Browser MCP popup.",
+                    req_prof, available
+                ));
             } else {
-                state.pending.remove(&id);
                 return Err("No active extension connection available.".to_string());
             }
         }
