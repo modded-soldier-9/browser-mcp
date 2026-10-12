@@ -247,3 +247,27 @@ document.getElementById('copyCmd').addEventListener('click', (e) => {
 document.getElementById('clearLog').addEventListener('click', () => {
   chrome.storage.local.set({ actionLog: [] }, renderLog);
 });
+
+// ── Profile Routing Configuration ──────────────────────────────────────────
+
+const profileInput = document.getElementById('profileInput');
+const saveProfileBtn = document.getElementById('saveProfileBtn');
+
+if (profileInput && saveProfileBtn) {
+  chrome.storage.local.get({ profileName: 'default' }, ({ profileName }) => {
+    profileInput.value = profileName || 'default';
+  });
+
+  saveProfileBtn.addEventListener('click', () => {
+    const raw = (profileInput.value || '').trim();
+    const val = raw.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 32) || 'default';
+    profileInput.value = val;
+    chrome.storage.local.set({ profileName: val }, () => {
+      chrome.runtime.sendMessage({ type: 'bmcp_set_profile', profile: val });
+      chrome.runtime.sendMessage({ type: 'reconnect' });
+      const orig = saveProfileBtn.textContent;
+      saveProfileBtn.textContent = 'Saved!';
+      setTimeout(() => { saveProfileBtn.textContent = orig; }, 1500);
+    });
+  });
+}

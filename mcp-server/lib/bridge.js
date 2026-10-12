@@ -39,8 +39,15 @@ export function cmpVersion(a, b) {
   return 0;
 }
 
+const REQUESTED_PROFILE = (process.env.BROWSER_MCP_PROFILE || '').trim() || null;
+
 export function liveConnections() {
-  return [...connections].filter(c => c.ws.readyState === 1);
+  const live = [...connections].filter(c => c.ws.readyState === 1);
+  const prof = typeof REQUESTED_PROFILE !== 'undefined'
+    ? REQUESTED_PROFILE
+    : (typeof process !== 'undefined' && process.env?.BROWSER_MCP_PROFILE ? process.env.BROWSER_MCP_PROFILE.trim() : null);
+  if (!prof) return live;
+  return live.filter(c => (c.profile || 'default').toLowerCase() === prof.toLowerCase());
 }
 
 export function activeConnection() {
@@ -158,6 +165,7 @@ export function createWSS(port = BASE_PORT) {
       extensionId: fromOrigin,
       version: null,
       name: null,
+      profile: 'default',
       greeted: false,
       since: Date.now()
     };
@@ -182,6 +190,7 @@ export function createWSS(port = BASE_PORT) {
         conn.extensionId = fromOrigin;
         conn.version = msg.version || null;
         conn.name = msg.name || null;
+        conn.profile = typeof msg.profile === 'string' && msg.profile.trim() ? msg.profile.trim() : 'default';
         if (!hasSentCommand) lockedConnection = null;
         warnConflict();
         return;

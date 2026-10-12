@@ -491,6 +491,15 @@
     </div>
   </div>
 
+  <div class="card" style="margin-bottom:12px;padding:8px 12px;background:var(--card);border:1px solid var(--card-border);border-radius:10px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+      <span style="font-size:11px;font-weight:600;color:var(--text-muted);">Profile:</span>
+      <input type="text" id="profileInput" placeholder="default (e.g. work, personal)" spellcheck="false"
+        style="flex:1;background:rgba(255,255,255,0.06);border:1px solid var(--card-border);border-radius:6px;padding:4px 8px;color:var(--text-main);font-size:11px;outline:none;" />
+      <button id="saveProfileBtn" class="btn-secondary" style="flex:none;padding:4px 8px;font-size:10px;">Save</button>
+    </div>
+  </div>
+
   <div class="setup" id="setup">
     <p><b>MCP Server standby:</b> The bridge listens on ports 9876-9895 when an agent initiates browser tools.</p>
     <p><b>Register server locally:</b> Ensure the MCP server is configured in your client. JeikCode & Claude Code command:</p>
