@@ -502,13 +502,12 @@
 
   <div class="setup" id="setup">
     <p><b>MCP Server standby:</b> The bridge listens on ports 9876-9895 when an agent initiates browser tools.</p>
-    <p><b>Register server locally:</b> Ensure the MCP server is configured in your client. JeikCode & Claude Code command:</p>
+    <p><b>Register server locally:</b> Run the standalone native binary installer in your terminal:</p>
     <div class="cmd-box">
-      <code id="setupCmd">jeikcode mcp add browser-mcp npx -y browser-mcp@latest --global</code>
+      <code id="setupCmd">browser-mcp install</code>
     </div>
-    <p class="clients">Claude Code: <code>claude mcp add --scope user browser-mcp -- npx @agent360/browser-mcp@latest</code><br>
-      Codex: <code>codex mcp add browser-mcp -- npx @agent360/browser-mcp@latest</code><br>
-      JeikCode, Cursor, VS Code and others: run <code>npx browser-mcp install</code> to register with your installed clients.</p>
+    <p class="clients">Claude Code: <code>claude mcp add browser-mcp -- browser-mcp</code><br>
+      Cursor, Antigravity, OpenCode: run <code>browser-mcp install</code> to configure automatically.</p>
     <div class="row">
       <button id="copyCmd">Copy command</button>
       <a href="https://browsermcp.dev/docs/install-claude-code/" target="_blank" rel="noopener">Documentation</a>

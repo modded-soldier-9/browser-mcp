@@ -1,42 +1,10 @@
-use std::time::Duration;
-use sysinfo::{Pid, System};
+use tokio::sync::broadcast;
 
-pub struct ProcessWatchdog {
-    parent_pid: u32,
-    system: System,
-}
-
-impl ProcessWatchdog {
-    pub fn new(parent_pid: u32) -> Self {
-        let mut system = System::new_all();
-        system.refresh_processes(sysinfo::ProcessesToUpdate::All);
-        Self { parent_pid, system }
-    }
-
-    pub fn is_parent_alive(&mut self) -> bool {
-        if self.parent_pid <= 1 {
-            return true;
-        }
-        self.system.refresh_processes(sysinfo::ProcessesToUpdate::All);
-        let pid = Pid::from_u32(self.parent_pid);
-        self.system.process(pid).is_some()
-    }
-}
-
-pub fn spawn_watchdog(parent_pid: u32, shutdown_tx: tokio::sync::broadcast::Sender<()>) {
-    if parent_pid <= 1 {
-        return;
-    }
+/// Spawns signal listener for graceful shutdown on Ctrl-C / termination signals
+pub fn spawn_signal_watchdog(shutdown_tx: broadcast::Sender<()>) {
     tokio::spawn(async move {
-        let mut watchdog = ProcessWatchdog::new(parent_pid);
-        let mut interval = tokio::time::interval(Duration::from_secs(5));
-        loop {
-            interval.tick().await;
-            if !watchdog.is_parent_alive() {
-                eprintln!("[MCP] Parent process {} died - triggering shutdown", parent_pid);
-                let _ = shutdown_tx.send(());
-                break;
-            }
-        }
+        let _ = tokio::signal::ctrl_c().await;
+        eprintln!("[MCP] Interrupt signal received - triggering shutdown");
+        let _ = shutdown_tx.send(());
     });
 }

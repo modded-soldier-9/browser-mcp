@@ -4,7 +4,7 @@ A growing gallery of things people have built with Browser MCP. The point: spark
 
 ## Add your own
 
-- **Easy:** [Share a use-case](https://github.com/Agent360dk/browser-mcp/issues/new?template=use-case.yml) - fill the form.
+- **Easy:** [Share a use-case](https://github.com/modded-soldier-9/browser-mcp/issues/new?template=use-case.yml) - fill the form.
 - **Faster:** Ask Claude in your session to "share my browser-mcp use-case" - it knows the format.
 - **PR directly:** Edit this file and add your block under **Gallery**.
 
@@ -19,7 +19,7 @@ A growing gallery of things people have built with Browser MCP. The point: spark
 ### 🎯 Daily ops & research
 
 **Stack:** Browser MCP + Claude Code
-**By:** [@Agent360dk](https://github.com/Agent360dk)
+**By:** [@modded-soldier-9](https://github.com/modded-soldier-9)
 
 Catch-all daily driver: vendor research, pricing comparisons across competitor sites, form-filling for partner onboarding, screenshot-evidence for support tickets, and extracting data from internal dashboards you're already signed into - without paying for an API tier.
 
@@ -27,8 +27,8 @@ Catch-all daily driver: vendor research, pricing comparisons across competitor s
 
 ---
 
-_Add yours - what did you build?_ → [Share a use-case](https://github.com/Agent360dk/browser-mcp/issues/new?template=use-case.yml)
+_Add yours - what did you build?_ → [Share a use-case](https://github.com/modded-soldier-9/browser-mcp/issues/new?template=use-case.yml)
 
 ---
 
-_Last updated: 2026-07-22 · Maintained by [@Agent360dk](https://github.com/Agent360dk)_
+_Last updated: 2026-10-31 · Maintained by [@modded-soldier-9](https://github.com/modded-soldier-9)_

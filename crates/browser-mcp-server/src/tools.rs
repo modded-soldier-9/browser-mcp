@@ -1,6 +1,9 @@
 use std::collections::HashMap;
+use std::fs::OpenOptions;
+use std::io::Write;
+use std::path::PathBuf;
 use std::sync::LazyLock;
-use serde_json::Value;
+use serde_json::{json, Value};
 
 pub static TOOLS_JSON: &str = include_str!("../tools_schema.json");
 
@@ -76,4 +79,65 @@ pub fn normalize_tool_name(name: &str) -> String {
         }
     }
     name.to_string()
+}
+
+pub fn is_local_tool(method: &str) -> bool {
+    method == "about" || method == "provide_feedback"
+}
+
+pub async fn handle_local_tool(
+    method: &str,
+    args: &Value,
+    active_port: Option<u16>,
+    connected_clients: usize,
+    profiles: Vec<String>,
+) -> Result<Value, String> {
+    match method {
+        "about" => Ok(json!({
+            "name": "browser-mcp",
+            "version": env!("CARGO_PKG_VERSION"),
+            "description": "Native standalone Rust MCP server driving Brave and Chrome",
+            "runtime": "rust",
+            "os": std::env::consts::OS,
+            "arch": std::env::consts::ARCH,
+            "port": active_port,
+            "connected_extensions": connected_clients,
+            "active_profiles": profiles
+        })),
+        "provide_feedback" => {
+            let feedback = args.get("feedback")
+                .or_else(|| args.get("message"))
+                .or_else(|| args.get("text"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+
+            if feedback.trim().is_empty() {
+                return Err("Missing feedback content in request".to_string());
+            }
+
+            let home = std::env::var("USERPROFILE")
+                .or_else(|_| std::env::var("HOME"))
+                .unwrap_or_else(|_| ".".to_string());
+            let dir = PathBuf::from(home).join(".browser-mcp");
+            let _ = std::fs::create_dir_all(&dir);
+            let log_file = dir.join("feedback.log");
+
+            let timestamp = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+
+            let entry = format!("[{}] {}\n", timestamp, feedback);
+            if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(&log_file) {
+                let _ = file.write_all(entry.as_bytes());
+            }
+
+            Ok(json!({
+                "status": "received",
+                "logged_to": log_file.display().to_string(),
+                "message": "Thank you for the feedback. Logged locally."
+            }))
+        }
+        _ => Err(format!("Unknown local tool method: {}", method)),
+    }
 }

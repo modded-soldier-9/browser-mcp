@@ -65,6 +65,12 @@ impl Bridge {
         }
     }
 
+    pub async fn get_status(&self) -> (Option<u16>, usize, Vec<String>) {
+        let state = self.state.read().await;
+        let profiles = state.connections.iter().map(|c| c.profile.clone()).collect();
+        (state.active_port, state.connections.len(), profiles)
+    }
+
     pub async fn ensure_port(&self) -> Result<u16, String> {
         {
             let state = self.state.read().await;
@@ -104,13 +110,14 @@ impl Bridge {
 
     async fn run_listener(&self, listener: TcpListener, port: u16) {
         let origin_regex = Regex::new(r"^chrome-extension://[a-p]{32}$").unwrap();
+        let expected_token = std::env::var("BROWSER_MCP_TOKEN").ok();
 
         while let Ok((mut stream, _)) = listener.accept().await {
             let origin_re = origin_regex.clone();
             let bridge = self.clone();
+            let token_opt = expected_token.clone();
 
             tokio::spawn(async move {
-                // Inspect incoming HTTP request for probe (fetch) vs real WebSocket
                 let mut peek_buf = [0u8; 1024];
                 let n = match stream.peek(&mut peek_buf).await {
                     Ok(n) => n,
@@ -132,7 +139,24 @@ impl Bridge {
                     return;
                 }
 
-                let callback = |req: &Request, response: Response| {
+                let callback = move |req: &Request, response: Response| {
+                    if let Some(ref required_token) = token_opt {
+                        let uri_str = req.uri().to_string();
+                        let has_valid_token = uri_str.contains(&format!("token={}", required_token))
+                            || req.headers()
+                                .get("Sec-WebSocket-Protocol")
+                                .and_then(|v| v.to_str().ok())
+                                .map(|p| p.contains(required_token))
+                                .unwrap_or(false);
+
+                        if !has_valid_token {
+                            return Err(Response::builder()
+                                .status(401)
+                                .body(Some("Invalid authentication token".to_string()))
+                                .unwrap());
+                        }
+                    }
+
                     if let Some(origin) = req.headers().get("Origin") {
                         if let Ok(o_str) = origin.to_str() {
                             if origin_re.is_match(o_str) {
@@ -255,7 +279,7 @@ impl Bridge {
                 }
             }
             if start.elapsed() > Duration::from_millis(5000) {
-                return Err("Chrome extension not connected after 5 seconds. Check Brave is open and Browser MCP extension is loaded.".to_string());
+                return Err("Chrome extension not connected after 5 seconds. Check Brave/Chrome is open and Browser MCP extension is loaded.".to_string());
             }
             tokio::time::sleep(Duration::from_millis(200)).await;
         }
@@ -263,11 +287,11 @@ impl Bridge {
         let (tx, rx) = oneshot::channel();
         let id = self.cmd_id.fetch_add(1, Ordering::SeqCst);
 
-        let parent_pid = std::process::id(); // current process or ppid
-        let jeikcode_session = std::env::var("JEIKCODE_SESSION_ID")
-            .or_else(|_| std::env::var("ATOMCODE_SESSION_ID"))
-            .unwrap_or_else(|_| "JeikCode".to_string());
-        let agent = std::env::var("BROWSER_MCP_AGENT").unwrap_or_else(|_| "JeikCode".to_string());
+        let parent_pid = std::process::id();
+        let session_id = std::env::var("BROWSER_MCP_SESSION_ID")
+            .or_else(|_| std::env::var("JEIKCODE_SESSION_ID"))
+            .unwrap_or_else(|_| "browser-mcp".to_string());
+        let agent = std::env::var("BROWSER_MCP_AGENT").unwrap_or_else(|_| "browser-mcp".to_string());
 
         let cmd_payload = json!({
             "id": id,
@@ -275,7 +299,7 @@ impl Bridge {
             "params": params,
             "pid": parent_pid,
             "agent": agent,
-            "agentId": jeikcode_session
+            "agentId": session_id
         }).to_string();
 
         let requested_profile = std::env::var("BROWSER_MCP_PROFILE")

@@ -56,8 +56,13 @@ PAGES=[
 # Antallet af vaerktoejer udledes af kilden. Stod det haardkodet her, paastod hver
 # eneste genererede side "34 browser tools" laenge efter at der var 43 - og
 # check-docs.py faldt paa det ved hver eneste koersel.
-TOOL_COUNT=len(set(re.findall(r"name:\s*['\"](browser_[a-z0-9_]+)['\"]",
-    (pathlib.Path(__file__).resolve().parent.parent/'mcp-server'/'tools.js').read_text(encoding='utf-8'))))
+schema_file = pathlib.Path(__file__).resolve().parent.parent / 'crates' / 'browser-mcp-server' / 'tools_schema.json'
+if schema_file.exists():
+    import json
+    TOOL_COUNT = len(json.loads(schema_file.read_text(encoding='utf-8')))
+else:
+    TOOL_COUNT = len(set(re.findall(r"name:\s*['\"](browser_[a-z0-9_]+)['\"]",
+        (pathlib.Path(__file__).resolve().parent.parent/'mcp-server'/'tools.js').read_text(encoding='utf-8'))))
 
 INSTALL=['/docs/install-claude-code','/docs/install-codex','/docs/install-cursor','/docs/install-vscode','/docs/install-zcode']
 CTX={'/docs/what-is-browser-mcp':'The concept, architecture, and how it works',
@@ -87,7 +92,7 @@ def front_matter(md):
 TODAY=datetime.date.today().isoformat()
 SOURCES={}; LIVE=[]
 for _fn,_grp,_label,_url in PAGES:
-    _fm,_body=front_matter(open(DRAFTS+_fn).read())
+    _fm,_body=front_matter(open(DRAFTS+_fn, encoding='utf-8').read())
     if _fm.get('publish_date','')>TODAY:
         print('  %-32s scheduled %s - held back' % (_url,_fm['publish_date']))
         continue
@@ -358,12 +363,12 @@ for fn,grp,label,url in LIVE:
     title=title_of(lines); desc=meta_desc(lines, SOURCES[url]); faq=extract_faq(lines); nfaq+=1 if faq else 0
     body=md_to_html(lines)
     page='<!doctype html><html lang="en"><head>\n'+head(title,desc,url)+'\n'+jsonld(title,desc,url,grp,faq,git_datoer(fn))+'\n</head><body>'
-    page+='<div class="top"><div class="top-in"><a class="logo" href="/" style="color:inherit"><span class="m">&#10022;</span> Browser MCP</a><a class="star" href="https://github.com/Agent360dk/browser-mcp" style="color:inherit;text-decoration:none">GitHub &#8599;</a></div></div>'
+    page+='<div class="top"><div class="top-in"><a class="logo" href="/" style="color:inherit"><span class="m">&#10022;</span> Browser MCP</a><a class="star" href="https://github.com/modded-soldier-9/browser-mcp" style="color:inherit;text-decoration:none">GitHub &#8599;</a></div></div>'
     page+='<div class="shell"><nav class="side">'+sidebar(url)+'</nav><main class="content">'+body+related(url)+'</main></div>'
     page+='<script src="/assets/docs.js"></script></body></html>'
     disk=REPO+url.strip('/')+'/index.html'
     os.makedirs(os.path.dirname(disk),exist_ok=True)
-    open(disk,'w').write(page)
+    open(disk,'w', encoding='utf-8').write(page)
     print('  %-32s desc=%dch faq=%d' % (url, len(desc), len(faq)))
 # MAALT 11/9 (SEO-teamet, curl 404): llms-install.md - installationsvejledningen som AI-assistenter laeser - laa i
 # repo-roden og blev aldrig lagt paa sitet. Den kopieres nu hertil ved hver genbygning, saa roden er eneste kilde,
@@ -411,11 +416,11 @@ for _fn, _grp, _label, _url in LIVE:
     _sm.append('  <url><loc>https://browsermcp.dev%s/</loc><lastmod>%s</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>'
                % (_url, git_datoer(_fn)[1]))
 _sm.append('</urlset>')
-open(REPO + 'sitemap.xml', 'w').write('\n'.join(_sm) + '\n')
+open(REPO + 'sitemap.xml', 'w', encoding='utf-8').write('\n'.join(_sm) + '\n')
 print('  sitemap.xml: %d adresser, lastmod fra sidste commit (%d noindex holdt ude)'
       % (len(FASTE_URLS) + len(LIVE) - len(NOINDEX), len(NOINDEX)))
 
 _llms_kilde = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'llms-install.md')
-open(REPO + 'llms-install.md', 'w').write(open(_llms_kilde).read())
+open(REPO + 'llms-install.md', 'w', encoding='utf-8').write(open(_llms_kilde, encoding='utf-8').read())
 print('Regenerated %d pages · FAQPage schema on %d' % (len(LIVE), nfaq))
 

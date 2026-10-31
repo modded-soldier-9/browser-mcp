@@ -75,7 +75,13 @@ if _dubletter:
     fail('%d sider aabner med samme saetning to gange: %s' % (len(_dubletter), '; '.join(_dubletter)))
 
 # ---- 1. tool count ----------------------------------------------------------
-TOOLCOUNT = len(re.findall(r"""name: ['\"]browser_""", open(os.path.join(ROOT, 'mcp-server', 'tools.js')).read()))
+import json
+schema_file = os.path.join(ROOT, 'crates', 'browser-mcp-server', 'tools_schema.json')
+if os.path.exists(schema_file):
+    with open(schema_file, encoding='utf-8') as sf:
+        TOOLCOUNT = len(json.load(sf))
+else:
+    TOOLCOUNT = len(re.findall(r"""name: ['\"]browser_""", open(os.path.join(ROOT, 'mcp-server', 'tools.js'), encoding='utf-8').read()))
 claim_files = glob.glob(DOCS + '/**/*.html', recursive=True) + \
               glob.glob(os.path.join(ROOT, 'content', '*.md')) + [os.path.join(ROOT, 'README.md')]
 claim_files = [f for f in claim_files if os.path.isfile(f)]
@@ -154,7 +160,11 @@ for f in claim_files:
 # ---- 1b. tools reference page lists exactly the tools.js tool set ----------
 tools_page = os.path.join(DOCS, 'docs', 'tools', 'index.html')
 if os.path.isfile(tools_page):
-    defined = set(re.findall(r"""name: ['\"](browser_[a-z_]+)['\"]""", open(os.path.join(ROOT, 'mcp-server', 'tools.js')).read()))
+    if os.path.exists(schema_file):
+        with open(schema_file, encoding='utf-8') as sf:
+            defined = set(t["name"] for t in json.load(sf))
+    else:
+        defined = set(re.findall(r"""name: ['\"](browser_[a-z_]+)['\"]""", open(os.path.join(ROOT, 'mcp-server', 'tools.js'), encoding='utf-8').read()))
     documented = set(re.findall(r'\b(browser_[a-z_]+)\b', open(tools_page, encoding='utf-8').read()))
     for miss in sorted(defined - documented):
         fail('tools page does not document %s (defined in tools.js)' % miss)

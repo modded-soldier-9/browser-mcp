@@ -1,67 +1,66 @@
 mod bridge;
+mod installer;
 mod protocol;
 mod sandbox;
 mod tools;
 mod watchdog;
 
-use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use serde_json::{json, Value};
-use tokio::sync::broadcast;
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::sync::{broadcast, mpsc};
 
 use bridge::Bridge;
 use protocol::{CallToolResult, JsonRpcError, JsonRpcRequest, JsonRpcResponse, TextContent, ToolContent, ImageContent};
 use tools::{get_tools_list, normalize_tool_name, METHOD_MAP};
 
 #[derive(Parser, Debug)]
-#[command(name = "browser-mcp", version = "2.0.0", about = "Native JeikCode Browser MCP Server in Rust")]
+#[command(name = "browser-mcp", version = env!("CARGO_PKG_VERSION"), about = "Native Browser MCP Server driving Brave and Chrome")]
 struct Cli {
-    #[arg(short = 'v', long = "version")]
-    version_flag: bool,
+    #[command(subcommand)]
+    command: Option<Commands>,
 
     #[arg(long = "serve")]
     serve: bool,
 
     #[arg(long = "install")]
-    install: bool,
+    install_flag: bool,
+}
+
+#[derive(Subcommand, Debug)]
+enum Commands {
+    /// Install embedded extension and display client assistant configurations
+    Install,
+    /// Run bridge WebSocket server in background serve mode
+    Serve,
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
-    if cli.version_flag {
-        println!("2.0.0");
-        return Ok(());
-    }
-
-    if cli.install {
-        println!("Browser MCP v2.0.0 (Rust Edition)");
-        println!("Registering with JeikCode...");
-        return Ok(());
+    if cli.install_flag || matches!(cli.command, Some(Commands::Install)) {
+        return installer::run_install();
     }
 
     let bridge = Arc::new(Bridge::new());
     let strip_prefix = std::env::var("BROWSER_MCP_STRIP_TOOL_PREFIX").map(|v| v == "1").unwrap_or(false);
 
-    if cli.serve {
+    if cli.serve || matches!(cli.command, Some(Commands::Serve)) {
         eprintln!("[Browser MCP] Running persistent bridge server on ws://127.0.0.1:9876...");
         let _ = bridge.ensure_port().await;
-        // Keep alive indefinitely in serve mode
         tokio::signal::ctrl_c().await?;
         return Ok(());
     }
 
     // Default: Stdio MCP Server
-    eprintln!("[MCP] Browser MCP server running (Rust / stdio)");
+    eprintln!("[MCP] Browser MCP server running (Rust / stdio v{})", env!("CARGO_PKG_VERSION"));
 
-    // Parent process watchdog
-    let (shutdown_tx, _) = broadcast::channel::<()>(1);
-    let parent_pid = std::process::id(); // or sysinfo ppid
-    watchdog::spawn_watchdog(parent_pid, shutdown_tx.clone());
+    let (shutdown_tx, mut shutdown_rx) = broadcast::channel::<()>(1);
+    watchdog::spawn_signal_watchdog(shutdown_tx.clone());
 
     // Auto-warm port
     let bridge_warm = bridge.clone();
@@ -69,32 +68,112 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let _ = bridge_warm.ensure_port().await;
     });
 
-    // Run stdio line reader
-    let stdin = io::stdin();
-    let mut stdout = io::stdout();
-
-    let mut lines = stdin.lock().lines();
-
-    while let Some(Ok(line)) = lines.next() {
-        if line.trim().is_empty() {
-            continue;
+    // Decoupled Stdout Writer Task
+    let (stdout_tx, mut stdout_rx) = mpsc::unbounded_channel::<String>();
+    let stdout_writer = tokio::spawn(async move {
+        let mut stdout = tokio::io::stdout();
+        while let Some(line) = stdout_rx.recv().await {
+            if stdout.write_all(line.as_bytes()).await.is_err() {
+                break;
+            }
+            if stdout.write_all(b"\n").await.is_err() {
+                break;
+            }
+            if stdout.flush().await.is_err() {
+                break;
+            }
         }
+    });
 
-        let req: JsonRpcRequest = match serde_json::from_str(&line) {
-            Ok(r) => r,
-            Err(_) => continue,
-        };
+    // Sequential queue for browser mutation actions
+    let (cmd_tx, mut cmd_rx) = mpsc::unbounded_channel::<(JsonRpcRequest, mpsc::UnboundedSender<String>)>();
+    let bridge_worker = bridge.clone();
+    let worker_task = tokio::spawn(async move {
+        while let Some((req, out_tx)) = cmd_rx.recv().await {
+            let bridge = bridge_worker.clone();
+            let res = handle_request(req, bridge, strip_prefix).await;
+            if let Some(resp) = res {
+                if let Ok(serialized) = serde_json::to_string(&resp) {
+                    let _ = out_tx.send(serialized);
+                }
+            }
+        }
+    });
 
-        let bridge = bridge.clone();
-        let res = handle_request(req, bridge, strip_prefix).await;
+    // Asynchronous Stdin Reader Task
+    let mut stdin_reader = BufReader::new(tokio::io::stdin());
+    let mut line_buf = String::new();
 
-        if let Some(resp) = res {
-            let serialized = serde_json::to_string(&resp)?;
-            writeln!(stdout, "{}", serialized)?;
-            stdout.flush()?;
+    loop {
+        line_buf.clear();
+        tokio::select! {
+            _ = shutdown_rx.recv() => {
+                eprintln!("[MCP] Shutdown signal received, terminating server cleanly");
+                break;
+            }
+            read_res = stdin_reader.read_line(&mut line_buf) => {
+                match read_res {
+                    Ok(0) => {
+                        // Stdin EOF: Client process exited or closed the pipe
+                        eprintln!("[MCP] Host stdin pipe closed (EOF), shutting down");
+                        let _ = shutdown_tx.send(());
+                        break;
+                    }
+                    Ok(_) => {
+                        let trimmed = line_buf.trim();
+                        if trimmed.is_empty() {
+                            continue;
+                        }
+
+                        let req: JsonRpcRequest = match serde_json::from_str(trimmed) {
+                            Ok(r) => r,
+                            Err(_) => continue,
+                        };
+
+                        // Fast-path for MCP Ping: response must not queue behind long-running browser tools
+                        if req.method == "ping" {
+                            if let Some(ref id) = req.id {
+                                let ping_resp = json!({
+                                    "jsonrpc": "2.0",
+                                    "id": id,
+                                    "result": {}
+                                });
+                                let _ = stdout_tx.send(ping_resp.to_string());
+                            }
+                            continue;
+                        }
+
+                        // Notifications require no response
+                        if req.method == "notifications/initialized" {
+                            continue;
+                        }
+
+                        // Fast path for initialize and tools/list
+                        if req.method == "initialize" || req.method == "tools/list" {
+                            let bridge = bridge.clone();
+                            let res = handle_request(req, bridge, strip_prefix).await;
+                            if let Some(resp) = res {
+                                if let Ok(serialized) = serde_json::to_string(&resp) {
+                                    let _ = stdout_tx.send(serialized);
+                                }
+                            }
+                            continue;
+                        }
+
+                        // Route tool calls to sequential command queue
+                        let _ = cmd_tx.send((req, stdout_tx.clone()));
+                    }
+                    Err(e) => {
+                        eprintln!("[MCP] Error reading stdin: {}", e);
+                        break;
+                    }
+                }
+            }
         }
     }
 
+    worker_task.abort();
+    stdout_writer.abort();
     Ok(())
 }
 
@@ -116,7 +195,7 @@ async fn handle_request(
                     "capabilities": { "tools": {} },
                     "serverInfo": {
                         "name": "browser-mcp",
-                        "version": "2.0.0"
+                        "version": env!("CARGO_PKG_VERSION")
                     },
                     "instructions": instructions
                 })),
@@ -156,6 +235,41 @@ async fn handle_request(
                     });
                 }
             };
+
+            // Local Server Tools (browser_about, browser_provide_feedback)
+            if tools::is_local_tool(method) {
+                let (active_port, connected_count, profiles) = bridge.get_status().await;
+                match tools::handle_local_tool(method, &args, active_port, connected_count, profiles).await {
+                    Ok(val) => {
+                        return Some(JsonRpcResponse {
+                            jsonrpc: "2.0".to_string(),
+                            id,
+                            result: Some(serde_json::to_value(CallToolResult {
+                                content: vec![ToolContent::Text(TextContent {
+                                    content_type: "text".to_string(),
+                                    text: serde_json::to_string_pretty(&val).unwrap_or_else(|_| val.to_string()),
+                                })],
+                                is_error: None,
+                            }).unwrap()),
+                            error: None,
+                        });
+                    }
+                    Err(err_msg) => {
+                        return Some(JsonRpcResponse {
+                            jsonrpc: "2.0".to_string(),
+                            id,
+                            result: Some(serde_json::to_value(CallToolResult {
+                                content: vec![ToolContent::Text(TextContent {
+                                    content_type: "text".to_string(),
+                                    text: format!("Error: {}", err_msg),
+                                })],
+                                is_error: Some(true),
+                            }).unwrap()),
+                            error: None,
+                        });
+                    }
+                }
+            }
 
             // Path sandboxing for screenshot and uploads
             let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));

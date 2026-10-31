@@ -1,9 +1,9 @@
 {
   "name": "browser-mcp-workspace",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "type": "module",
-  "description": "Browser MCP - High-Performance AI Browser Automation Bridge",
+  "description": "Browser MCP - Native Rust AI Browser Automation Bridge",
   "author": {
     "name": "Mohamed Elsheikh",
     "email": "moddedsoldier@gmail.com",
@@ -14,8 +14,10 @@
     "url": "https://github.com/modded-soldier-9/browser-mcp.git"
   },
   "scripts": {
-    "test": "npm test --prefix mcp-server",
-    "build": "npm run build --prefix mcp-server",
-    "start": "npm start --prefix mcp-server"
+    "test": "cargo test --manifest-path crates/browser-mcp-server/Cargo.toml",
+    "build": "cargo build --release --manifest-path crates/browser-mcp-server/Cargo.toml",
+    "start": "cargo run --manifest-path crates/browser-mcp-server/Cargo.toml",
+    "install-ext": "cargo run --manifest-path crates/browser-mcp-server/Cargo.toml -- install",
+    "check-docs": "python scripts/check-docs.py"
   }
 }

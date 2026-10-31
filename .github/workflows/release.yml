@@ -42,15 +42,15 @@ jobs:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             binary_name: browser-mcp-windows-x64.exe
-            source_path: target/release/browser-mcp-server.exe
+            source_path: target/release/browser-mcp.exe
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             binary_name: browser-mcp-linux-x64
-            source_path: target/release/browser-mcp-server
+            source_path: target/release/browser-mcp
           - os: macos-latest
             target: aarch64-apple-darwin
             binary_name: browser-mcp-macos-arm64
-            source_path: target/release/browser-mcp-server
+            source_path: target/release/browser-mcp
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -63,7 +63,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          cp crates/browser-mcp-server/${{ matrix.source_path }} dist/${{ matrix.binary_name }}
+          cp target/release/${{ matrix.binary_name == 'browser-mcp-windows-x64.exe' && 'browser-mcp.exe' || 'browser-mcp' }} dist/${{ matrix.binary_name }}
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.binary_name }}
@@ -78,7 +78,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Validate and Build Extension
+      - name: Validate Extension Assets
         run: node scripts/build-extension.mjs
       - name: Zip Extension
         run: |
@@ -99,14 +99,17 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          path: release-assets
-          merge-multiple: true
-      - name: Publish Release to GitHub
+          path: release-artifacts
+      - name: Display Downloaded Artifacts
+        run: ls -R release-artifacts
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: release-assets/*
-          generate_release_notes: true
+          files: |
+            release-artifacts/browser-mcp-windows-x64.exe/browser-mcp-windows-x64.exe
+            release-artifacts/browser-mcp-linux-x64/browser-mcp-linux-x64
+            release-artifacts/browser-mcp-macos-arm64/browser-mcp-macos-arm64
+            release-artifacts/browser-mcp-extension.zip/browser-mcp-extension.zip
           draft: false
           prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          generate_release_notes: true

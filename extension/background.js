@@ -251,21 +251,16 @@ function restoreSessions() {
         // Samme kollisionsfejl som i getSession, og derfor samme rettelse: `size + 1`
         // genbruger et nummer der allerede er i brug. Her betyder det at to gendannede
         // sessioner kan komme op med samme navn efter en genstart af service-workeren.
-        const brugte = new Set([...sessions.values()].map((x) => x.nummer).filter((n) => typeof n === 'number'));
-        let nummer = typeof data.nummer === 'number' ? data.nummer : 1;
-        while (brugte.has(nummer)) nummer++;
+        const usedNumbers = new Set([...sessions.values()].map((x) => x.sessionNumber || x.nummer).filter((n) => typeof n === 'number'));
+        let sessionNumber = typeof data.sessionNumber === 'number' ? data.sessionNumber : (typeof data.nummer === 'number' ? data.nummer : 1);
+        while (usedNumbers.has(sessionNumber)) sessionNumber++;
         sessions.set(Number(port), {
           tabIds: validTabIds,
           activeTabId,
           groupId: data.groupId || null,
-          nummer,
-          // MAALT 22/8: her stod `data.color || …` og `data.label || …`. Bumpede
-          // kollisionsloekken nummeret, fulgte navn og farve IKKE med — de blev
-          // gendannet ordret fra lageret. To sessioner kunne saa have hvert sit
-          // nummer og stadig begge hedde "Claude 1" i samme farve. Og navnet er
-          // praecis dét brugeren ser paa fanegruppen.
-          color: SESSION_COLORS[(nummer - 1) % SESSION_COLORS.length],
-          label: `Claude ${nummer}`,
+          sessionNumber,
+          color: SESSION_COLORS[(sessionNumber - 1) % SESSION_COLORS.length],
+          label: (data.label && !/jeikcode/i.test(data.label)) ? data.label : `Assistant ${sessionNumber}`,
           pid: typeof data.pid === 'number' ? data.pid : null,
         });
       }
@@ -289,26 +284,25 @@ function getSession(port, pid, agent) {
     // Laveste ledige nummer genbruger frigivne pladser uden at kollidere, saa numrene
     // bliver ved med at vaere smaa og laesbare. Farven foelger nummeret, saa to
     // samtidige sessioner heller ikke kan faa samme farve.
-    const brugte = new Set([...sessions.values()].map((s) => s.nummer).filter((n) => typeof n === 'number'));
-    let nummer = 1;
-    // Havde denne chat en plads foer den slap sin port, og er den stadig ledig, saa faar
-    // den sin egen tilbage — se pladsPrPid. Ellers laveste ledige, som foer.
-    const husket = typeof pid === 'number' ? pladsPrPid.get(pid) : undefined;
-    if (typeof husket === 'number' && !brugte.has(husket)) {
-      nummer = husket;
+    const usedNumbers = new Set([...sessions.values()].map((s) => s.sessionNumber || s.nummer).filter((n) => typeof n === 'number'));
+    let sessionNumber = 1;
+    const remembered = typeof pid === 'number' ? rememberSlotForPid(pid) : undefined;
+    if (typeof remembered === 'number' && !usedNumbers.has(remembered)) {
+      sessionNumber = remembered;
     } else {
-      while (brugte.has(nummer)) nummer++;
+      while (usedNumbers.has(sessionNumber)) sessionNumber++;
     }
-    husketPlads(pid, nummer);
+    saveSlotForPid(pid, sessionNumber);
 
-    const sLabel = (agent && /jeikcode/i.test(agent)) ? `JeikCode ${nummer}` : `Claude ${nummer}`;
+    const sLabel = agent ? `${agent} ${sessionNumber}` : `Assistant ${sessionNumber}`;
     sessions.set(port, {
       tabIds: new Set(),
       activeTabId: null,
       agentTabs: new Map(), // subagent/agentId -> tabId mapping for parallel multi-agent flows
       groupId: null,
-      nummer,
-      color: SESSION_COLORS[(nummer - 1) % SESSION_COLORS.length],
+      sessionNumber,
+      nummer: sessionNumber,
+      color: SESSION_COLORS[(sessionNumber - 1) % SESSION_COLORS.length],
       label: sLabel,
       agent: agent || null,
       pid: typeof pid === 'number' ? pid : null,
@@ -317,12 +311,12 @@ function getSession(port, pid, agent) {
   const s = sessions.get(port);
   if (agent && !s.agent) {
     s.agent = agent;
-    if (/jeikcode/i.test(agent) && s.label.startsWith('Claude ')) {
-      s.label = `JeikCode ${s.nummer}`;
-    }
+    s.label = `${agent} ${s.sessionNumber || s.nummer}`;
   }
-  // Foerste kald fra en genstartet server kan baere pid'en foer sessionen har den.
-  if (s.pid == null && typeof pid === 'number') { s.pid = pid; husketPlads(pid, s.nummer); }
+  if (s.pid == null && typeof pid === 'number') {
+    s.pid = pid;
+    saveSlotForPid(pid, s.sessionNumber || s.nummer);
+  }
   return s;
 }
 
@@ -368,15 +362,15 @@ async function adoptOrphanedSession(port, pid) {
   // Det manglende tjek staar allerede beskrevet oeverst i denne funktion: adoptér kun
   // fra en session hvis port IKKE laengere er forbundet. Er donorens port stadig i
   // live, er det en anden chat der arbejder lige nu — ikke en genstartet server.
-  // Listen vedligeholdes af broen (ws_status → mcpPorts) ved hver til- og frakobling.
+  // Maintained by the bridge (ws_status -> mcpPorts) upon connect/disconnect.
   const { mcpPorts = [] } = await chrome.storage.local.get({ mcpPorts: [] });
-  const levendePorte = new Set(mcpPorts.map(Number));
+  const activePorts = new Set(mcpPorts.map(Number));
 
   let best = null;
   for (const [p, session] of sessions) {
     if (p === port || !session.tabIds.size) continue;
-    if (session.pid !== pid) continue;        // en anden chat — lad den vaere
-    if (levendePorte.has(Number(p))) continue; // donoren arbejder stadig — hænderne væk
+    if (session.pid !== pid) continue;        // Belongs to another session
+    if (activePorts.has(Number(p))) continue; // Donor session is still active
     if (!best || session.tabIds.size > best.session.tabIds.size) best = { port: p, session };
   }
   if (!best) return null;
@@ -996,12 +990,14 @@ const frivilligtFrigivet = new Set();
 // Garantien er praecis "dit gamle nummer HVIS det er ledigt". Er det taget, vinder den
 // nulevende session — ellers ville vi genindfoere den navnekollision som lavest-ledige-
 // nummer blev indfoert for at loese.
-const pladsPrPid = new Map();
-function husketPlads(pid, nummer) {
+const slotsByPid = new Map();
+function saveSlotForPid(pid, sessionNumber) {
   if (typeof pid !== 'number') return;
-  pladsPrPid.set(pid, nummer);
-  // Kortet maa ikke vokse i det uendelige paa en langtlevende worker.
-  if (pladsPrPid.size > 60) pladsPrPid.delete(pladsPrPid.keys().next().value);
+  slotsByPid.set(pid, sessionNumber);
+  if (slotsByPid.size > 60) slotsByPid.delete(slotsByPid.keys().next().value);
+}
+function rememberSlotForPid(pid) {
+  return typeof pid === 'number' ? slotsByPid.get(pid) : undefined;
 }
 
 // ── Armerede dialog-haandterere, pr. fane ──────────────────────────────────────
@@ -3744,36 +3740,26 @@ async function dispatch(port, method, params) {
         // opnaas. `chrome.windows.create({ focused: false })` er praecis den tilstand.
         // ⚠️ Tilvalg, ikke standard: om Chrome leverer input dér er PRAECIS det ubesvarede
         // spoergsmaal. Ingen adfaerd aendrer sig for nogen der ikke beder om det.
-        if (params.eget_vindue) {
-          // ⛔ MAALT 19/9 og FALSIFICERET: et eget vindue UDEN fokus leverer nul taster,
-          // praecis som en baggrundsfane. Det er ikke fanens synlighed i sit vindue der
-          // afgoer det - det er om VINDUET har operativsystemets fokus.
-          // (test/aerlighed/RESULTAT-vindueshypotesen-2026-09-19.md)
-          //
-          // Men det gav funktionen et bedre formaal end det den blev bygget til. Paa en
-          // maskine med flere skaerme kan vinduet placeres paa en skaerm mennesket ikke
-          // kigger paa OG faa fokus dér: saa leverer Chrome input, uden at noget daekker
-          // det brugeren arbejder i. Det er forskellen paa "kan ikke koere uden at tage
-          // skaermen" og "koerer et andet sted".
-          const spec = { url: params.url, focused: !!params.fokuser };
-          // ⛔ 26/9 (fuld review, maalt): en position som tekst ("-1920") blev tavst udeladt, og
-          // vinduet aabnede MED fokus paa Chromes standardplads - brugerens skaerm. Tal som tekst
-          // laeses nu som tal; et felt der slet ikke er et tal, afviser vinduet i stedet for at
-          // lade Chrome vaelge pladsen.
-          for (const [ind, ud] of [['vindue_x', 'left'], ['vindue_y', 'top'],
-                                   ['vindue_bredde', 'width'], ['vindue_hoejde', 'height']]) {
-            const raa = params[ind];
+        if (params.new_window || params.eget_vindue) {
+          const spec = { url: params.url, focused: !!(params.focus ?? params.fokuser) };
+          for (const [ind, alt, ud] of [
+            ['x', 'vindue_x', 'left'],
+            ['y', 'vindue_y', 'top'],
+            ['width', 'vindue_bredde', 'width'],
+            ['height', 'vindue_hoejde', 'height'],
+          ]) {
+            const raa = params[ind] ?? params[alt];
             if (raa == null) continue;
             const tal = typeof raa === 'string' && raa.trim() !== '' ? Number(raa) : raa;
             if (!Number.isFinite(tal)) {
-              return { ok: false, error: `eget_vindue: ${ind} must be a number, got ${JSON.stringify(raa)}. `
+              return { ok: false, error: `new_window: ${ind} must be a number, got ${JSON.stringify(raa)}. `
                 + 'No window was opened - without a position Chrome picks the spot, usually in front of the user.' };
             }
             spec[ud] = Math.round(tal);
           }
           const vindue = await chrome.windows.create(spec);
           tab = vindue.tabs && vindue.tabs[0];
-          if (!tab) return { ok: false, error: 'eget_vindue: Chrome created a window with no tab' };
+          if (!tab) return { ok: false, error: 'new_window: Chrome created a window with no tab' };
           await addTabToSession(port, tab.id);
           getSession(port).activeTabId = tab.id;
           persistSessions();
