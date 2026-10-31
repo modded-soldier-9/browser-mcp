@@ -63,7 +63,7 @@
     "url": "https://github.com/modded-soldier-9/browser-mcp.git"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "ws": "^8.21.3"
   },
   "overrides": {
