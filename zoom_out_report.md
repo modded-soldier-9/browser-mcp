@@ -1,46 +1,38 @@
-# Initial Zoom Out Review Report
+# EGM Initial Zoom Out Review: `docs/designs/token-efficient-semantic-accessibility.md`
 
-*   **Target File**: `docs/designs/standalone-rust-browser-mcp.md`
-*   **Active Scope**: Lines 1..394 (Full Document)
-*   **Reviewer**: Skeptical Architect (`egm-zoom-out`)
-*   **Standard Applied**: `zoom-out-standard.md`
+## Overall Verdict
+**REVISE**
 
---------------------------------------------------------------------------------
+## 1-Sentence High-Altitude Summary
+The proposal over-engineers token optimization by introducing redundant format naming (`format="interactive"`), unbuildable file targets (`extension/src/dom-inspector.js`), and brittle in-Rust state diffing, failing to leverage that 85% of its core goals—including monotonic `[e1]` handles, role filtering, selector resolution, and 95% token compression—are already implemented in `extension/background.js`.
 
-## High-Altitude Evaluation
+---
 
-The proposal successfully identifies the core root problem: eliminating the heavy dual-runtime Node.js dependency in favor of a native, compiled Rust executable. It correctly targets the severe self-PID watchdog bug in `main.rs:63` and addresses stdio line-read starvation. However, the design suffers from two critical architectural dead-ends and speculative complexity that must be pruned.
+## Core Simplification & De-scoping Findings
 
---------------------------------------------------------------------------------
+### 1. [Blocker] Redundant Format Specification vs Existing `format="snapshot"`
+* **Affected Scope**: Lines 14–15, 96–102, 117–126, 167–170, Phase 1 (Lines 261–266).
+* **Simplicity Rationale**: The design proposes adding `format="interactive"` to extract actionable elements and assign monotonic `[e1]` handles. However, `browser_get_page_content` already implements `format="snapshot"` (and `format="aria"`), using `generateAriaSnapshot` in `extension/background.js` to prune non-interactive containers, assign sequential `[e1]` handles, and set `data-bmcp-ref`. Adding `format="interactive"` duplicates existing functionality.
+* **Simplification**: Alias `format="interactive"` to `format="snapshot"` or enhance `format="snapshot"` in place.
 
-## Findings
+### 2. [Blocker] Unreachable Target: `extension/src/dom-inspector.js` is Not Loaded in MV2
+* **Affected Scope**: Lines 117, 220–222, Phase 1 (Lines 261–266).
+* **Simplicity Rationale**: The design places distillation in `extension/src/dom-inspector.js` using ES module imports. In reality, the extension runtime is Manifest V2 (`extension/manifest.json`), which loads `background.js` and `offscreen.js` as classic non-module scripts. `scripts/build-extension.mjs` has no bundler. Code written in `extension/src/` will fail with syntax errors or never execute.
+* **Simplification**: Place all extension-side DOM distillation logic directly inside `extension/background.js`.
 
-### Finding 1: Sandboxed Extension File-Token Dead-End
-*   **Severity**: 🔴 Blocker
-*   **Affected Scope**: Lines 42–46, 123–131, 275–282
-*   **Simplicity Rationale**: The document mandates that the server generate a session token in `~/.browser-mcp/session.token` and reject connections without it. Sandboxed Chromium extensions have zero filesystem access to read host files. Leaving Open Question 1 open while marking the document "Approved" repeats past rollback mistakes.
-*   **Recommendation**: Bind exclusively to `127.0.0.1`, enforce `Origin: chrome-extension://[a-p]{32}`, and drop dynamic file tokens until a proper native messaging or pairing channel exists.
+### 3. [Blocker] In-Rust State Delta Engine vs Dom Order Handle Shifts
+* **Affected Scope**: Lines 18, 83–85, 154–163, 229–231, Phase 4 (Lines 277–281).
+* **Simplicity Rationale**: Implementing state diffing in Rust (`delta.rs`) via `BTreeMap<String, ElementNode>` suffers from a critical flaw: handles `[e1]`, `[e2]` are assigned sequentially in DOM order (`refCount++`). Any element inserted near the top of the DOM shifts all subsequent indices, causing a naive key diff to falsely report that every element on the page was replaced.
+* **Simplification**: Simplify delta streaming by maintaining persistent monotonic element handle mapping anchored to CDP `backendNodeId` and computing clean text line diffs.
 
-### Finding 2: Conflating `browser_extract_token` with Internal Auth
-*   **Severity**: 🔴 Blocker
-*   **Affected Scope**: Lines 21–22, 132–138, 283–291
-*   **Simplicity Rationale**: The design misclassifies `browser_extract_token` as an internal server token helper to be handled locally in Rust. In `tools_schema.json`, `browser_extract_token` is an automation tool that takes `provider: string` and navigates the browser to external SaaS dashboards (Stripe, GitHub, Slack) to capture API keys. Rewriting it to read local server tokens breaks the public schema contract.
-*   **Recommendation**: Keep `browser_extract_token` routed to the browser extension; restrict server-local execution strictly to `browser_about` and `browser_provide_feedback`.
+### 4. [Major] Context Shield Disk Spooling & Remote Agent Isolation
+* **Affected Scope**: Lines 16, 35, 83–89, 141–153, 226–228, Phase 3 (Lines 272–276).
+* **Simplicity Rationale**: Automatically diverting tool responses >2,500 tokens to `~/.browser-mcp/snapshots/` blinds containerized or remote agents that lack host filesystem access.
+* **Simplification**: Provide in-band MCP pagination (`offset`, `limit`) alongside disk spooling so remote clients can paginate without direct host disk access.
 
-### Finding 3: Redundant Parent PID Polling & `sysinfo` Dependency
-*   **Severity**: 🟡 Major
-*   **Affected Scope**: Lines 139–144, 199–206, 308–315
-*   **Simplicity Rationale**: The 5-second parent PID polling loop was a legacy workaround for multi-hop npm wrappers (`Claude -> wrapper -> npm -> node`). For a standalone native executable, standard Tokio stdin EOF (`read_line() == Ok(0)`) detects host termination immediately with 0% CPU churn and zero dependencies.
-*   **Recommendation**: Remove the periodic parent PID polling loop and `sysinfo` dependency; terminate directly on Tokio stdin EOF or OS termination signals.
+---
 
-### Finding 4: Multi-Editor Configuration Auto-Mutation Fragility
-*   **Severity**: 🟡 Major
-*   **Affected Scope**: Lines 52–53, 145–156, 302–306
-*   **Simplicity Rationale**: Attempting to parse, edit, and write configuration files for four different editors (Cursor, Claude Code, Antigravity, OpenCode) across different platforms creates lock contention and syntax corruption risks.
-*   **Recommendation**: Scope `browser-mcp install` to extracting extension files to `~/.browser-mcp/extension/` and outputting verified configuration snippets and CLI commands (`claude mcp add browser-mcp ...`).
-
-### Finding 5: Altitude Drops (Weeds in High-Level Sections)
-*   **Severity**: 🟢 Nit
-*   **Affected Scope**: Lines 157–165, 250–258, 271–274
-*   **Simplicity Rationale**: High-level architectural sections prematurely delve into compiler optimization flags (`opt-level = 3`, `lto = true`), JSON-RPC error codes (`-32602`), and exhaustive parameter translation tables.
-*   **Recommendation**: Move compiler flags and parameter lookup tables into implementation checklists.
+## Codebase Reuse Opportunities (Ponytail Alignment)
+1. **`generateAriaSnapshot` in `extension/background.js` (lines 3859-4012)**: Already implements in-DOM visibility checks, recursive role whitelisting (`button`, `link`, `textbox`, `combobox`, `dialog`), monotonic handle assignment (`refId = 'e' + refCount`), and `data-bmcp-ref` tagging.
+2. **`parseSelector` in `extension/background.js` (lines 2074-2090)**: Already regex-matches monotonic reference handles: `/^(?:@|ref[:=]|\[)?(e\d+)\]?$/i`.
+3. **`resolveElement` in `extension/background.js` (lines 2092-2129)**: Already maps `e1` handles to physical viewport coordinates with label fallbacks for trusted mouse event dispatch.

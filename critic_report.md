@@ -1,62 +1,51 @@
-# Critic Review Report (Design, Structure & Style)
+# EGM Critic Review: `docs/designs/token-efficient-semantic-accessibility.md` (lines 1-215)
 
-*   **Target File**: `docs/designs/standalone-rust-browser-mcp.md`
-*   **Active Scope**: FeatureRange (Lines 1..245)
-*   **Reviewers**: Design Critic (`egm-design`), Structural Layout (`egm-structural`), Style Editor (`egm-style`)
-*   **Standard Applied**: `feature-spec-standard.md`
+**Verdict**: **REVISE**  
+**Contributing Lenses**: `egm-design`, `egm-structural`, `egm-style`
 
---------------------------------------------------------------------------------
+---
 
-## Executive Summary
+## 1. Architectural & Protocol Findings (Design Lens)
 
-The specification establishes a solid foundation for the standalone native Rust architecture, eliminating the Node.js runtime footprint. However, the critic reviews identified two Blocker deficiencies: the absence of a mandatory `## Risks & Mitigations` section and an unworkable cross-sandbox token delivery mechanism. In addition, architectural race conditions in concurrent tool execution and structural syntax errors in the Mermaid diagram must be remediated.
+### 🔴 Blocker: Volatile Element Handle Identity Across Turns
+- **Scope**: Lines 34–35, 123–125, 180
+- **Flaw**: Sequential re-indexing (`[e1]`, `[e2]`) on each snapshot causes handle shifts when SPAs insert elements, leading to destructive mis-clicks on subsequent turns.
+- **Fix**: Anchor handles to CDP `backendNodeId` in a persistent session map (`Map<backendNodeId, handle>`). Only increment monotonically for new elements; never re-index existing nodes until full navigation.
 
---------------------------------------------------------------------------------
+### 🔴 Blocker: Manifest V2 Packaging & Module Incompatibility
+- **Scope**: Lines 117, 220–224
+- **Flaw**: `extension/src/dom-inspector.js` uses ES module syntax, but Chrome MV2 background scripts do not support modules without a bundler. It is absent from `manifest.json`.
+- **Fix**: Consolidate distillation logic directly into `extension/background.js`.
 
-## Findings
+### 🟡 Major: Context Shield Sandbox Black Hole for Remote Agents
+- **Scope**: Lines 141–153
+- **Flaw**: Spooling exclusively to host disk (`~/.browser-mcp/snapshots/`) leaves containerized, SSH-tunneled, or remote AI agents permanently blinded.
+- **Fix**: Add in-band MCP pagination (`browser_get_page_content({ snapshot_id, page_offset, limit })`).
 
-### Finding 1: Circular Sandboxed Extension Token Distribution
-*   **Severity**: 🔴 Blocker
-*   **Source**: Design Critic (`egm-design`), Comprehension (`egm-comprehension`)
-*   **Affected Scope**: Lines 44–45, 123–131
-*   **Description**: Sandboxed Chrome/Brave extensions run isolated from the OS and cannot read host filesystem files such as `~/.browser-mcp/session.token`. Leaving token discovery as an unresolved open question while marking the specification "Approved" breaks the core security mechanism and impedes zero-config deployment.
-*   **Remediation**: Standardize loopback security on binding strictly to `127.0.0.1` and enforcing strict `Origin: chrome-extension://[a-p]{32}` verification, or write a static secret into `config.js` during `browser-mcp install`.
+---
 
-### Finding 2: Missing Mandatory `## Risks & Mitigations` Section
-*   **Severity**: 🔴 Blocker
-*   **Source**: Design Critic (`egm-design`), Structural Layout (`egm-structural`)
-*   **Affected Scope**: Lines 207–245
-*   **Description**: Violates `feature-spec-standard.md`. The design lacks a dedicated section explicitly analyzing failure modes, port race conditions across multiple assistants (ports 9876–9895), extension disconnection handling during browser sleep, and configuration file corruption during self-installation.
-*   **Remediation**: Add a formal `## Risks & Mitigations` section with concrete mitigations for each operational failure mode.
+## 2. Structural & Layout Findings (Structural Lens)
 
-### Finding 3: Unordered Concurrent Tool Execution Race Conditions
-*   **Severity**: 🟡 Major
-*   **Source**: Design Critic (`egm-design`)
-*   **Affected Scope**: Lines 118–122
-*   **Description**: Spawning unstructured Tokio tasks (`tokio::spawn`) for all incoming tool calls allows sequential browser operations (e.g., `browser_navigate` followed immediately by `browser_fill`) to execute concurrently and finish out of order, corrupting active tab automation state.
-*   **Remediation**: Separate fast-path read-only requests (`ping`, `browser_about`) from tab mutation commands. Route tab-bound operations through a sequential per-tab command queue.
+### 🟡 Major: Missing Schema Parameter Tables
+- **Scope**: Lines 164–177
+- **Flaw**: Parameters for `browser_get_page_content` and `browser_search_elements` are listed as unformatted bullet points rather than structured Markdown tables.
+- **Fix**: Reformat into standard tables: `Parameter | Type | Default / Required | Description`.
 
-### Finding 4: Heading Hierarchy Violations & Structural Drift
-*   **Severity**: 🟡 Major
-*   **Source**: Structural Layout (`egm-structural`)
-*   **Affected Scope**: Lines 231–244
-*   **Description**: `### Additional Resources` and `### Future Improvements` are formatted as H3 subsections directly beneath `## Non-Functional Requirements`, creating an invalid semantic AST hierarchy.
-*   **Remediation**: Elevate both subsections to top-level H2 headings (`## Additional Resources`, `## Future Improvements`).
+### 🟡 Major: Missing Security & Privacy Considerations Section
+- **Scope**: Section required before line 186
+- **Flaw**: Missing mandatory security section addressing disk file permissions (`0600`), PII/credential protection, and origin scoping for local snapshots.
+- **Fix**: Insert `## Security & Privacy Considerations`.
 
-### Finding 5: Mermaid Diagram Syntax & Edge Anomalies
-*   **Severity**: 🟡 Major
-*   **Source**: Structural Layout (`egm-structural`), Comprehension (`egm-comprehension`)
-*   **Affected Scope**: Lines 74–111
-*   **Description**: 
-    1. Line 110 (`WATCHDOG -.->|Terminate on Orphan| Server`) connects a child node to its containing subgraph, breaking strict Mermaid parsers.
-    2. Node `INSTALLER` is completely disconnected with no inbound or outbound edges.
-    3. Browser command responses from `TASK_POOL` or `WS_BRIDGE` dead-end with no arrow routing results back to `STDOUT`.
-    4. Stdio edges between `AI` and `STDIN`/`STDOUT` use bidirectional arrows instead of unidirectional data flow.
-*   **Remediation**: Fix Mermaid syntax: connect `WATCHDOG` to a terminal `EXIT` node, link `TASK_POOL` -> `STDOUT`, link `INSTALLER` to client configs and filesystem, and make stdio edges unidirectional.
+### 🟡 Major: Asymmetric Alternatives & Missing Trade-Off Matrix
+- **Scope**: Lines 186–213
+- **Flaw**: Alternatives section lacks a unified comparison table evaluating Token Cost, Precision, Latency, and Maintenance.
+- **Fix**: Add a 5-column Markdown tradeoff evaluation matrix.
 
-### Finding 6: Banned Promotional Adjectives and Emotive Hyperboles
-*   **Severity**: 🟡 Major
-*   **Source**: Style Editor (`egm-style`)
-*   **Affected Scope**: Lines 11, 13, 33, 70, 116, 177, 186, 205, 241, 348
-*   **Description**: The text includes ungrounded promotional adjectives (`seamless transition`), informal hyperboles (`blazingly fast`, `high-throughput, low-latency`, `massive trees`), emotive phrasing (`purges legacy Danish technical debt`, `own the project`), and decorative adverbs (`guaranteeing`, `cleanly`, `gracefully`).
-*   **Remediation**: Standardize on neutral technical language: replace `seamless transition` with `support for`, replace `purges legacy Danish technical debt` with `replaces Danish identifiers and comments with standard English`, and remove conversational footer `*Drafted with EGM*`.
+---
+
+## 3. Style & Tone Findings (Style Lens)
+
+### 🟡 Major: Informal Slang & Promotional Adjectives
+- **Scope**: Lines 16, 56, 121, 198, 207–208
+- **Flaw**: "blowing its context", "ultra-compact", "crucial", "drastically more expensive", "defeating the single 3 MB static binary architecture".
+- **Fix**: Replace slang with objective technical metrics ("exceeding context limits", "compact", "increases per-turn token cost by 3–5x").
