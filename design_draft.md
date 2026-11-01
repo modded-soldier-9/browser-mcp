@@ -1,397 +1,289 @@
-# Standalone Rust Browser MCP Architecture & Modernization
+# Browser MCP v2.2 — Token-Efficient Semantic Accessibility & Context Shield
 
-*   **Author:** Mohamed Elsheikh (@modded-soldier-9)
+*   **Author:** Mohamed Elsheikh ([@modded-soldier-9](https://github.com/modded-soldier-9))
 *   **Status:** Draft
-*   **Date:** 2026-10-31
+*   **Date:** 2026-11-01
+*   **Predecessor Document:** [concepts_brief.md](./concepts_brief.md)
 
 --------------------------------------------------------------------------------
 
 ## Overview
 
-Browser MCP is a high-performance native automation bridge written in Rust that connects local AI coding assistants (Claude Code, Cursor, Antigravity, OpenCode, Codex) directly to live, authenticated browser profiles in Chrome and Brave. By driving the user's primary or dedicated development browser via a low-restriction Manifest V2 extension, it bypasses cloud anti-bot challenges (Cloudflare, CAPTCHAs, bot detection) and enterprise SSO barriers, enabling AI agents to inspect DOM state, extract runtime data, capture visual snapshots, and execute authenticated developer workflows.
+Browser MCP v2.2 expands the standalone Rust browser automation engine with an interactive semantic accessibility pipeline and context protection subsystem. While v2.1.0 stabilized the zero-dependency native Rust binary and Manifest V2 WebSocket bridge, multi-step browser interactions still suffer from context window degradation: modern web applications routinely deliver 25,000 to 50,000 tokens of raw DOM and verbose accessibility trees on every page inspection.
 
-This architecture transitions the codebase from a dual-runtime Node.js/Rust fork into a single standalone native binary (`browser-mcp`). It eliminates runtime dependencies, bundles extension assets for single-command installation, purges legacy Danish technical debt, hardens WebSocket security boundaries, and standardizes multi-platform distribution via GitHub Releases.
+This design introduces four integrated capabilities:
+1. **Interactive Semantic Distillation (`format="interactive"`)**: Prunes non-actionable layout wrappers (`div`, `span`, purely decorative styling containers) to reduce standard page representations to 400–1,200 tokens with direct reference handles (`[e1]`, `[e2]`).
+2. **Context Shield & Out-of-Band Spooling**: Automatically intercepts large payloads exceeding 2,500 tokens, stores full snapshot representations to local disk (`~/.browser-mcp/snapshots/`), and returns an ultra-compact summary index to protect LLM context windows.
+3. **Targeted Semantic Element Search (`browser_search_elements`)**: Enables agents to resolve specific interactive targets by text or role directly within the browser process, eliminating the need to ingest entire page trees for simple actions.
+4. **State Delta Streaming (`format="delta"`)**: Emits only mutations (+/- added, removed, or altered interactive controls) following actions, cutting repetitive multi-turn token consumption by ~85%.
+
+---
 
 ## The Problem
 
-1. **Dual-Runtime Maintenance Overhead**: The repository maintains two parallel server implementations: legacy Node.js (`mcp-server/index.js`) and Rust (`crates/browser-mcp-server`). This duplicates tool schemas, splits bug fixes, and requires a 50+ MB Node.js runtime environment for end users.
-2. **Critical Rust Server Bugs**:
-   - *Flawed Watchdog*: `main.rs:63` monitors its own process ID (`std::process::id()`) instead of the caller's parent PID, and ignores the shutdown channel. Orphaned server instances persist indefinitely after host assistant exits, holding TCP ports 9876–9895.
-   - *Stdio Starvation*: Synchronous stdio line reads block the entire runtime loop during slow tools (`browser_ask_user`, `browser_extract_list`), dropping MCP `ping` heartbeats and triggering client timeouts.
-   - *Missing Local Handlers*: `tools.rs` routes server-local commands (`browser_about`, `browser_provide_feedback`, `browser_extract_token`) across WebSockets to the extension where no handlers exist.
-3. **Localhost WebSocket Attack Surface**: The loopback WebSocket bridge accepts any connection matching the extension origin pattern without pre-shared authentication, exposing active browser sessions and auth cookies to untrusted local processes.
-4. **No Standalone Installation**: The Rust binary stubs `--install` as a no-op, forcing users to rely on npm.
-5. **Danish Technical Debt**: Pervasive Danish variable names, comments, and scripts across `mcp-server/vagt.js`, `maaling/`, `scripts/flow-daekning.sh`, and `test/` hinder open-source maintenance.
+1. **Context Window Exhaustion**: Front-end single-page applications (React, Angular, Next.js) produce deeply nested DOM structures. An agent executing a 10-step form workflow repeatedly ingesting full page state consumes over 150,000 tokens, degrading attention quality and exceeding agent budget ceilings.
+2. **Unfiltered Accessibility Tree Bloat**: Raw `Accessibility.getFullAXTree` CDP dumps include hundreds of generic layout containers, static text fragments, and non-actionable wrappers that clutter agent prompts without providing interaction utility.
+3. **Repetitive State Re-Emission**: When an agent fills an input or clicks a checkbox, 95% of the page state remains unchanged. Re-sending the entire tree on each turn forces the model to re-read identical content.
+4. **Fragile Target Resolution**: Without deterministic, short references, agents guess fragile CSS selectors (`#app > div:nth-child(3) > button`) or complex XPath expressions that break upon minor DOM updates.
+
+---
 
 ## Goals
 
-1. **Standalone Native Binary**: Compile a single zero-dependency executable (`browser-mcp` / `browser-mcp.exe`) in Rust as the sole server runtime, replacing Node.js completely.
-2. **Embedded Self-Installation**: Embed Manifest V2 extension assets directly into the binary with `include_dir!`, enabling zero-config deployment via `browser-mcp install` for Claude Code, Cursor, Antigravity, and OpenCode.
-3. **Loopback WebSocket Security**: Enforce pre-shared cryptographic handshake token authentication between the Rust server and the extension.
-4. **Decoupled Asynchronous Stdio Loop**: Process stdio messages with Tokio asynchronous tasks, guaranteeing immediate responses to MCP `ping` requests while long-running browser commands execute.
-5. **Correct Process Lifecycle Management**: Detect parent process termination reliably via stdio pipe EOF and active parent PID tracking, terminating orphaned instances cleanly.
-6. **100% English Codebase**: Purge all Danish files, comments, identifiers, and tests, standardizing on clear technical English.
+1. **Sub-1,200 Token Baseline**: Deliver an interactive page snapshot mode (`format="interactive"`) that captures all actionable elements while keeping payload sizes under 1,200 tokens for 95% of standard web pages.
+2. **Deterministic Monotonic Element Handles**: Assign sequential element references (`[e1]`, `[e2]`, ...) that map directly to native DOM/CDP nodes across interaction tools (`browser_click`, `browser_fill`, `browser_hover`).
+3. **Context Shield Protection**: Automatically divert inspection payloads exceeding 2,500 tokens to `~/.browser-mcp/snapshots/tab_<id>.txt`, returning a concise summary index and explicit query prompt.
+4. **Targeted Sub-100 Token Search**: Provide `browser_search_elements` to find specific targets by role, name, or text in under 100 tokens.
+5. **Incremental State Mutation Streaming**: Provide an opt-in `format="delta"` mode emitting only added, removed, or updated interactive elements following actions.
+6. **Zero External Runtime Footprint**: Execute all parsing, pruning, and spooling logic strictly within the compiled Rust host binary and Manifest V2 extension.
+
+---
 
 ## Non-Goals
 
-1. **Extension WebAssembly Rewrite**: The Chrome extension will remain vanilla JavaScript; rewriting it in Rust/Wasm adds build complexity without tangible benefit.
-2. **Headless Browser Emulation**: Browser MCP will not simulate headless browser runs (Playwright/Puppeteer domain). It exists specifically for live, user-authenticated browser sessions.
-3. **Manifest V3 Migration**: The extension will retain Manifest V2 to prevent 30-second service worker idle disconnects, recommending Brave and Chrome Developer/Beta channels.
-4. **In-Binary Auto-Update Daemon**: Binary updates will be managed via package managers or direct release downloads, not background daemon auto-updaters.
+1. **Full-Page Visual Layout Reconstruction**: The interactive semantic snapshot is designed for agent action execution, not pixel-perfect visual reproduction.
+2. **Client-Side Heavy Parsing Crates**: Large DOM parsing libraries (such as `scraper` or `html5ever`) will not be linked into the Rust binary; structural filtering is handled natively in the browser extension's CDP pipeline.
+3. **Automatic Task Execution / Autonomous Loops**: Browser MCP remains an MCP server providing tools to AI client agents; it does not run autonomous goal-seeking agent loops itself.
+4. **Breaking Changes to Existing Tools**: `format="raw"` (HTML) and `format="snapshot"` (raw AXTree) remain completely supported and backward-compatible.
 
-## Open Questions
-
-*   **Question 1 (Token Passing to MV2 Extension)**: When `browser-mcp` generates a session secret token, how should the extension discover it? Options include: local config file written to extension storage, query parameter during initial port probe, or clipboard/prompt handoff.
-*   **Question 2 (Tool Surface Rationalization)**: Should mouse click variants (`browser_click_xy`, `browser_double_click`, `browser_right_click`) be merged into `browser_click` in this milestone, or deferred to a subsequent schema update to preserve backward compatibility with existing prompt workflows?
+---
 
 ## Critical User Journeys (CUJs)
 
-### CUJ 1: Zero-Dependency Setup
-*   **Given**: A developer with Claude Code or Cursor and Brave installed, with no Node.js runtime on their machine.
-*   **When**: The user downloads the `browser-mcp` binary from GitHub Releases and executes `browser-mcp install`.
-*   **Then**: The binary writes the extension files to `~/.browser-mcp/extension/`, detects installed AI assistants, updates client configuration files (`~/.cursor/mcp.json`, Claude config), prints extension load instructions, and exits with code 0.
+### CUJ 1: Low-Token Form Automation
+*   **Context**: An AI assistant in Claude Code or Antigravity is instructed to log into a developer dashboard and fill out an issue form.
+*   **Action**: The agent calls `browser_get_page_content({ format: "interactive" })`.
+*   **Result**: It receives a 600-token semantic list of interactive controls with handles `[e1]` through `[e12]`. It fills `[e2]` (username) and `[e3]` (password) and clicks `[e4]` (submit) directly without guessing CSS selectors or blowing its context.
 
-### CUJ 2: Authenticated Web App Debugging with 2FA
-*   **Given**: An AI coding assistant running `browser-mcp` needs to verify a change on an internal dashboard protected by SSO and 2FA.
-*   **When**: The agent calls `browser_navigate` to the portal and triggers `browser_ask_user` for the human 2FA prompt.
-*   **Then**: The Rust server handles incoming MCP `ping` requests asynchronously while waiting up to 120 seconds for the user response, preventing client timeouts, and returns the authenticated session state upon completion.
+### CUJ 2: Heavy Dashboard Navigation with Context Shield
+*   **Context**: An agent navigates to an analytics dashboard displaying a table with 500 rows.
+*   **Action**: The agent calls `browser_get_page_content({ format: "interactive" })`.
+*   **Result**: The server detects that the payload exceeds 2,500 tokens. It spools the full tree to `~/.browser-mcp/snapshots/tab_2.txt` and returns a 180-token summary: table dimensions, page title, 5 primary action buttons, and a hint to use `browser_search_elements` or read the snapshot file directly.
 
-### CUJ 3: Clean Termination on Client Exit
-*   **Given**: Claude Code or Cursor crashes or closes its terminal window.
-*   **When**: The stdio pipe attached to `browser-mcp` reaches EOF.
-*   **Then**: The Rust server detects pipe closure immediately, broadcasts a shutdown signal, closes WebSocket listener ports (9876–9895), and terminates cleanly without leaving orphaned processes.
+### CUJ 3: Multi-Step Wizard with Delta Streaming
+*   **Context**: An agent progresses through a 4-step configuration wizard.
+*   **Action**: The agent requests updates via `browser_get_page_content({ format: "delta" })`.
+*   **Result**: Instead of re-ingesting 2,000 tokens on each step, it receives only a 150-token delta describing newly opened modal dialogs and active wizard steps.
 
 
 --------------------------------------------------------------------------------
 
-## Technical Plan (Architecture)
+## Technical Plan
 
-### Architectural Overview
+### System Architecture Pipeline
 
-Browser MCP operates as a high-throughput, low-latency bridge between AI coding assistants and active Chromium browser windows. The architecture separates concerns into two core tiers:
-1. **Host-Side Native Server (`browser-mcp`)**: A lightweight compiled Rust binary executed by the AI client over standard I/O using the Model Context Protocol (MCP JSON-RPC 2.0).
-2. **Browser-Side Controller (`extension/`)**: A persistent Manifest V2 WebExtension loaded into Chrome or Brave that exposes native browser automation primitives via loopback WebSockets.
-
-```mermaid
-flowchart TD
-    subgraph Client ["AI Assistant Environment"]
-        AI["AI Client (Claude Code / Cursor / Antigravity)"]
-    end
-
-    subgraph Server ["Rust Native Bridge (browser-mcp)"]
-        STDIN["Stdin Reader Task"]
-        STDOUT["Stdout Writer Task"]
-        ROUTER["Message Router & Filter"]
-        PING["Ping Fast-Path Handler"]
-        TASK_POOL["Tokio Async Task Pool"]
-        LOCAL_TOOLS["Local Tools Handler\n(about, feedback, token)"]
-        WS_BRIDGE["WebSocket Server\n(Ports 9876-9895)"]
-        WATCHDOG["Lifecycle Watchdog\n(Stdio EOF + Parent PID)"]
-        INSTALLER["Embedded Installer\n(include_dir!)"]
-    end
-
-    subgraph Browser ["Target Chromium Instance (Chrome / Brave)"]
-        EXT_BG["Extension Background Page\n(Persistent MV2 Worker)"]
-        EXT_OFFSCREEN["Offscreen / Action Canvas\n(DOM Parsing & Serialization)"]
-        TABS["Active Web Tabs\n(Internal & SaaS Sites)"]
-    end
-
-    AI <-->|Stdio JSON-RPC 2.0| STDIN
-    STDOUT <-->|Stdio JSON-RPC 2.0| AI
-    STDIN --> ROUTER
-    ROUTER -->|Immediate Intercept| PING
-    PING --> STDOUT
-    ROUTER -->|Tool Call| TASK_POOL
-    TASK_POOL -->|Internal Queries| LOCAL_TOOLS
-    LOCAL_TOOLS --> STDOUT
-    TASK_POOL <-->|Loopback WebSocket + Token Auth| WS_BRIDGE
-    WS_BRIDGE <-->|ws://127.0.0.1:9876| EXT_BG
-    EXT_BG <--> EXT_OFFSCREEN
-    EXT_BG <-->|Chrome Extension APIs| TABS
-    WATCHDOG -.->|Terminate on Orphan| Server
+```text
+┌────────────────────────────────────────────────────────┐
+│             AI Agent Client (Claude / Cursor)          │
+└───────────────────────────┬────────────────────────────┘
+                            │ (stdio JSON-RPC 2.0)
+┌───────────────────────────▼────────────────────────────┐
+│   Browser MCP Native Host Engine (Rust / browser-mcp)  │
+│                                                        │
+│   ┌────────────────────┐      ┌────────────────────┐   │
+│   │   Shield Guard     │      │   Delta Engine     │   │
+│   │ (Threshold > 2500) │      │ (SHA-256 State Map)│   │
+│   └─────────┬──────────┘      └─────────┬──────────┘   │
+│             │                           │              │
+│   ┌─────────▼───────────────────────────▼──────────┐   │
+│   │   Spooler: ~/.browser-mcp/snapshots/tab_X.txt  │   │
+│   └────────────────────────────────────────────────┘   │
+└───────────────────────────┬────────────────────────────┘
+                            │ (WebSocket loopback ws://127.0.0.1:9876)
+┌───────────────────────────▼────────────────────────────┐
+│      Brave / Chrome Extension (MV2 Background Bridge)   │
+│                                                        │
+│   ┌────────────────────────────────────────────────┐   │
+│   │   Interactive Semantic Distiller               │   │
+│   │   • Queries CDP Accessibility.getFullAXTree    │   │
+│   │   • Whitelists Actionable Roles (button, input)│   │
+│   │   • Strips Empty Wrappers, Generic Containers  │   │
+│   │   • Assigns Monotonic Handles: [e1], [e2]...   │   │
+│   │   • Computes Normalized Viewport Bounding Box  │   │
+│   └───────────────────────┬────────────────────────┘   │
+│                           │                            │
+│   ┌───────────────────────▼────────────────────────┐   │
+│   │   Targeted Element Searcher                    │   │
+│   │   (Sub-100 token query by text, role, or label)│   │
+│   └───────────────────────┬────────────────────────┘   │
+└───────────────────────────┼────────────────────────────┘
+                            │ (CDP Hardware Events & Queries)
+┌───────────────────────────▼────────────────────────────┐
+│                 Live Chrome / Brave Tabs               │
+└────────────────────────────────────────────────────────┘
 ```
 
-### Subsystems and Module Architecture
+### Component Breakdown & Responsibilities
 
-#### 1. Decoupled Asynchronous Stdio Engine (`main.rs`, `protocol.rs`)
-*   **The Problem Addressed**: Synchronous line-by-line reading blocks during long-running tool executions (`browser_ask_user` waiting for 2FA or `browser_extract_list` traversing massive trees), starving MCP `ping` keep-alives and causing host timeouts.
-*   **Implementation**:
-    *   `tokio::io::BufReader<tokio::io::Stdin>` runs in a dedicated reader loop emitting parsed JSON-RPC requests across an unbounded mpsc channel.
-    *   Incoming `ping` requests bypass the tool worker queue entirely: the router responds with `{"jsonrpc":"2.0","id":...,"result":{}}` directly to the stdout writer channel in sub-millisecond time.
-    *   Tool execution calls are dispatched onto asynchronous Tokio tasks using `tokio::spawn`, allowing concurrent execution and non-blocking I/O.
-    *   A centralized `tokio::io::Stdout` writer task serializes all outgoing frames, preventing interleaved stdout corruption.
+#### 1. Interactive Semantic Distiller (`extension/src/dom-inspector.js`)
+- Queries Chrome DevTools Protocol `Accessibility.getFullAXTree`.
+- Traverses nodes recursively and filters against actionable interactive roles:
+  - Whitelisted Roles: `button`, `link`, `textbox`, `searchbox`, `checkbox`, `radio`, `combobox`, `listbox`, `menuitem`, `tab`, `dialog`, `switch`, `slider`, `treeitem`.
+  - Alert Roles: `alert`, `alertdialog`, `status`, `tooltip` (preserves crucial feedback banners and validation error messages).
+  - Pruned / Discarded: `generic`, `group`, `none`, unlabelled layout containers, static text nodes with no interactive ancestors, decorative SVGs.
+- Computes normalized bounding boxes `(x: float, y: float)` relative to the viewport.
+- Generates monotonic sequential element handles (`[e1]`, `[e2]`, ...) and maintains an active session map `tabElementMaps.get(tabId)`.
+- Translates handles back to CDP `backendNodeId` so that interaction tools (`browser_click("e1")`, `browser_fill("e2", "...")`) execute without DOM selector ambiguity.
 
-#### 2. Loopback WebSocket Bridge with Token Authentication (`bridge.rs`)
-*   **Port Pool Negotiation**: Retains the dynamic port scanning range `9876..=9895` on `127.0.0.1` to support multiple simultaneous server instances and browser profiles without collisions.
-*   **Handshake Security**:
-    *   At startup, the server generates a cryptographically secure 32-character hex session token (`auth_token`).
-    *   The token is stored in the user runtime directory (`~/.browser-mcp/session.token`) with strict OS permissions (`0600` on POSIX, ACL restricted to current user on Windows).
-    *   Incoming WebSocket connection requests must provide this token via query parameter (`ws://127.0.0.1:9876?token=...`) or WebSocket subprotocol headers.
-    *   Connections lacking a valid token or originating outside loopback are terminated immediately before any payload processing.
-*   **Request Correlation**: Outgoing browser commands assign monotonically increasing IDs mapped to `tokio::sync::oneshot::Sender<Value>` channels in an active request registry with timeout enforcement.
+#### 2. Targeted Element Search (`extension/background.js`)
+- Exposes `browser_search_elements` tool handler.
+- Accepts parameters: `query` (text substring or regex), `role` (optional ARIA role), `tab_id` (optional).
+- Scans the distilled active element map and returns only matching elements (maximum 5) with immediate ancestor context:
+  ```json
+  {
+    "matches": [
+      { "handle": "e14", "role": "button", "name": "Submit Order", "rect": { "x": 0.82, "y": 0.91 } }
+    ],
+    "count": 1
+  }
+  ```
+- Keeps agent context consumption below 100 tokens per search.
 
-#### 3. Local vs. Remote Tool Dispatcher (`tools.rs`)
-*   **Local Tool Execution**: Tools that query server metadata or interact with the local host are handled natively in Rust without WebSocket dispatch:
-    *   `browser_about`: Returns server version, runtime platform, active WebSocket port, and connected extension status.
-    *   `browser_provide_feedback`: Writes local diagnostic logs and telemetry notes directly to disk.
-    *   `browser_extract_token`: Extracts session tokens locally from disk cache or environment variables.
-*   **Remote Extension Dispatch**: Browser automation tools (`browser_navigate`, `browser_click`, `browser_fill`, `browser_screenshot`, `browser_ask_user`, `browser_get_page_content`, etc.) serialize the tool payload and dispatch it to the extension over the authenticated WebSocket bridge.
+#### 3. Context Shield & Out-of-Band Spooling (`crates/browser-mcp-server/src/shield.rs`)
+- Sits between the WebSocket bridge reader and standard I/O response serializer in Rust.
+- Evaluates response character count (heuristic: 1 token ≈ 4 characters).
+- If an inspection payload exceeds 2,500 tokens (10,000 characters):
+  1. Writes the full distilled payload to `~/.browser-mcp/snapshots/tab_<id>_<timestamp>.txt`.
+  2. Synthesizes a compact summary envelope:
+     - Document Title & URL.
+     - Total element count by role (e.g., "12 buttons, 4 textboxes, 18 links").
+     - Top 10 prominent action items.
+     - Spool path link: `Full snapshot written to: ~/.browser-mcp/snapshots/tab_1_1730440000.txt`.
+     - Guidance note: `"Use browser_search_elements to locate specific items without loading the full snapshot."`
+- Implements an LRU cache cleaner retaining at most 50 snapshot files (max 50 MB total storage).
 
-#### 4. Parent Process Watchdog & Self-Termination (`watchdog.rs`)
-*   **Root Cause Fix**: Eliminates the inverted self-PID check (`std::process::id()`) in `main.rs:63`.
-*   **Dual-Vector Termination**:
-    1.  *Stdio EOF (Primary)*: When the host client terminates, the stdin pipe closes. Tokio's `read_line` yields `Ok(0)`, which triggers an immediate graceful shutdown broadcast.
-    2.  *Parent PID Tracker (Fallback)*: On Windows and Linux, the server captures its parent process ID upon startup. A low-overhead periodic check (every 5 seconds) verifies that the parent PID remains alive without invoking full-system process scanning. If the parent dies, the server terminates cleanly.
+#### 4. Incremental State Delta Engine (`crates/browser-mcp-server/src/delta.rs`)
+- Tracks per-tab element snapshots as keyed string maps: `BTreeMap<String, ElementNode>`.
+- When an agent specifies `format="delta"` in `browser_get_page_content`:
+  - Computes symmetric difference against the tab's previous turn.
+  - Outputs concise line-based mutations:
+    - `+ [e22] dialog "Confirm Payment" [opened]`
+    - `~ [e5] textbox "Quantity" value="3"`
+    - `- [e12] button "Add to Cart" [hidden]`
+  - If no prior state exists or page navigated to a new origin, transparently falls back to a full clean interactive snapshot.
 
-#### 5. Embedded Assets & Self-Installer (`installer.rs`)
-*   **Asset Bundling**: The entire `extension/` directory is bundled into the compiled binary at compile time via `include_dir::include_dir!("$CARGO_MANIFEST_DIR/../../extension")`.
-*   **Installation Command (`browser-mcp install`)**:
-    1.  Extracts the bundled extension files into `~/.browser-mcp/extension/`.
-    2.  Detects installed AI coding assistants by checking standard configuration paths:
-        *   Cursor: `~/.cursor/mcp.json` or `%APPDATA%/Cursor/User/globalStorage/mcp.json`
-        *   Claude Code: `~/.claude.json` / `claude mcp add browser-mcp <path>`
-        *   Antigravity: `~/.gemini/config/mcp_config.json`
-        *   OpenCode: `~/.config/opencode/opencode.json`
-    3.  Appends or updates the `browser-mcp` entry pointing to the executable path.
-    4.  Outputs clear instructions for loading the unpacked extension in Chrome/Brave (`chrome://extensions` -> "Load unpacked" -> `~/.browser-mcp/extension`).
+### API & Schema Modifications
 
-#### 6. Tool Schema Standardization & English Normalization (`tools_schema.json`)
-*   Renames all remaining non-English parameter identifiers to standard English:
-    *   `eget_vindue` -> `new_window`
-    *   `fokuser` -> `focus`
-    *   `vindue_x` -> `x`
-    *   `vindue_bredde` -> `width`
-    *   `vindue_hoejde` -> `height`
-*   Ensures consistent error payloads (`{"error": {"code": -32602, "message": "..."}}`) for invalid parameters across all 40 tools.
+#### Tool: `browser_get_page_content`
+Updated parameters:
+- `format`: Enum `["raw", "text", "snapshot", "interactive", "delta"]` (Default: `"interactive"`).
+- `max_tokens`: Optional integer (Default: `2500`). When exceeded, Context Shield triggers automatically.
+- `interactive_only`: Optional boolean (Default: `true` for `"interactive"` mode).
+
+#### Tool: `browser_search_elements` (New Tool)
+Parameters:
+- `query`: String (Required). Target label, button text, or placeholder to match.
+- `role`: String (Optional). Filter by role (`button`, `textbox`, `link`, etc.).
+- `tab_id`: Integer (Optional). Target specific tab ID (defaults to active session tab).
+
+### Invariants & Safety Constraints
+- `[shield:safe-limit]`: Context Shield must prevent tool output strings over 2,500 tokens from being dumped directly into client stdio unless explicitly requested via `max_tokens: 0`.
+- `[ref:monotonic-session]`: Reference handles (`[e1]`, `[e2]`) assigned during a turn remain immutable until the next page navigation or full refresh.
+- `[fallback:clean-state]`: If state delta computation encounters an unrecognized target ID or navigation hash mismatch, it must return a full clean snapshot rather than partial or corrupted diffs.
+- `[storage:lru-pruning]`: Snapshot files in `~/.browser-mcp/snapshots/` must not exceed 50 MB total disk quota.
 
 
 --------------------------------------------------------------------------------
 
 ## Alternatives Considered
 
-### Alternative 1: Dual-Engine Architecture (Node.js npm package + Rust binary)
+### 1. Raw HTML DOM Sanitization in Rust Host
+- **Proposed Mechanism**: Have the extension dump raw HTML (`document.documentElement.outerHTML`) to the Rust engine, and run an HTML parser crate (`scraper` or `html5ever`) with regular expressions to strip `<script>`, `<style>`, and empty `<div>` tags.
+- **Why Rejected**:
+  - *Blind to Computed Visibility*: An HTML string dump cannot detect whether an element is visually hidden via CSS (`display: none`, `visibility: hidden`, offscreen coordinates, or `opacity: 0`). The agent would repeatedly attempt to click invisible or collapsed elements.
+  - *Ignores Shadow DOM*: Modern web apps (e.g. YouTube, Salesforce, Lit components) heavily utilize shadow roots that raw `outerHTML` fails to traverse.
+  - *Binary Bloat*: Linking heavy HTML and CSS parsing libraries into the Rust binary increases binary size and compile times without improving accuracy. Chrome DevTools Protocol (`Accessibility.getFullAXTree`) already resolves computed accessibility, visibility, and shadow roots natively in the browser engine.
 
-*   **Pros**: Retains backward compatibility for users accustomed to `npx browser-mcp install` without compiling or downloading native binaries.
-*   **Cons**:
-    *   Doubles maintenance overhead by requiring synchronizing tool schemas, WebSocket protocols, and bug fixes across two language runtimes.
-    *   Maintains the 50+ MB Node.js runtime footprint and dependency vulnerabilities in `package.json`.
-    *   Dilutes project focus away from building an optimized, native-first Rust tool.
-*   **Reason for Rejection**: The primary goal is to own the project and eliminate runtime dependencies. Decommissioning Node.js cuts code bloat, improves startup latency, and establishes a single canonical implementation.
+### 2. Pure Vision-Based Grounding (Screenshots + Coordinate Grids)
+- **Proposed Mechanism**: Discard DOM and accessibility trees entirely; take high-resolution screenshots after every turn and prompt the LLM to output pixel coordinates `(x, y)` for mouse actions.
+- **Why Rejected**:
+  - *Severe Token and Financial Cost*: Multimodal image tokens are drastically more expensive than text tokens (often 1,500–2,000 tokens per high-res screenshot), making multi-turn workflows economically unsustainable.
+  - *Coordinate Drift & Precision Errors*: Vision models frequently miscalculate coordinates by 10–20 pixels, missing small icon buttons, checkbox targets, and compact table pagination controls.
+  - *No Text Selection or Input Value Verification*: Screenshots cannot provide exact string values inside input fields without running OCR, whereas accessibility trees provide deterministic `value="..."` states directly.
 
-### Alternative 2: Immediate Migration to Chrome Manifest V3
+### 3. Headless Browser Automation (Playwright / Puppeteer Architecture)
+- **Proposed Mechanism**: Spawn a headless browser instance in the background using Playwright or Puppeteer.
+- **Why Rejected**:
+  - *Cloudflare & Bot-Detection Blocks*: Headless browsers are actively flagged and challenged by Cloudflare Turnstile, Akamai, and modern bot-management platforms.
+  - *Loss of Authenticated Sessions*: Headless browsers start with clean, unauthenticated profiles, requiring complex credential handoffs and 2FA bypass scripts. Browser MCP's core design advantage is operating inside the user's real, daily authenticated Brave/Chrome browser.
+  - *Runtime Overhead*: Requires a heavyweight Node.js or Python runtime, defeating the single 3 MB static binary architecture.
 
-*   **Pros**: Fully aligns with upcoming Chrome Web Store distribution policies and modern Chromium standards.
-*   **Cons**:
-    *   MV3 service workers are aggressively terminated by Chromium after 30 seconds of inactivity.
-    *   During long agent reasoning turns or complex prompt generation, the service worker terminates, destroying active WebSocket connections and dropping session context.
-    *   Workarounds (e.g., MV3 Offscreen Documents or keep-alive audio tricks) introduce fragile complexity and higher CPU usage.
-*   **Reason for Rejection**: Manifest V2 background scripts remain persistently loaded without idle disconnects. Because Browser MCP is designed for local developer automation—primarily via Brave or developer Chrome channels—MV2 provides far superior connection reliability.
+### 4. Exclusive Reliance on WebMCP / Client-Side Tool Registration
+- **Proposed Mechanism**: Wait for web applications to expose their own tool declarations via client-side JavaScript APIs (such as `navigator.modelContext.registerTool`).
+- **Why Rejected**:
+  - *Ecosystem Immaturity*: Virtually no production websites or internal SaaS dashboards support WebMCP today. Browser MCP must reliably automate existing arbitrary enterprise and consumer web applications immediately.
 
-### Alternative 3: Chrome Native Messaging Host instead of WebSocket Bridge
-
-*   **Pros**:
-    *   Eliminates open loopback TCP ports (9876–9895), avoiding potential port conflicts.
-    *   Removes the need for a pre-shared WebSocket authentication token.
-*   **Cons**:
-    *   Requires writing OS-specific registry entries on Windows (`HKCU\Software\Google\Chrome\NativeMessagingHosts`) and filesystem manifests on macOS/Linux.
-    *   Requires elevated permissions or fragile installer scripts that often break in non-standard environments.
-    *   Tightly couples the binary to a single browser instance, preventing multiple client assistants from attaching to different tabs or profiles.
-*   **Reason for Rejection**: A loopback WebSocket bridge provides platform-agnostic, zero-privilege operation across Windows, macOS, and Linux without touching system registries. Adding cryptographic token verification resolves the security exposure cleanly.
-
-### Alternative 4: Full-System Process Polling via `sysinfo` for Watchdog
-
-*   **Pros**: Simple cross-platform library abstraction for scanning parent process status.
-*   **Cons**:
-    *   Iterating over the entire OS process table every 5 seconds creates persistent CPU churn and battery drain.
-    *   Adds several hundred kilobytes of compiled dependencies to the binary.
-*   **Reason for Rejection**: Stdio pipe EOF handling in Tokio detects client exit with zero CPU overhead. Combining stdin EOF with a direct OS parent handle check provides superior reliability with zero process table scanning.
-
-
---------------------------------------------------------------------------------
-
-## Non-Functional Requirements
-
-### Security & Privacy
-*   **Loopback Binding**: The WebSocket bridge and any internal sockets must bind strictly to `127.0.0.1` and never expose ports to `0.0.0.0` or external network interfaces.
-*   **Cryptographic Handshake**: The session handshake token must be generated via cryptographically secure random bytes (32-character hex string) and restricted by operating system file permissions (`0600` POSIX / current user ACL Windows).
-*   **Origin Enforcement**: WebSocket connections must reject any origin header that does not strictly match the expected Chrome/Brave extension pattern (`chrome-extension://[a-p]{32}`).
-*   **Credential Handling**: Browser cookies, localStorage values, and DOM tokens extracted by tools must never be logged to stdout or unencrypted local telemetry logs.
-
-### Performance & Latency
-*   **Startup Latency**: Server cold startup to readiness must complete in under 5 milliseconds (<4 MB resident memory).
-*   **Stdio Throughput**: Fast-path MCP `ping` requests must return responses in under 1 millisecond regardless of active tool executions.
-*   **Binary Size**: The release binary (with extension assets embedded) should remain under 12 MB uncompressed and under 4 MB compressed with UPX/zstd.
-
-### Rollout & Compatibility
-*   **Client Compatibility**: Full compliance with the official Model Context Protocol (MCP) JSON-RPC 2.0 specification, ensuring compatibility with Claude Code, Cursor, Antigravity, OpenCode, and Codex.
-*   **Cross-Platform Targets**: Precompiled release binaries for:
-    *   Windows (`x86_64-pc-windows-msvc`)
-    *   macOS Apple Silicon (`aarch64-apple-darwin`)
-    *   macOS Intel (`x86_64-apple-darwin`)
-    *   Linux x86_64 (`x86_64-unknown-linux-musl`)
-    *   Linux ARM64 (`aarch64-unknown-linux-musl`)
-
---------------------------------------------------------------------------------
-
-### Additional Resources
-
-*   Model Context Protocol (MCP) Specification: `https://spec.modelcontextprotocol.io`
-*   Chromium Manifest V2 Extension APIs: `https://developer.chrome.com/docs/extensions/mv2/`
-*   Tokio Asynchronous Runtime: `https://tokio.rs/`
-
-### Future Improvements
-
-*   **Manifest V3 Offscreen Adapter**: Abstract the extension message broker to allow seamless transition to Chrome Manifest V3 using Offscreen Documents if MV2 support is permanently retired across all Chromium derivatives.
-*   **Native DevTools CDP Multiplexing**: Directly attach Chrome DevTools Protocol (CDP) debugging streams for real-time network request interception and performance profiling.
 
 --------------------------------------------------------------------------------
 
 ## Detailed Implementation Plan
 
-### Target Files to Create, Modify, or Delete
+### Complete File Enumeration & Modification Rationales
 
-#### 1. `crates/browser-mcp-server/Cargo.toml` (Modify)
-*   **Type / Scope**: Rust Package Manifest
-*   **Proposed Changes**:
-    *   Update crate name to `browser-mcp`, version to `2.1.0`, description, repository, and author metadata.
-    *   Add `include_dir = "0.7"` for compile-time asset embedding.
-    *   Add `rand = "0.8"` for secure token generation.
-    *   Evaluate removing `sysinfo` to reduce binary size and eliminate full-process scanning overhead.
-    *   Configure release profile with `opt-level = 3`, `lto = true`, `codegen-units = 1`, and `strip = true`.
+1. [`extension/src/dom-inspector.js`](file:///c:/Users/modded/Documents/GitHub/browser-mcp/extension/src/dom-inspector.js) *(Modified)*
+   - **Rationale**: Implements the core interactive tree distillation algorithm. Traverses `Accessibility.getFullAXTree` CDP nodes recursively, filters out layout containers and non-interactive wrappers, assigns monotonic handles (`[e1]`, `[e2]`, ...), computes normalized viewport bounding boxes, and stores the handle-to-node mapping in `tabElementMaps`.
 
-#### 2. `crates/browser-mcp-server/src/main.rs` (Modify)
-*   **Type / Scope**: Server Entrypoint & Stdio Engine
-*   **Proposed Changes**:
-    *   Implement decoupled asynchronous stdio handling with separate Tokio reader and writer tasks communicating over mpsc channels.
-    *   Intercept MCP `ping` messages immediately in the reader task and route responses directly to the writer channel.
-    *   Replace stubbed `--install` argument with call to `installer::run_install()`.
-    *   Add `--port` and `--token` optional CLI flags for manual debugging.
-    *   Fix watchdog integration: wire shutdown broadcast receiver to gracefully terminate all active Tokio tasks when the parent process exits.
+2. [`extension/background.js`](file:///c:/Users/modded/Documents/GitHub/browser-mcp/extension/background.js) *(Modified)*
+   - **Rationale**: Wires the new distillation pipeline into the WebSocket bridge. Updates `browser_get_page_content` to handle `format="interactive"` and `format="delta"`. Implements `browser_search_elements` dispatch. Modifies `browser_click`, `browser_fill`, and `browser_hover` to resolve element handle strings (`"e1"`) directly to CDP `backendNodeId` via `DOM.resolveNode`.
 
-#### 3. `crates/browser-mcp-server/src/protocol.rs` (Modify)
-*   **Type / Scope**: JSON-RPC 2.0 & MCP Types
-*   **Proposed Changes**:
-    *   Define strict strongly-typed structs for MCP request, response, error, tool call, and capability objects.
-    *   Implement serialization/deserialization helpers for standard JSON-RPC 2.0 error codes (`-32700`, `-32600`, `-32601`, `-32602`, `-32603`).
-    *   Provide instant JSON constructor for `ping` results.
+3. [`crates/browser-mcp-server/src/shield.rs`](file:///c:/Users/modded/Documents/GitHub/browser-mcp/crates/browser-mcp-server/src/shield.rs) *(New File)*
+   - **Rationale**: Implements the Context Shield in Rust. Evaluates outgoing tool response sizes against a configurable token threshold (default: 2,500 tokens). If exceeded, spools the complete representation to `~/.browser-mcp/snapshots/tab_<id>_<timestamp>.txt`, generates an ultra-compact summary index, and enforces an LRU retention cap (max 50 files / 50 MB).
 
-#### 4. `crates/browser-mcp-server/src/bridge.rs` (Modify)
-*   **Type / Scope**: Loopback WebSocket Server
-*   **Proposed Changes**:
-    *   Implement loopback port scanning across range `9876..=9895`.
-    *   Generate a 32-character hex authentication token at startup, write it to `~/.browser-mcp/session.token`, and enforce token matching on incoming WebSocket upgrade handshakes.
-    *   Manage bidirectional request correlation using `Arc<Mutex<HashMap<u64, oneshot::Sender<Value>>>>` with configurable execution timeouts.
-    *   Provide broadcast channel to notify connected extensions during server shutdown.
+4. [`crates/browser-mcp-server/src/delta.rs`](file:///c:/Users/modded/Documents/GitHub/browser-mcp/crates/browser-mcp-server/src/delta.rs) *(New File)*
+   - **Rationale**: Implements the in-memory state delta engine in Rust. Caches tab element maps and computes concise line-based mutation diffs (`+ Added`, `- Removed`, `~ Mutated`) when `format="delta"` is requested.
 
-#### 5. `crates/browser-mcp-server/src/tools.rs` (Modify)
-*   **Type / Scope**: Tool Execution Registry & Local Router
-*   **Proposed Changes**:
-    *   Implement local execution logic for `browser_about` (returns runtime metadata, port, extension status).
-    *   Implement local execution logic for `browser_provide_feedback` (persists feedback payload to local log).
-    *   Implement local execution logic for `browser_extract_token` (reads active session token).
-    *   Dispatch all remaining browser automation tools to the WebSocket bridge.
-    *   Translate Danish parameter mapping in dispatch handlers (`eget_vindue` -> `new_window`, etc.).
+5. [`crates/browser-mcp-server/src/lib.rs`](file:///c:/Users/modded/Documents/GitHub/browser-mcp/crates/browser-mcp-server/src/lib.rs) *(Modified)*
+   - **Rationale**: Exports `shield` and `delta` modules for unit and integration testing.
 
-#### 6. `crates/browser-mcp-server/src/tools_schema.json` (Modify)
-*   **Type / Scope**: MCP Tool Schema Catalog
-*   **Proposed Changes**:
-    *   Rename all remaining Danish parameter names across all 40 tool schemas to English (`new_window`, `focus`, `x`, `width`, `height`).
-    *   Clean up descriptions and standardize property requirements across all tool definitions.
+6. [`crates/browser-mcp-server/src/main.rs`](file:///c:/Users/modded/Documents/GitHub/browser-mcp/crates/browser-mcp-server/src/main.rs) *(Modified)*
+   - **Rationale**: Integrates `ContextShield` and `DeltaEngine` into the main stdio dispatch loop, filtering `browser_get_page_content` and `browser_search_elements` responses before serialization.
 
-#### 7. `crates/browser-mcp-server/src/installer.rs` (Create)
-*   **Type / Scope**: Self-Installation Module
-*   **Proposed Changes**:
-    *   Embed `extension/` directory at compile time via `include_dir::include_dir!("$CARGO_MANIFEST_DIR/../../extension")`.
-    *   Implement `run_install()`:
-        *   Create destination directory `~/.browser-mcp/extension/` and extract all embedded files.
-        *   Detect installed AI coding assistants by checking filesystem paths for Claude Code, Cursor, Antigravity, and OpenCode.
-        *   Automatically inject or update the `browser-mcp` executable configuration in corresponding JSON config files.
-        *   Output clear terminal guidance on enabling Developer Mode in Chrome/Brave and loading `~/.browser-mcp/extension/`.
+7. [`crates/browser-mcp-server/src/tools.rs`](file:///c:/Users/modded/Documents/GitHub/browser-mcp/crates/browser-mcp-server/src/tools.rs) *(Modified)*
+   - **Rationale**: Registers `browser_search_elements` in `METHOD_MAP` to route to the extension bridge.
 
-#### 8. `crates/browser-mcp-server/src/watchdog.rs` (Modify)
-*   **Type / Scope**: Lifecycle & Process Monitoring
-*   **Proposed Changes**:
-    *   Remove erroneous `std::process::id()` self-monitoring.
-    *   Capture caller parent PID upon server startup.
-    *   Implement lightweight periodic check verifying parent PID liveness.
-    *   Tie watchdog trigger directly to the Tokio shutdown broadcast channel.
+8. [`crates/browser-mcp-server/tools_schema.json`](file:///c:/Users/modded/Documents/GitHub/browser-mcp/crates/browser-mcp-server/tools_schema.json) *(Modified)*
+   - **Rationale**: Expands `browser_get_page_content` parameters to include `"interactive"` and `"delta"` formats, and adds the formal schema definition for the new `browser_search_elements` tool (incrementing total tool count from 40 to 41).
 
-#### 9. `crates/browser-mcp-server/tests/bridge_test.rs` (Create)
-*   **Type / Scope**: Native Rust Integration Tests
-*   **Proposed Changes**:
-    *   Test WebSocket server binding and multi-instance port discovery.
-    *   Test token authentication handshake (reject missing token, accept valid token).
-    *   Test local execution of `browser_about` without connected extension.
-    *   Test stdio JSON-RPC ping parsing and response formatting.
+9. [`crates/browser-mcp-server/tests/bridge_test.rs`](file:///c:/Users/modded/Documents/GitHub/browser-mcp/crates/browser-mcp-server/tests/bridge_test.rs) *(Modified)*
+   - **Rationale**: Adds automated native Rust integration tests covering schema count (41 tools), `ContextShield` threshold spooling, `DeltaEngine` state diffing, and element handle resolution.
 
-#### 10. `extension/manifest.json` (Modify)
-*   **Type / Scope**: Extension Manifest
-*   **Proposed Changes**:
-    *   Update extension name, description, author, and repository link to English and fork branding.
-    *   Verify Manifest V2 permissions (`tabs`, `cookies`, `webRequest`, `storage`, `<all_urls>`).
+10. [`scripts/check-docs.py`](file:///c:/Users/modded/Documents/GitHub/browser-mcp/scripts/check-docs.py) *(Modified)*
+    - **Rationale**: Updates the CI documentation quality gate assertion to verify 41 active tools across documentation and schemas.
 
-#### 11. `extension/background.js` (Modify)
-*   **Type / Scope**: Background Extension Controller
-*   **Proposed Changes**:
-    *   Purge all Danish variable names (`alleePorteOptaget`, `sikrePort`, `loesPortLoefte`, `ledErDoedt`, `forfaedreKaede`) and Danish comments.
-    *   Read authentication token from query parameter or local storage when initiating WebSocket connection to `ws://127.0.0.1:9876`.
-    *   Handle server disconnect and reconnect backoff gracefully.
+11. [`scripts/generate-docs.py`](file:///c:/Users/modded/Documents/GitHub/browser-mcp/scripts/generate-docs.py) *(Modified)*
+    - **Rationale**: Updates the static documentation generator to generate reference documentation for `browser_search_elements` and interactive distillation parameters.
 
-#### 12. `extension/offscreen.js` (Modify)
-*   **Type / Scope**: DOM Canvas & Parsing Worker
-*   **Proposed Changes**:
-    *   Purge Danish comments and error strings, translating everything to standard English.
+12. [`README.md`](file:///c:/Users/modded/Documents/GitHub/browser-mcp/README.md) *(Modified)*
+    - **Rationale**: Updates the tool catalog table, system overview, and feature highlights to reflect 41 tools and v2.2 token-efficiency capabilities.
 
-#### 13. `extension/popup.js` & `extension/popup.html` (Modify)
-*   **Type / Scope**: Extension UI Popup
-*   **Proposed Changes**:
-    *   Standardize all UI labels, status messages, and diagnostics to English.
-    *   Display connected server port and authentication status clearly.
+13. [`crates/browser-mcp-server/src/README.md`](file:///c:/Users/modded/Documents/GitHub/browser-mcp/crates/browser-mcp-server/src/README.md) *(Modified)*
+    - **Rationale**: Synchronizes the EGM architecture contract for `src/` to document the new `shield.rs` and `delta.rs` module interfaces and invariants.
 
-#### 14. Purged Directories & Files (Delete)
-*   **Type / Scope**: Legacy Technical Debt Removal
-*   **Proposed Changes**:
-    *   Delete `mcp-server/` directory entirely (Node.js runtime, duplicate schemas, `node_modules`).
-    *   Delete `runbrowsermcpupdate.sh`.
-    *   Delete `scripts/flow-daekning.sh`.
-    *   Delete `scripts/konkurrent-vagt.py`.
-    *   Delete `scripts/npm-oidc-tjek.py`.
-    *   Delete `scripts/beviskort.sh` and `scripts/byg-mcpb.sh`.
-    *   Rename `maaling/` to `benchmarks/` and translate scripts (`latens.mjs` -> `latency.mjs`, `hvad.mjs` -> `inspect.mjs`).
-    *   Delete `test/aerlighed/` and `test/hjaelp/`.
+### Phased Execution Sequence
 
-#### 15. `.github/workflows/release.yml` (Create)
-*   **Type / Scope**: CI/CD Automation
-*   **Proposed Changes**:
-    *   Create GitHub Actions workflow triggered on tag pushes (`v*`).
-    *   Matrix build across Windows (`x86_64-pc-windows-msvc`), macOS (`x86_64-apple-darwin`, `aarch64-apple-darwin`), and Linux (`x86_64-unknown-linux-musl`, `aarch64-unknown-linux-musl`).
-    *   Package binaries with tar.gz / zip archives and publish directly to GitHub Releases.
+#### Phase 1: Interactive Semantic Distiller (`extension/src/dom-inspector.js` & `background.js`)
+1. Implement recursive tree walker filtering `Accessibility.getFullAXTree` against actionable roles (`button`, `textbox`, `link`, `combobox`, `dialog`, etc.).
+2. Assign sequential handles (`[e1]`, `[e2]`) and normalized bounding coordinates.
+3. Map handles to CDP `backendNodeId` in `tabElementMaps`.
+4. Update `browser_click`, `browser_fill`, and `browser_hover` to accept element handles directly.
 
-#### 16. `README.md` & `CLAUDE.md` (Modify)
-*   **Type / Scope**: Documentation & Developer Guide
-*   **Proposed Changes**:
-    *   Rewrite `README.md` in English with modern branding, quickstart guide via `browser-mcp install`, tool reference, and architecture summary.
-    *   Update `CLAUDE.md` dev commands to reference Cargo exclusively.
+#### Phase 2: Targeted Element Search (`browser_search_elements`)
+1. Implement `browser_search_elements` in `extension/background.js`.
+2. Register tool in `crates/browser-mcp-server/tools_schema.json` and `tools.rs`.
+3. Verify sub-100 token response output against test pages.
 
-### Verification Plan
+#### Phase 3: Context Shield Subsystem (`crates/browser-mcp-server/src/shield.rs`)
+1. Create `shield.rs` in Rust server with token heuristic counter and file spooler.
+2. Intercept responses exceeding 2,500 tokens, spool to `~/.browser-mcp/snapshots/tab_<id>_<timestamp>.txt`, and emit concise summary envelopes.
+3. Implement 50-file / 50 MB LRU disk retention cleaner.
 
-*   **Compilation/Build**:
-    *   `cargo check --manifest-path crates/browser-mcp-server/Cargo.toml`
-    *   `cargo build --release --manifest-path crates/browser-mcp-server/Cargo.toml`
-*   **Unit & Integration Tests**:
-    *   `cargo test --manifest-path crates/browser-mcp-server/Cargo.toml`
-*   **Self-Installation Verification**:
-    *   `cargo run --manifest-path crates/browser-mcp-server/Cargo.toml -- install`
-    *   Verify `~/.browser-mcp/extension/manifest.json` exists and matches bundled assets.
-*   **Token Handshake Verification**:
-    *   Start server, verify `~/.browser-mcp/session.token` is generated with 32 characters.
-    *   Connect WebSocket without token -> verify connection closed immediately.
-    *   Connect WebSocket with token -> verify connection established successfully.
-*   **Stdio Keep-Alive Verification**:
-    *   Send `{"jsonrpc":"2.0","id":1,"method":"ping"}` -> verify immediate `{"jsonrpc":"2.0","id":1,"result":{}}` response while a simulated 5-second command is executing.
-*   **EGM Verification**:
-    *   Run `python scripts/check-docs.py` to ensure tool documentation integrity across all markdown contracts.
+#### Phase 4: State Delta Streaming (`crates/browser-mcp-server/src/delta.rs`)
+1. Create `delta.rs` in Rust server tracking per-tab element state maps.
+2. Implement symmetric diff engine emitting line-based `+ Added`, `- Removed`, `~ Mutated` nodes for `format="delta"`.
+3. Implement clean fallback on origin navigation or target ID mismatch.
 
---------------------------------------------------------------------------------
-
-*Drafted with EGM*
+#### Phase 5: Verification & Quality Gates
+1. Run `cargo test --manifest-path crates/browser-mcp-server/Cargo.toml` to verify all Rust tests.
+2. Run `node scripts/build-extension.mjs` to validate extension syntax and update `~/.browser-mcp/extension/`.
+3. Run `python scripts/generate-docs.py` and `python scripts/check-docs.py` to ensure docs gate is green.
+4. Verify live interactive execution against Brave browser.
