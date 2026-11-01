@@ -1,76 +1,150 @@
-# Standalone Rust Browser MCP Architecture & Modernization
+# Concept Brief: Browser MCP v2.2 — Token-Efficient Semantic Accessibility & Context Shield
 
-* **Author:** Mohamed Elsheikh (@modded-soldier-9)
-* **Date:** 2026-10-31
+## Problem Statement & Motivation
+Modern web pages are deeply nested with layout wrappers (`<div>`, `<span>`, CSS styling classes, SVG icons), frequently exceeding 50,000 characters of raw HTML. When an AI agent navigates a web application over multiple turns (e.g., searching, logging in, selecting dropdowns, and extracting reports), dumping raw DOM or unfiltered accessibility trees consumes 10,000 to 25,000 tokens per interaction. Within 5–10 steps, the agent's context window is degraded, attention drift occurs, and operating costs escalate.
 
-## Overview
+While Browser MCP v2.1.0 introduced AXTree snapshotting (`format: "snapshot"`), competitive analysis against modern browser automation engines (`browser-use`, `@playwright/mcp`, Stagehand, and Chrome DevTools MCP) reveals critical architectural improvements:
+1. **Unfiltered Tree Bloat**: Even accessibility trees retain hundreds of static structural containers and non-actionable text nodes unless explicitly pruned for interactive agents.
+2. **Repetitive State Re-Emission**: Agents repeatedly receive the full page state after minor actions (e.g. typing a single field or opening a dropdown), re-ingesting 95% identical tokens.
+3. **Context Window Contamination**: Lengthy tables or dashboards exhaust client context limits unless guarded by out-of-band disk storage or query-based element discovery.
 
-Browser MCP is being re-architected into an independent, 100% English, single-binary Rust automation bridge designed for modern AI coding assistants (Claude Code, Cursor, Antigravity, OpenCode, Codex). The server connects AI agents directly to live, authenticated browser profiles in Chrome and Brave via a low-restriction Manifest V2 extension, bypassing cloud bot-detection walls, Cloudflare challenges, and SSO login boundaries.
+Browser MCP v2.2 introduces a **Semantic Accessibility Engine & Context Shield**: distilling pages strictly into actionable interactive targets (`[e1]`, `[e2]`), streaming state deltas after user actions, caching full snapshots out-of-band on disk, and exposing targeted semantic element search.
 
-This modernization transitions the project from a hybrid Node.js/Rust fork into an owned, standalone system. It eliminates the 50 MB Node.js runtime in favor of a sub-4ms compiled binary (<4 MB RAM), embeds the extension bundle directly inside the executable for zero-dependency self-installation, purges all legacy Danish technical debt, hardens WebSocket security boundaries, and establishes cross-platform distribution through automated GitHub Releases.
+---
 
-## Analysis
+## Core Invariants & Non-Negotiables
+1. **[token:budget-ceiling]**: A standard interactive snapshot of any production web page must not exceed 1,500 tokens in the MCP client response payload.
+2. **[action:handle-determinism]**: Element reference handles (`[e1]`, `[e2]`, ...) must remain stable within a tab turn and map directly to native CDP/DOM nodes without XPath or CSS selector guesswork.
+3. **[shield:context-safety]**: Payloads exceeding configurable threshold limits (default: 2,500 tokens) must automatically persist to local cache (`~/.browser-mcp/snapshots/`) and return a summarized index with query handles, preventing context overflow.
+4. **[bridge:zero-node]**: All parsing, filtering, and indexing logic must execute strictly within the compiled Rust host engine and persistent MV2 extension; zero external runtime dependencies.
+5. **[security:origin-containment]**: Snapshot caching and element extraction remain strictly bound to loopback `127.0.0.1` and the active tab's security origin.
 
-### 1. Contrarian / YAGNI & Code Minimization
-- **Dual-Runtime Elimination**: Maintaining both Node.js (`mcp-server/index.js`) and Rust (`crates/browser-mcp-server`) doubles bug surface area and introduces version drift. Decommissioning the Node runtime completely eliminates `node_modules` supply-chain vulnerabilities, npm deprecation warnings, and runtime dependencies.
-- **Tool Surface Rationalization**: The current 40-tool specification totals 941 lines of JSON schema and consumes approximately 9,000 tokens on every LLM turn. Redundant mouse interaction primitives (`browser_click_xy`, `browser_double_click`, `browser_right_click`) can be dispatched via `browser_click` with optional arguments, and Danish parameter keys (`eget_vindue`, `fokuser`, `vindue_x`, `vindue_bredde`, `vindue_hoejde`) must be renamed to standard English (`new_window`, `focus`, `x`, `width`, `height`).
-- **Rust Dependency Trim**: The Rust server currently pulls `sysinfo` to scan all OS processes every 5 seconds just to check parent process liveness. Stdio pipe EOF handling in `main.rs` detects parent termination without process polling or external crates. Derive-heavy CLI crates (`clap`) can be replaced with standard library arguments (`std::env::args()`), and `regex` can be replaced with direct URL prefix matching.
+---
 
-### 2. System Architecture & Security Boundaries
-- **Localhost WebSocket Authentication**: The WebSocket bridge on ports 9876–9895 currently accepts any connection matching `^chrome-extension://[a-p]{32}$` without secret negotiation. Any rogue extension or malicious local process could connect to the open port and harvest authenticated cookies (`browser_get_cookies`) or session tokens. The Rust server must generate a cryptographic handshake token at startup and require it during WebSocket initialization.
-- **Stdio Transport Starvation**: The Rust binary currently reads stdio requests synchronously. During long-running tool invocations (such as `browser_ask_user` waiting 120s for human 2FA or `browser_extract_list` scrolling large feeds), the stdio loop is blocked. Incoming MCP `ping` requests are starved, causing Claude Code and Cursor to terminate the bridge process. Stdio request ingestion must be decoupled from tool execution using Tokio asynchronous worker tasks, with immediate `ping` response handling.
-- **Watchdog Self-Monitoring Bug**: In `crates/browser-mcp-server/src/main.rs:63`, the server assigns its own PID (`std::process::id()`) to the parent watchdog, and the shutdown channel receiver is unpolled. If the host assistant crashes, orphaned Rust processes remain alive indefinitely, holding TCP ports and exhausting the 20-port pool.
+## Proposed Technical Approach & Architecture
 
-### 3. UX, Developer Ergonomics & Real Workflows
-- **Target Workflows**: AI assistants conducting development workflows require inspecting local services (`http://localhost:3000`), diagnosing DevTools console logs, interacting with authenticated SaaS portals (AWS Management Console, GitHub PRs, Vercel dashboards) without triggering bot blocks, and completing 2FA / CAPTCHA challenges via human-in-the-loop modal dialogs (`browser_ask_user`).
-- **Zero-Dependency Installer**: The Rust binary currently has a stubbed `--install` flag. With Node.js removed, users cannot rely on `npx browser-mcp install`. The Rust binary must embed the `extension/` directory at compile time using `include_dir!` and implement `browser-mcp install`, which extracts the extension to `~/.browser-mcp/extension/` and automatically registers the server into detected client configurations (`~/.gemini/config/mcp_config.json`, `~/.cursor/mcp.json`, `~/.config/opencode/opencode.json`, `claude mcp add`).
-- **Safety & Profile Separation**: Running automations directly in the user's primary browser profile presents risks of accidental data mutation. The system must support dedicated development profiles (`--profile-dir`) and domain allowlisting.
+```text
+┌────────────────────────────────────────────────────────┐
+│           AI Coding Assistant (Client LLM)             │
+└───────────────────────────┬────────────────────────────┘
+                            │ (Concise Tool Call: browser_get_page_content)
+┌───────────────────────────▼────────────────────────────┐
+│   Browser MCP Native Host Engine (Rust / browser-mcp)  │
+│   • Token Counter & Context Shield Guard               │
+│   • Delta Diff Engine (Compares Prior vs. Current AX)  │
+│   • Local Disk Spooler (~/.browser-mcp/snapshots/)     │
+└───────────────────────────┬────────────────────────────┘
+                            │ (WebSocket JSON-RPC)
+┌───────────────────────────▼────────────────────────────┐
+│      Brave / Chrome Extension (MV2 Background Bridge)   │
+│   • Chrome DevTools Protocol Accessibility.getFullAXTree│
+│   • Interactive Pruner (Filters non-actionable roles)  │
+│   • Deterministic Ref Assignor ([e1], [e2]...)         │
+│   • Viewport & Bounding Box Normalizer (x, y)          │
+└───────────────────────────┬────────────────────────────┘
+                            │ (Direct CDP Execution)
+┌───────────────────────────▼────────────────────────────┐
+│               Target Web Page (Brave / Chrome)         │
+└────────────────────────────────────────────────────────┘
+```
 
-### 4. Manifest V2 vs. V3 Longevity Strategy
-- Retaining Manifest V2 is necessary to maintain persistent background workers and avoid Manifest V3's 30-second idle service worker termination. Because Chrome Stable is phasing out consumer MV2 support, Brave is positioned as the primary recommended browser tier.
-- To future-proof the codebase against eventual Chromium-wide MV2 deprecation, background extension logic must be abstracted behind a modular event adapter, enabling a clean future migration to MV3 with Offscreen Documents or Native Messaging without altering tool logic.
+### Key Architectural Capabilities
 
-### 5. Technical Debt & Danish Legacy Inventory
-All legacy Danish identifiers, comments, scripts, and directories must be systematically purged:
-- **Directories**: Rename `maaling/` to `benchmarks/`; delete `test/aerlighed/` and `test/hjaelp/`.
-- **Scripts**: Purge or rewrite `runbrowsermcpupdate.sh`, `scripts/flow-daekning.sh`, `scripts/konkurrent-vagt.py`, `scripts/npm-oidc-tjek.py`, `scripts/beviskort.sh`, `scripts/byg-mcpb.sh`.
-- **Code Identifiers**: Remove `vagt.js` (`ledErDoedt`, `forfaedreKaede`), `alleePorteOptaget`, `loesPortLoefte`, `sikrePort`, `forklarSkaevhed`, `armeredeDialoger`, `evaluerTaalmodigt`, `iLuften`, `harServer`.
+#### 1. Interactive Semantic Distillation (`interactive_only: true`)
+The extension queries `Accessibility.getFullAXTree` via CDP, but filters the tree through an interactive whitelist:
+- **Included Roles**: `button`, `link`, `textbox`, `searchbox`, `checkbox`, `radio`, `combobox`, `listbox`, `menuitem`, `tab`, `dialog`, `switch`.
+- **Filtered Out**: Static wrappers (`generic`, `group`, `none`), purely decorative images, unlabelled containers, and hidden off-viewport layout artifacts.
+- **Output Structure**: Compact YAML/indented string:
+  ```text
+  [e1] button "Sign in" (x: 0.85, y: 0.05)
+  [e2] textbox "Email" [required, value=""] (x: 0.45, y: 0.32)
+  [e3] textbox "Password" [protected] (x: 0.45, y: 0.38)
+  [e4] link "Forgot password?" (x: 0.45, y: 0.42)
+  ```
 
-## Goals vs. Non-Goals
+#### 2. Incremental State Deltas (`format: "delta"`)
+Instead of dumping the entire page state after an action:
+- Rust maintains an in-memory SHA-256 tree hash and node map of the active tab.
+- When an action executes, the response returns the mutation delta:
+  ```text
+  State Delta:
+  + [e12] dialog "Confirm Order" (opened)
+  + [e13] button "Place Order" (active)
+  ~ [e2] textbox "Email" value="user@example.com"
+  - [e1] button "Sign in" (hidden)
+  ```
+- Result: Reduces multi-step payload tokens by **80% to 90%**.
 
-* **In-Scope Goals:**
-  - Build a standalone native Rust binary (`browser-mcp`) as the sole server runtime, compiling for Windows (`x86_64`), macOS (`x86_64`, `aarch64`), and Linux (`x86_64`, `aarch64`).
-  - Embed the MV2 Chrome extension assets inside the compiled binary and implement an automated `browser-mcp install` command.
-  - Implement loopback WebSocket authentication via a pre-shared handshake token.
-  - Fix stdio starvation by handling MCP `ping` asynchronously and offloading tool execution to Tokio tasks.
-  - Replace the flawed watchdog check with stdio EOF detection and true parent PID ancestry tracking.
-  - Purge 100% of Danish files, variables, comments, and external domain references, standardizing exclusively on English.
-  - Automate binary builds and multi-platform archive creation via GitHub Actions releases.
+#### 3. Targeted Element Query (`browser_search_elements`)
+When interacting with complex dashboards, agents do not need the full tree. They query by intent:
+- Call: `browser_search_elements({ text: "Export CSV", role: "button" })`
+- Response: Returns only the matching 1–3 candidate elements with their immediate container context, burning < 100 tokens.
 
-* **Out-of-Scope Non-Goals:**
-  - Full rewrite of the Chrome extension in WebAssembly/Rust (extension remains pure vanilla JavaScript for simplicity and zero build step).
-  - Headless browser emulation (Browser MCP is explicitly designed for live, authenticated browser sessions; headless testing belongs to Playwright/Puppeteer).
-  - Complex in-binary self-updating daemons (updates handled through package managers or GitHub release binary replacement).
-  - Removing JavaScript dev tooling entirely (lightweight scripts for linting or extension packaging remain acceptable in development).
+#### 4. Context Shield Disk Spooling
+If a page contains extensive tabular data (e.g. 100 table rows) and exceeds 2,500 tokens:
+- Full distilled representation writes to `~/.browser-mcp/snapshots/tab_<id>_<timestamp>.txt`.
+- Agent receives:
+  ```text
+  Page Title: Financial Statement (14,200 characters)
+  Primary Actionable Elements: 8 buttons, 2 dropdowns.
+  Full snapshot saved to: C:\Users\modded\.browser-mcp\snapshots\tab_1.txt
+  Use browser_search_elements(query) or read specific lines via file reader.
+  ```
 
-## Alternatives Weighed
+---
 
-1. **Dual-Engine (Node.js npm package + Optional Rust binary)**:
-   - *Rejected*: Maintaining two parallel server implementations requires maintaining duplicate schemas, duplicate bug fixes, and dual CI pipelines. It defeats the goal of creating a fast, minimal, owned project.
-2. **Immediate Migration to Manifest V3**:
-   - *Rejected*: MV3 service workers terminate after 30 seconds of inactivity, which terminates active WebSocket connections to the MCP host and drops session state during agent thinking pauses. MV2 remains significantly more reliable for persistent agent sessions.
-3. **Native Messaging Host instead of WebSocket**:
-   - *Rejected*: Chrome Native Messaging requires OS-level registry entries and JSON framing per message, complicating multi-session tab isolation and multi-client connections. WebSockets over loopback provide greater flexibility across multiple concurrent agent sessions.
-4. **Keeping `sysinfo` Polling for Watchdog**:
-   - *Rejected*: Polling the entire operating system process table every 5 seconds wastes CPU and battery. Stdio EOF detection reliably indicates parent process death without scanning foreign processes.
+## Synthesized Goldfish Review Findings
 
-## Key Decisions & Staging for Next Steps
+### 1. Contrarian / YAGNI (egm-zoom-out)
+- **Strengths**: Directly attacks the #1 failure mode of AI browser agents: context exhaustion and slow inference latency.
+- **Risks & Pushback**: Storing full state trees in Rust memory introduces tab synchronization complexity if the user manually closes or navigates tabs in the browser.
+- **Recommendations**: Keep state storage in Rust ephemeral and keyed to CDP `targetId`. If a hash mismatch or navigation occurs, transparently fall back to a full clean snapshot rather than complex synchronization logic.
 
-1. **Canonical Binary Name**: Consolidate the package and crate name into `browser-mcp` (output binary `browser-mcp` / `browser-mcp.exe`).
-2. **Asset Embedding**: Use `include_dir` to bundle `extension/` inside the binary for seamless zero-dependency deployment via `browser-mcp install`.
-3. **Execution Roadmap**:
-   - **Phase 1**: Harden Rust engine (`crates/browser-mcp-server`), resolve watchdog bug, add WebSocket auth token, and implement `install` CLI.
-   - **Phase 2**: Decommission `mcp-server/` directory, purge Danish scripts, and rename `maaling/` to `benchmarks/`.
-   - **Phase 3**: Establish GitHub Actions CI/CD release workflow for cross-platform archive generation.
-   - **Phase 4**: Implement native Rust integration test suite (`tests/bridge_test.rs`).
-   - **Phase 5**: Update all documentation, root blueprint, and publish `v2.1.0` standalone GitHub release.
+### 2. Cost, Quota & Token Economics (egm-design)
+- **Strengths**: Slashing average per-action token volume from 15,000 down to 600 tokens directly translates to a ~25x cost reduction on frontier models (Claude 3.5 Sonnet, GPT-4o).
+- **Risks & Pushback**: Over-pruning can omit critical context (e.g., alert banners, validation error messages that use non-standard `<div>` styling without ARIA alerts).
+- **Recommendations**: Include any element with text content that follows an input validation error or contains ARIA roles `alert`, `status`, or `tooltip`.
+
+### 3. UX & Developer Ergonomics (egm-comprehension / egm-style)
+- **Strengths**: Element handles `[e1]`, `[e2]` eliminate fragile CSS/XPath prompt generation. Agents simply emit `browser_click({ element: "e1" })`.
+- **Risks & Pushback**: If handles change after an incremental delta without the agent realizing it, clicks could target the wrong element.
+- **Recommendations**: Keep handle IDs monotonically increasing during a page session. An element retains `e1` until the page fully navigates.
+
+### 4. Migration & Backward Compatibility (egm-codebase-details)
+- **Strengths**: 100% backward compatible with existing 40 MCP tools. `format="snapshot"` and `format="raw"` remain available. The new modes (`format="interactive"`, `format="delta"`) are opt-in parameter extensions.
+- **Risks & Pushback**: The existing Rust `tools_schema.json` must be updated, and `scripts/check-docs.py` must validate the updated parameters.
+- **Recommendations**: Ensure schema updates preserve dual-mapping in `extension/background.js`.
+
+### 5. Observability & SRE Debuggability (egm-implementation-readiness)
+- **Strengths**: Local snapshot spooling (`~/.browser-mcp/snapshots/`) provides an instant local audit trail for debugging failed agent runs.
+- **Risks & Pushback**: Unchecked snapshot writes could accumulate disk space over months of heavy usage.
+- **Recommendations**: Implement LRU retention capping snapshot files at 50 MB total or 100 files max in `~/.browser-mcp/snapshots/`.
+
+### 6. Long-Term Tech Debt & Maintenance (egm-structural)
+- **Strengths**: Consolidating DOM filtering inside the extension's CDP pipeline avoids pulling heavy external parsing crates into the Rust binary, keeping `browser-mcp.exe` lean (~3 MB).
+- **Risks & Pushback**: Custom JavaScript filtering inside `background.js` must remain clean, modular, and well-commented.
+- **Recommendations**: Isolate the interactive AXTree visitor in `extension/src/dom-inspector.js`.
+
+---
+
+## Implementation Roadmap & Phased Execution
+
+- **Phase 1: Interactive AXTree Pruner**:
+  - Implement role filtering and monotonic ref assignment (`[e1]`, `[e2]`) in `extension/src/dom-inspector.js`.
+  - Add `format="interactive"` to `browser_get_page_content` schema.
+  - Verify token savings against benchmark pages (GitHub, Hacker News, Stripe Dashboard).
+- **Phase 2: Targeted Element Search Tool**:
+  - Add `browser_search_elements` tool to `crates/browser-mcp-server/tools_schema.json` and extension bridge dispatcher.
+  - Test sub-100-token element resolution.
+- **Phase 3: Context Shield & Local Disk Spooler**:
+  - Implement token counter and file spooler in Rust (`crates/browser-mcp-server/src/sandbox.rs` / `shield.rs`).
+  - Add automatic truncation and spooling path output for payloads exceeding 2,500 tokens.
+- **Phase 4: Incremental State Delta Engine**:
+  - Implement hash-based AXTree diffing in Rust server.
+  - Add `format="delta"` parameter option.
+
+---
+
+## Open Questions & Strategic Trade-Offs
+1. **Visual vs. Semantic Fallback**: When an interactive element has no ARIA role and is a plain clickable SVG (common on custom web apps), should Browser MCP automatically compute its bounding box coordinates `[x, y]` and label it `[eX] clickable-icon (x: 0.12, y: 0.04)`? (Recommended: Yes, via CDP hit-testing).
+2. **Delta Granularity**: Should deltas report only added/removed interactive elements, or also visual text changes? (Recommended: Interactive elements + alert/error text only to prevent noise).
