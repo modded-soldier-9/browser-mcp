@@ -1,6 +1,6 @@
 [package]
 name = "browser-mcp-server"
-version = "2.1.0"
+version = "2.2.0"
 edition = "2024"
 description = "Native Rust MCP server for browser automation driving Brave and Chrome."
 authors = ["Mohamed Elsheikh <moddedsoldier@gmail.com>"]

@@ -374,6 +374,6 @@ for doc in ['WISHLIST.md', 'README.md', 'CHANGELOG.md', 'llms-install.md',
 # -----------------------------------------------------------------------------
 if fails:
     print('DOCS GATE: %d failure(s)' % len(fails))
-    for m in fails: print('  ✗', m)
+    for m in fails: print('  [FAIL]', m)
     sys.exit(1)
 print('DOCS GATE: all green (tool count %d · %d generated pages · %d sitemap URLs)' % (TOOLCOUNT, len(GEN_URLS), len(locs)))

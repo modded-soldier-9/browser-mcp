@@ -3857,8 +3857,9 @@ async function dispatch(port, method, params) {
     }
 
 function generateAriaSnapshot(rootSel, interactiveOnly, maxDepth) {
-  window.__bmcpElements = new Map();
-  let refCount = 0;
+  if (!window.__bmcpElements) window.__bmcpElements = new Map();
+  if (!window.__bmcpNodeMap) window.__bmcpNodeMap = new WeakMap();
+  if (typeof window.__bmcpRefCount !== 'number') window.__bmcpRefCount = 0;
   const root = rootSel ? document.querySelector(rootSel) : (document.body || document.documentElement);
   if (!root) return { ok: false, error: 'Root element not found: ' + rootSel };
 
@@ -3945,8 +3946,14 @@ function generateAriaSnapshot(rootSel, interactiveOnly, maxDepth) {
     }
 
     if (isInteractive) {
-      refCount++;
-      const refId = 'e' + refCount;
+      let refId;
+      if (window.__bmcpNodeMap && window.__bmcpNodeMap.has(node)) {
+        refId = window.__bmcpNodeMap.get(node);
+      } else {
+        window.__bmcpRefCount = (window.__bmcpRefCount || 0) + 1;
+        refId = 'e' + window.__bmcpRefCount;
+        if (window.__bmcpNodeMap) window.__bmcpNodeMap.set(node, refId);
+      }
       window.__bmcpElements.set(refId, node);
       node.setAttribute('data-bmcp-ref', refId);
 
@@ -4006,7 +4013,8 @@ function generateAriaSnapshot(rootSel, interactiveOnly, maxDepth) {
     ok: true,
     title: document.title,
     url: location.href,
-    element_count: refCount,
+    element_count: window.__bmcpElements ? window.__bmcpElements.size : 0,
+    content: lines.join('\n'),
     snapshot: lines.join('\n')
   };
 }
@@ -4016,7 +4024,7 @@ function generateAriaSnapshot(rootSel, interactiveOnly, maxDepth) {
       if (tab.url.startsWith('chrome://')) throw new Error('Cannot access chrome:// pages');
       const format = params.format || 'text';
 
-      if (format === 'snapshot' || format === 'aria') {
+      if (format === 'snapshot' || format === 'aria' || format === 'interactive' || format === 'delta') {
         const rootSel = params.selector || null;
         const interactiveOnly = params.interactive_only !== false;
         const maxDepth = Number(params.max_depth) > 0 ? Number(params.max_depth) : 12;
@@ -4032,7 +4040,10 @@ function generateAriaSnapshot(rootSel, interactiveOnly, maxDepth) {
         } catch (err) {
           res = await debuggerEval(tab.id, `(${generateAriaSnapshot})(${JSON.stringify(rootSel)}, ${interactiveOnly}, ${maxDepth})`);
         }
-        return res || { ok: false, error: 'Snapshot generation failed' };
+        if (res && res.snapshot && !res.content) {
+          res.content = res.snapshot;
+        }
+        return { tab_id: tab.id, url: tab.url, title: tab.title, ...(res || { ok: false, error: 'Snapshot generation failed' }) };
       }
       // MAALT 17/9 mod Stripe Dashboard: `format:'html'` svarede 1.042.782 tegn, og der var
       // ingen maade at bede om mindre. Vaerktoejet var dermed ubrugeligt praecis paa de store,
@@ -4087,13 +4098,127 @@ function generateAriaSnapshot(rootSel, interactiveOnly, maxDepth) {
       const tekst = typeof raa === 'string' ? raa : String(raa ?? '');
       if (tekst.length > maxTegn) {
         return {
+          tab_id: tab.id,
           content: tekst.slice(0, maxTegn), url: tab.url, title: tab.title, ...metode,
           afkortet: true, tegn_i_alt: tekst.length,
           note: `The page is ${tekst.length} characters; here are the first ${maxTegn}. Fetch the part you need ` +
                 'with `selector`, or raise `max_chars` if you really need all of it.',
         };
       }
-      return { content: tekst, url: tab.url, title: tab.title, ...metode };
+      return { tab_id: tab.id, content: tekst, url: tab.url, title: tab.title, ...metode };
+    }
+
+    case 'search_elements': {
+      const tab = await getSessionTab(port, false, explicitTabId, agentId);
+      if (tab.url.startsWith('chrome://')) throw new Error('Cannot access chrome:// pages');
+      const query = params.query || '';
+      const role = params.role || null;
+
+      const searchFn = (q, targetRole) => {
+        if (!window.__bmcpElements || window.__bmcpElements.size === 0) {
+          if (typeof generateAriaSnapshot === 'function') {
+            generateAriaSnapshot(null, true, 12);
+          }
+        }
+
+        const queryNorm = (q || '').toLowerCase().trim();
+        const roleNorm = (targetRole || '').toLowerCase().trim();
+        const results = [];
+
+        function isVisible(el) {
+          if (!el || el.nodeType !== 1) return false;
+          const style = window.getComputedStyle(el);
+          if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
+          const rect = el.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0;
+        }
+
+        function getAccessibleName(el) {
+          const ariaLabel = el.getAttribute('aria-label');
+          if (ariaLabel) return ariaLabel.trim();
+          if (el.placeholder) return el.placeholder.trim();
+          if (el.title) return el.title.trim();
+          if (el.alt) return el.alt.trim();
+          const tag = el.tagName;
+          if (tag === 'BUTTON' || tag === 'A' || /^H[1-6]$/.test(tag) || tag === 'SUMMARY') {
+            return (el.innerText || '').trim().replace(/\s+/g, ' ');
+          }
+          return '';
+        }
+
+        function getElementRole(el) {
+          const explicitRole = el.getAttribute('role');
+          if (explicitRole) return explicitRole.toLowerCase();
+          const tag = el.tagName.toLowerCase();
+          if (tag === 'a') return el.hasAttribute('href') ? 'link' : null;
+          if (tag === 'button') return 'button';
+          if (tag === 'textarea') return 'textbox';
+          if (tag === 'select') return 'combobox';
+          if (tag === 'summary') return 'button';
+          if (/^h[1-6]$/.test(tag)) return 'heading';
+          if (tag === 'dialog') return 'dialog';
+          if (tag === 'input') {
+            const type = (el.type || 'text').toLowerCase();
+            if (type === 'button' || type === 'submit' || type === 'reset' || type === 'image') return 'button';
+            if (type === 'checkbox') return 'checkbox';
+            if (type === 'radio') return 'radio';
+            return 'textbox';
+          }
+          return null;
+        }
+
+        if (window.__bmcpElements) {
+          for (const [refId, el] of window.__bmcpElements.entries()) {
+            if (!isVisible(el)) continue;
+            const r = getElementRole(el) || el.tagName.toLowerCase();
+            if (roleNorm && r !== roleNorm) continue;
+
+            const name = getAccessibleName(el);
+            const text = (el.innerText || '').trim();
+            const val = el.value || '';
+            const placeholder = el.placeholder || '';
+
+            const haystack = (refId + ' ' + r + ' ' + name + ' ' + text + ' ' + val + ' ' + placeholder).toLowerCase();
+            if (!queryNorm || haystack.includes(queryNorm)) {
+              results.push({
+                ref: refId,
+                handle: '[' + refId + ']',
+                role: r,
+                name: name || text.slice(0, 50) || val || undefined,
+                tag: el.tagName.toLowerCase()
+              });
+              if (results.length >= 25) break;
+            }
+          }
+        }
+
+        return {
+          ok: true,
+          total_matches: results.length,
+          elements: results
+        };
+      };
+
+      let res;
+      try {
+        const scriptRes = await safeExecuteScript(tab.id, searchFn, [query, role]);
+        if (!scriptRes.cspBlocked && scriptRes.result) {
+          res = scriptRes.result;
+        } else {
+          res = await debuggerEval(tab.id, `(${searchFn})(${JSON.stringify(query)}, ${JSON.stringify(role)})`);
+        }
+      } catch (err) {
+        res = await debuggerEval(tab.id, `(${searchFn})(${JSON.stringify(query)}, ${JSON.stringify(role)})`);
+      }
+
+      return {
+        tab_id: tab.id,
+        url: tab.url,
+        title: tab.title,
+        query: query,
+        role: role,
+        ...(res || { ok: false, error: 'Element search failed' })
+      };
     }
 
     // Read EVERY row of a virtualised list by scrolling its container until the set stops

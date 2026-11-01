@@ -1,7 +1,9 @@
 mod bridge;
+mod delta;
 mod installer;
 mod protocol;
 mod sandbox;
+mod shield;
 mod tools;
 mod watchdog;
 
@@ -11,10 +13,12 @@ use std::sync::Arc;
 use clap::{Parser, Subcommand};
 use serde_json::{json, Value};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use tokio::sync::{broadcast, mpsc};
+use tokio::sync::{broadcast, mpsc, Mutex};
 
 use bridge::Bridge;
-use protocol::{CallToolResult, JsonRpcError, JsonRpcRequest, JsonRpcResponse, TextContent, ToolContent, ImageContent};
+use delta::DeltaEngine;
+use protocol::{CallToolResult, ImageContent, JsonRpcError, JsonRpcRequest, JsonRpcResponse, TextContent, ToolContent};
+use shield::ContextShield;
 use tools::{get_tools_list, normalize_tool_name, METHOD_MAP};
 
 #[derive(Parser, Debug)]
@@ -47,6 +51,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let bridge = Arc::new(Bridge::new());
+    let shield = Arc::new(ContextShield::new());
+    let delta = Arc::new(Mutex::new(DeltaEngine::new()));
     let strip_prefix = std::env::var("BROWSER_MCP_STRIP_TOOL_PREFIX").map(|v| v == "1").unwrap_or(false);
 
     if cli.serve || matches!(cli.command, Some(Commands::Serve)) {
@@ -88,10 +94,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Sequential queue for browser mutation actions
     let (cmd_tx, mut cmd_rx) = mpsc::unbounded_channel::<(JsonRpcRequest, mpsc::UnboundedSender<String>)>();
     let bridge_worker = bridge.clone();
+    let shield_worker = shield.clone();
+    let delta_worker = delta.clone();
     let worker_task = tokio::spawn(async move {
         while let Some((req, out_tx)) = cmd_rx.recv().await {
             let bridge = bridge_worker.clone();
-            let res = handle_request(req, bridge, strip_prefix).await;
+            let shield = shield_worker.clone();
+            let delta = delta_worker.clone();
+            let res = handle_request(req, bridge, shield, delta, strip_prefix).await;
             if let Some(resp) = res {
                 if let Ok(serialized) = serde_json::to_string(&resp) {
                     let _ = out_tx.send(serialized);
@@ -151,7 +161,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         // Fast path for initialize and tools/list
                         if req.method == "initialize" || req.method == "tools/list" {
                             let bridge = bridge.clone();
-                            let res = handle_request(req, bridge, strip_prefix).await;
+                            let shield = shield.clone();
+                            let delta = delta.clone();
+                            let res = handle_request(req, bridge, shield, delta, strip_prefix).await;
                             if let Some(resp) = res {
                                 if let Ok(serialized) = serde_json::to_string(&resp) {
                                     let _ = stdout_tx.send(serialized);
@@ -180,6 +192,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 async fn handle_request(
     req: JsonRpcRequest,
     bridge: Arc<Bridge>,
+    shield: Arc<ContextShield>,
+    delta: Arc<Mutex<DeltaEngine>>,
     strip_prefix: bool,
 ) -> Option<JsonRpcResponse> {
     let id = req.id.clone()?;
@@ -331,6 +345,27 @@ async fn handle_request(
                 }
             }
 
+            let requested_format = if method == "get_page_content" {
+                args.get("format").and_then(|v| v.as_str()).unwrap_or("text").to_string()
+            } else {
+                String::new()
+            };
+            let max_tokens = if method == "get_page_content" {
+                args.get("max_tokens").and_then(|v| v.as_u64()).map(|v| v as usize)
+            } else {
+                None
+            };
+            let page_offset = if method == "get_page_content" {
+                args.get("page_offset").and_then(|v| v.as_u64()).unwrap_or(0) as usize
+            } else {
+                0
+            };
+            let limit = if method == "get_page_content" {
+                args.get("limit").and_then(|v| v.as_u64()).unwrap_or(100) as usize
+            } else {
+                100
+            };
+
             let timeout_ms = match method {
                 "ask_user" => 125000,
                 "solve_captcha" => 60000,
@@ -339,7 +374,34 @@ async fn handle_request(
             };
 
             match bridge.send_command(method, args, timeout_ms).await {
-                Ok(val) => {
+                Ok(mut val) => {
+                    if method == "navigate" {
+                        let tab_id = val.get("tab_id").and_then(|v| v.as_u64()).unwrap_or(0);
+                        if tab_id != 0 {
+                            delta.lock().await.reset_tab(tab_id);
+                        }
+                    } else if method == "get_page_content" {
+                        let tab_id = val.get("tab_id").and_then(|v| v.as_u64()).unwrap_or(0);
+                        let content_text = val.get("content").and_then(|v| v.as_str()).unwrap_or("");
+
+                        if requested_format == "delta" {
+                            let mut delta_res = delta.lock().await.process_snapshot(tab_id, content_text);
+                            if let Some(obj) = delta_res.as_object_mut() {
+                                if let Some(t) = val.get("title") { obj.insert("title".to_string(), t.clone()); }
+                                if let Some(u) = val.get("url") { obj.insert("url".to_string(), u.clone()); }
+                                obj.insert("tab_id".to_string(), json!(tab_id));
+                            }
+                            val = delta_res;
+                        } else if let Some(mut shielded_val) = shield.protect(tab_id, content_text, max_tokens, page_offset, limit) {
+                            if let Some(obj) = shielded_val.as_object_mut() {
+                                if let Some(t) = val.get("title") { obj.insert("title".to_string(), t.clone()); }
+                                if let Some(u) = val.get("url") { obj.insert("url".to_string(), u.clone()); }
+                                obj.insert("tab_id".to_string(), json!(tab_id));
+                            }
+                            val = shielded_val;
+                        }
+                    }
+
                     if method == "screenshot" {
                         if let Some(img_str) = val.get("image").and_then(|v| v.as_str()) {
                             let (data, mime) = if img_str.starts_with("data:image/jpeg") {

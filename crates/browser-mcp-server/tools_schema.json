@@ -54,9 +54,11 @@
           "enum": [
             "text",
             "html",
-            "snapshot"
+            "snapshot",
+            "interactive",
+            "delta"
           ],
-          "description": "Output format: text, html, or snapshot (lightweight accessibility tree with [e1], [e2] element refs for 95% token savings). Default: text"
+          "description": "Output format: text, html, snapshot, interactive (distilled semantic tree with handles), or delta (incremental mutation diff). Default: text"
         },
         "selector": {
           "type": "string",
@@ -69,6 +71,18 @@
         "interactive_only": {
           "type": "boolean",
           "description": "For format \"snapshot\": whether to restrict output primarily to interactive controls (buttons, links, inputs). Default: true."
+        },
+        "max_tokens": {
+          "type": "number",
+          "description": "Maximum token threshold before triggering Context Shield spooling (default: 2500)."
+        },
+        "page_offset": {
+          "type": "number",
+          "description": "0-based line offset for paginating shielded snapshots (default: 0)."
+        },
+        "limit": {
+          "type": "number",
+          "description": "Maximum lines to return when paginating shielded snapshots (default: 100)."
         }
       }
     }
@@ -368,7 +382,7 @@
   },
   {
     "name": "browser_dismiss_overlays",
-    "description": "Dismiss visible popups, modals, tooltips, banners, and \"Are you sure?\"-style overlays in one call. Heuristic-based: finds close affordance via aria-label, text content (Skip/Cancel/Ikke nu/Don't show/Got it/Close), or × character button. Use when a flow is interrupted by unexpected dialogs (cookie banners, onboarding tooltips, draft-confirm prompts on Meta Ads, etc.). Returns list of what was dismissed.",
+    "description": "Dismiss visible popups, modals, tooltips, banners, and \"Are you sure?\"-style overlays in one call. Heuristic-based: finds close affordance via aria-label, text content (Skip/Cancel/Ikke nu/Don't show/Got it/Close), or \u00d7 character button. Use when a flow is interrupted by unexpected dialogs (cookie banners, onboarding tooltips, draft-confirm prompts on Meta Ads, etc.). Returns list of what was dismissed.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -389,7 +403,7 @@
   },
   {
     "name": "browser_set_combobox",
-    "description": "Set value(s) on an autocomplete/combobox input. Handles the click → type query → wait for filtered listbox → click option flow as one MCP call. Supports multi-select (e.g., Languages on Meta Ads). Use when browser_select_option fails because options render lazily after typing.",
+    "description": "Set value(s) on an autocomplete/combobox input. Handles the click \u2192 type query \u2192 wait for filtered listbox \u2192 click option flow as one MCP call. Supports multi-select (e.g., Languages on Meta Ads). Use when browser_select_option fails because options render lazily after typing.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -935,6 +949,30 @@
       },
       "required": [
         "what_happened"
+      ]
+    }
+  },
+  {
+    "name": "browser_search_elements",
+    "description": "Search for actionable interactive elements on the page matching a text query, role, or semantic label in sub-100 tokens. Returns persistent handles ([e1], [e2]) that can be passed directly to browser_click, browser_fill, or browser_hover.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "Text substring, accessible name, or label to search for (case-insensitive)."
+        },
+        "role": {
+          "type": "string",
+          "description": "Optional ARIA role to filter by (e.g. button, link, textbox, combobox, checkbox)."
+        },
+        "tab_id": {
+          "type": "number",
+          "description": "Optional target tab ID. Defaults to the currently active tab."
+        }
+      },
+      "required": [
+        "query"
       ]
     }
   }

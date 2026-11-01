@@ -1,7 +1,7 @@
 # Add Browser MCP to JeikCode
-*Suggested meta description: "Native first-class browser automation for JeikCode. Drive real Chrome and Brave sessions with 40 tools, session isolation, and Human-in-the-Loop."*
+*Suggested meta description: "Native first-class browser automation for JeikCode. Drive real Chrome and Brave sessions with 41 tools, session isolation, and Human-in-the-Loop."*
 
-**Give JeikCode native control of your real, already-logged-in Brave or Chrome browser.** 40 browser tools, real cookies and active sessions, Human-in-the-Loop 2FA and CAPTCHA support, and dedicated color-coded tab groups for each JeikCode agent session.
+**Give JeikCode native control of your real, already-logged-in Brave or Chrome browser.** 41 browser tools, real cookies and active sessions, Human-in-the-Loop 2FA and CAPTCHA support, and dedicated color-coded tab groups for each JeikCode agent session.
 
 ---
 

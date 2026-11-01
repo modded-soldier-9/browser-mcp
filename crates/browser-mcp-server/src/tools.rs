@@ -53,6 +53,7 @@ pub static METHOD_MAP: LazyLock<HashMap<&'static str, &'static str>> = LazyLock:
     m.insert("browser_solve_captcha", "solve_captcha");
     m.insert("browser_about", "about");
     m.insert("browser_provide_feedback", "provide_feedback");
+    m.insert("browser_search_elements", "search_elements");
     m
 });
 

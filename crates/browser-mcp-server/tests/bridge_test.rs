@@ -6,12 +6,13 @@ use serde_json::json;
 #[tokio::test]
 async fn test_tools_count_and_schema() {
     let tools = get_tools_list(false);
-    assert_eq!(tools.len(), 40, "Expected exactly 40 tools in tools_schema.json");
+    assert_eq!(tools.len(), 41, "Expected exactly 41 tools in tools_schema.json");
 
     let stripped_tools = get_tools_list(true);
-    assert_eq!(stripped_tools.len(), 40);
+    assert_eq!(stripped_tools.len(), 41);
     let first_name = stripped_tools[0]["name"].as_str().unwrap();
     assert_eq!(first_name, "navigate");
+    assert!(stripped_tools.iter().any(|t| t["name"] == "search_elements"));
 }
 
 #[tokio::test]

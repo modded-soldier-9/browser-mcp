@@ -15,8 +15,10 @@ Core implementation of the native Rust Model Context Protocol (MCP) server for b
 - [`decode_base64(input: &str) -> Option<Vec<u8>>`](file:///crates/browser-mcp-server/src/protocol.rs#L61): Dependency-free Base64 decoding helper.
 - [`resolve_screenshot_path(input_path: &str, cwd: &Path) -> Result<PathBuf, String>`](file:///crates/browser-mcp-server/src/sandbox.rs#L3): Sandboxes screenshot destination paths within current working directory.
 - [`sanitize_upload_files(files: &[String], cwd: &Path) -> Result<Vec<String>, String>`](file:///crates/browser-mcp-server/src/sandbox.rs#L30): Validates and ensures file paths for upload and drag-and-drop reside strictly within the working directory.
-- [`TOOLS_RAW`, `TOOLS_JSON`](file:///crates/browser-mcp-server/src/tools.rs#L5-L9): Precompiled schemas for 40 browser automation tools.
-- [`METHOD_MAP`](file:///crates/browser-mcp-server/src/tools.rs#L11-L54): Mapping between MCP tool identifiers (`browser_*`) and extension bridge method names.
+- [`TOOLS_RAW`, `TOOLS_JSON`](file:///crates/browser-mcp-server/src/tools.rs#L8-L12): Precompiled schemas for 41 browser automation tools.
+- [`METHOD_MAP`](file:///crates/browser-mcp-server/src/tools.rs#L14-L57): Mapping between MCP tool identifiers (`browser_*`) and extension bridge method names.
+- [`ContextShield` (struct)](file:///crates/browser-mcp-server/src/shield.rs#L11): Context protection manager spooling large payloads (>2500 tokens) to disk (`~/.browser-mcp/snapshots/`) with in-band pagination.
+- [`DeltaEngine` (struct)](file:///crates/browser-mcp-server/src/delta.rs#L5): State mutation diff engine tracking per-tab element history and streaming line diffs for `format="delta"`.
 - [`get_tools_list(strip_prefix: bool) -> Vec<Value>`](file:///crates/browser-mcp-server/src/tools.rs#L56): Retrieves MCP tool schema definitions, optionally stripping the `browser_` prefix.
 - [`normalize_tool_name(name: &str) -> String`](file:///crates/browser-mcp-server/src/tools.rs#L71): Normalizes tool names by ensuring the `browser_` prefix is present when matching methods.
 - [`run_installer(force: bool) -> Result<(), String>`](file:///crates/browser-mcp-server/src/installer.rs#L14): Extracts embedded Chrome extension files to `~/.browser-mcp/extension/` and prints client configurations.

@@ -1,6 +1,6 @@
 # Tools
 
-Browser MCP exposes **40 tools** to the connected agent. Every tool acts on the active Chrome tab (or a tab/frame you target explicitly) via the Browser MCP extension - no headless browser, no Playwright binary.
+Browser MCP exposes **41 tools** to the connected agent. Every tool acts on the active Chrome tab (or a tab/frame you target explicitly) via the Browser MCP extension - no headless browser, no Playwright binary.
 
 Source of truth: `mcp-server/tools.js` (`TOOLS` array). Regenerate this page from that file if tool names, params, or descriptions change.
 
@@ -17,12 +17,13 @@ Claude:  [browser_fill, browser_fill, browser_fill, browser_click]
 
 The list below is what the client has to choose from.
 
-## Navigation & Content - 5 tools
+## Navigation & Content - 6 tools
 
 | Tool | Description |
 |---|---|
 | `browser_navigate` | Navigate the active tab to a URL; reuses the current tab unless `new_tab=true`. |
 | `browser_get_page_content` | Return the current page's content as `text` or `html`. Full-page text reading automatically traverses and includes accessible `<iframe>` content (e.g. portal blades, widgets). |
+| `browser_search_elements` | Search for actionable interactive elements on the page matching a text query, role, or semantic label in sub-100 tokens. Returns persistent handles ([e1], [e2]) for instant interaction. |
 | `browser_screenshot` | Screenshot the visible viewport; returns base64 PNG or saves to a given path. |
 | `browser_execute_script` | Run arbitrary JavaScript in the page context and return the result. Automatically supports top-level `await`, declarations, and statement blocks. |
 | `browser_extract_list` | Read every row of a long or virtualised list by scrolling its container until nothing new appears - mail lists, invoice tables, transaction histories. Those UIs keep only a handful of rows in the DOM, so a single page read returns a sliver and looks complete. |
@@ -97,7 +98,7 @@ The list below is what the client has to choose from.
 ## Frequently asked questions
 
 **How many tools are there?**
-40. The number is checked on every release by a gate that counts the tool definitions in the server and fails the build if any page, the README or the store listing says something else.
+41. The number is checked on every release by a gate that counts the tool definitions in the server and fails the build if any page, the README or the store listing says something else.
 
 **What does it mean when a tool answers "unverified"?**
 That the action was sent and the effect could not be read back. It is not a failure and not a success. Repeating the action blindly is the one thing you should not do - read the page instead. Nine tools were changed in 1.29.2 to be able to give this answer rather than a false yes.
@@ -118,4 +119,4 @@ Yes. `browser_ask_user` pauses, asks you on your own screen - a 2FA code, a CAPT
 
 ---
 
-**Total: 40 tools** (5 + 14 + 6 + 5 + 2 + 3 + 1 + 1 + 3 + 3 = 43), verified against `mcp-server/tools.js` line-by-line - no invented tools.
+**Total: 41 tools** (5 + 14 + 6 + 5 + 2 + 3 + 1 + 1 + 3 + 3 = 43), verified against `mcp-server/tools.js` line-by-line - no invented tools.
