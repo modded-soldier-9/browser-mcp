@@ -4,8 +4,8 @@
 # manuel `npm audit`. Dependabot aabner en PR naar en afhaengighed eller en GitHub Action har en ny udgave.
 version: 2
 updates:
-  - package-ecosystem: npm
-    directory: /mcp-server
+  - package-ecosystem: cargo
+    directory: /crates/browser-mcp-server
     schedule:
       interval: weekly
     open-pull-requests-limit: 5

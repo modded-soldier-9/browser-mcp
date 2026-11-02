@@ -1,24 +1,23 @@
-# Security
+# Security Policy
 
-Browser MCP drives a real, signed-in Chrome, so a security problem in it can reach the user's accounts. Please report it privately.
+Browser MCP controls a real, authenticated browser session, so security is paramount. Please report all vulnerabilities privately.
 
-## How to report
+## Reporting a Vulnerability
 
-Email **hello@agent360.dk** with:
+Please report vulnerabilities through [GitHub Private Vulnerability Reporting](https://github.com/modded-soldier-9/browser-mcp/security/advisories/new) or by emailing **moddedsoldier@gmail.com** with:
 
-- what an attacker could do, and what they need first (for example: a web page the agent visits, another program on the same machine, a malicious MCP client),
-- the steps to reproduce it,
-- the Browser MCP version (`browser_about` prints it) and the Chrome version.
+- Description of the attack vector and preconditions.
+- Step-by-step reproduction instructions or proof-of-concept.
+- Affected Browser MCP version (`browser-mcp --version`) and browser version.
 
-Please do not open a public GitHub issue for a security problem.
+Please do **not** open public GitHub issues for security vulnerabilities.
 
-## Supported versions
+## Supported Versions
 
-Fixes land in the latest release on npm (`@agent360/browser-mcp`) and the Chrome Web Store. Older versions are not patched separately.
+Security updates and patches are published directly to the [GitHub Releases](https://github.com/modded-soldier-9/browser-mcp/releases) page for the latest release series (`v2.x`).
 
-## Known limits
+## Security Architecture & Invariants
 
-These are documented on the [privacy page](https://browsermcp.dev/privacy.html) and are not treated as new reports:
-
-- The localhost WebSocket bridge between the extension and the MCP server is not password-protected. Any software already running on the same computer could connect to the same local ports (9876-9895). Removing or disabling the extension closes it.
-- What the agent reads from a page is passed to the user's own AI client and its model provider, like anything else the user shows that client.
+- **Loopback Origin Verification**: The native Rust WebSocket bridge listens exclusively on `127.0.0.1` (ports 9876–9895) and verifies that connecting WebSocket frames supply an `Origin` matching `chrome-extension://[a-p]{32}`. Unauthorized web pages or scripts connecting to the loopback port are rejected with HTTP 401.
+- **Filesystem Containment**: File upload targets (`browser_upload_file`, `browser_drop_file`) and screenshot destinations (`browser_screenshot`) are canonicalized and sandboxed within the current working directory to prevent path traversal attacks.
+- **Client LLM Context**: Content read from web pages is passed to the connected MCP AI assistant over standard input/output streams. The Context Shield automatically spools oversized payloads to the user's local directory to protect context windows.

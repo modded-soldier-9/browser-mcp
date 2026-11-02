@@ -1,8 +1,13 @@
 # Browser MCP
 
+[![CI](https://github.com/modded-soldier-9/browser-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/modded-soldier-9/browser-mcp/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/modded-soldier-9/browser-mcp?style=flat-square&color=blue)](https://github.com/modded-soldier-9/browser-mcp/releases)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
+[![Docs](https://img.shields.io/badge/docs-browsermcp.dev-blueviolet.svg?style=flat-square)](https://browsermcp.dev/)
+
 **A native, high-performance standalone Rust Model Context Protocol (MCP) server that connects AI coding assistants directly to your live, authenticated Brave and Chrome browser sessions.**
 
-Engineered & maintained by **Mohamed Elsheikh** ([@modded-soldier-9](https://github.com/modded-soldier-9)).
+Engineered & maintained by **Mohamed Elsheikh** ([@modded-soldier-9](https://github.com/modded-soldier-9)). See [Architecture](ARCHITECTURE.md) and full [Documentation](https://browsermcp.dev/).
 
 ---
 
@@ -68,7 +73,7 @@ claude mcp add browser-mcp -- browser-mcp
 {
   "mcpServers": {
     "browser-mcp": {
-      "command": "C:\\Users\\modded\\Documents\\GitHub\\browser-mcp\\target\\release\\browser-mcp.exe"
+      "command": "browser-mcp"
     }
   }
 }

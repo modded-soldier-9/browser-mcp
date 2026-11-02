@@ -28,7 +28,7 @@ body:
     attributes:
       label: Steps to reproduce
       placeholder: |
-        1. Run `npx @agent360/browser-mcp install`
+        1. Run `browser-mcp install`
         2. Open Claude Code and ask "browser_navigate to example.com"
         3. ...
     validations:
@@ -38,8 +38,8 @@ body:
     id: version
     attributes:
       label: Browser MCP version
-      description: Check `extension/manifest.json` or look at the MCP server startup log (`[MCP] ...`).
-      placeholder: "1.22.0"
+      description: Check `extension/manifest.json` or run `browser-mcp --version`.
+      placeholder: "2.3.0"
     validations:
       required: true
 

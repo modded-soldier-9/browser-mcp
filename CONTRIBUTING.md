@@ -25,8 +25,8 @@ cargo build --release --manifest-path crates/browser-mcp-server/Cargo.toml
 cargo test --manifest-path crates/browser-mcp-server/Cargo.toml
 
 # Verify extension and documentation
-npm test
-npm run check-docs
+node scripts/build-extension.mjs
+python scripts/check-docs.py
 ```
 
 ## Project Structure
@@ -35,7 +35,9 @@ npm run check-docs
 crates/browser-mcp-server/  # Standalone Rust MCP server
   src/main.rs               # Async stdio engine & JSON-RPC dispatcher
   src/bridge.rs             # WebSocket bridge (ports 9876-9895) & origin security
-  src/tools.rs              # 40 MCP tool definitions and local execution handlers
+  src/shield.rs             # Context Shield token protector & disk spooler
+  src/delta.rs              # State mutation delta diff engine
+  src/tools.rs              # 41 MCP tool definitions and local execution handlers
   src/installer.rs          # Embedded extension self-installer (include_dir!)
   src/watchdog.rs           # Zero-overhead stdin EOF & termination handler
   tools_schema.json         # Normalized tool schemas (source of truth)

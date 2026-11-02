@@ -1,8 +1,32 @@
 # Changelog
 
-Browser MCP by Agent360 (`@agent360/browser-mcp` on npm, "Agent360 Browser MCP" in the Chrome Web Store).
-Dates are when the version was published on GitHub. The full notes for each release are on the [releases page](https://github.com/Agent360dk/browser-mcp/releases).
+All notable changes to Browser MCP are documented here.
+Releases and pre-compiled binaries are published on the [GitHub Releases page](https://github.com/modded-soldier-9/browser-mcp/releases).
 
+## 2.3.0 (2026-11-02)
+
+**Spatial viewport pruning and atomic form batching.**
+
+- **Spatial Viewport Filtering (`viewport_only=true`)**: Added `viewport_only` to `browser_get_page_content`. Prunes off-screen nodes outside the active viewport window (`rect.bottom >= 0 && rect.top <= window.innerHeight`), cutting tokens by 50–70% on infinite-scroll pages while maintaining monotonic handles. Returns `{ in_viewport, offscreen_below, scroll_y, max_scroll_y }` telemetry.
+- **Atomic Form Batching (`browser_fill`)**: Overloaded `browser_fill` with `fields: [{ selector, value }]` to fill multi-field forms in a single atomic turn with 35ms event-loop pacing, replacing 5–10 sequential round-trips.
+- **Repository Hardening**: Synchronized all manifest versions, modernized CI/CD and Dependabot workflows, updated security reporting, and aligned licensing.
+
+## 2.2.0 (2026-11-01)
+
+**Token-efficient semantic accessibility, Context Shield, and State Delta engine.**
+
+- **Interactive Semantic Distillation (`format="interactive"`)**: Prunes non-actionable layout wrappers into clean 400–1,200 token accessibility trees with persistent monotonic handles (`[e1]`, `[e2]`) anchored via `WeakMap`.
+- **Context Shield Subsystem**: Native Rust token protector intercepts payloads exceeding 2,500 tokens, spools full snapshot representations to `~/.browser-mcp/snapshots/`, provides in-band line pagination (`page_offset`, `limit`), and cleans disk via a 50 MB / 50 file LRU cleaner.
+- **Targeted Element Search (`browser_search_elements`)**: Added dedicated tool to query actionable controls by accessible name, role, or text in sub-100 tokens.
+- **State Delta Streaming (`format="delta"`)**: Emits only added and removed interactive mutations following actions, cutting multi-turn token overhead by ~85%.
+
+## 2.1.0 (2026-10-31)
+
+**Native Rust server stabilization and Manifest V2 WebSocket bridge.**
+
+- **Zero-Dependency Native Binary**: Replaced legacy Node.js server with a native compiled Rust executable (`browser-mcp.exe`). Boots in < 4 ms and idles at ~3.8 MB RAM.
+- **Decoupled Asynchronous Stdio Loop**: High-performance Tokio message queue answers MCP `ping` keep-alives immediately, preventing agent timeout disconnects during heavy browser actions.
+- **Origin Security Enforcement**: Enforces loopback security on ports 9876–9895, rejecting non-extension origins with HTTP 401.
 
 ## 1.30.2 (2026-10-04)
 

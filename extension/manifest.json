@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Browser MCP",
-  "version": "2.1.0",
+  "version": "2.3.0",
   "description": "Native browser automation bridge connecting AI coding assistants directly to live Chrome and Brave sessions.",
   "author": "Mohamed Elsheikh (@modded-soldier-9)",
   "homepage_url": "https://github.com/modded-soldier-9/browser-mcp",
