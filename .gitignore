@@ -24,3 +24,11 @@ chrome/
 *.tgz
 target/
 **/target/
+
+# Internal EGM workflow, design documents, and review reports
+*_report.md
+*brief*.md
+design_draft.md
+*DRIFT_REPORT.md
+docs/designs/
+.agents/
