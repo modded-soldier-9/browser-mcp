@@ -3856,7 +3856,7 @@ async function dispatch(port, method, params) {
       return result;
     }
 
-function generateAriaSnapshot(rootSel, interactiveOnly, maxDepth) {
+function generateAriaSnapshot(rootSel, interactiveOnly, maxDepth, viewportOnly) {
   if (!window.__bmcpElements) window.__bmcpElements = new Map();
   if (!window.__bmcpNodeMap) window.__bmcpNodeMap = new WeakMap();
   if (typeof window.__bmcpRefCount !== 'number') window.__bmcpRefCount = 0;
@@ -3864,6 +3864,10 @@ function generateAriaSnapshot(rootSel, interactiveOnly, maxDepth) {
   if (!root) return { ok: false, error: 'Root element not found: ' + rootSel };
 
   const lines = [];
+  let totalInteractiveCount = 0;
+  let inViewportCount = 0;
+  let offscreenBelowCount = 0;
+  let offscreenAboveCount = 0;
 
   function isVisible(el) {
     if (!el || el.nodeType !== 1) return false;
@@ -3946,6 +3950,7 @@ function generateAriaSnapshot(rootSel, interactiveOnly, maxDepth) {
     }
 
     if (isInteractive) {
+      totalInteractiveCount++;
       let refId;
       if (window.__bmcpNodeMap && window.__bmcpNodeMap.has(node)) {
         refId = window.__bmcpNodeMap.get(node);
@@ -3956,6 +3961,21 @@ function generateAriaSnapshot(rootSel, interactiveOnly, maxDepth) {
       }
       window.__bmcpElements.set(refId, node);
       node.setAttribute('data-bmcp-ref', refId);
+
+      const r = node.getBoundingClientRect();
+      const inView = (r.bottom >= 0 && r.top <= window.innerHeight && r.right >= 0 && r.left <= window.innerWidth);
+      if (inView) {
+        inViewportCount++;
+      } else {
+        if (r.top > window.innerHeight) offscreenBelowCount++;
+        else if (r.bottom < 0) offscreenAboveCount++;
+        if (viewportOnly) {
+          for (const child of Array.from(node.children)) {
+            traverse(child, depth);
+          }
+          return;
+        }
+      }
 
       const indent = '  '.repeat(depth);
       let line = indent + '- [' + refId + '] ' + (role || tag);
@@ -4013,7 +4033,13 @@ function generateAriaSnapshot(rootSel, interactiveOnly, maxDepth) {
     ok: true,
     title: document.title,
     url: location.href,
-    element_count: window.__bmcpElements ? window.__bmcpElements.size : 0,
+    element_count: lines.length,
+    total_interactive: totalInteractiveCount,
+    in_viewport: inViewportCount,
+    offscreen_below: offscreenBelowCount,
+    offscreen_above: offscreenAboveCount,
+    scroll_y: window.scrollY || document.documentElement.scrollTop || 0,
+    max_scroll_y: Math.max(0, (document.documentElement.scrollHeight || document.body.scrollHeight) - window.innerHeight),
     content: lines.join('\n'),
     snapshot: lines.join('\n')
   };
@@ -4028,17 +4054,18 @@ function generateAriaSnapshot(rootSel, interactiveOnly, maxDepth) {
         const rootSel = params.selector || null;
         const interactiveOnly = params.interactive_only !== false;
         const maxDepth = Number(params.max_depth) > 0 ? Number(params.max_depth) : 12;
+        const viewportOnly = !!params.viewport_only;
 
         let res;
         try {
-          const scriptRes = await safeExecuteScript(tab.id, generateAriaSnapshot, [rootSel, interactiveOnly, maxDepth]);
+          const scriptRes = await safeExecuteScript(tab.id, generateAriaSnapshot, [rootSel, interactiveOnly, maxDepth, viewportOnly]);
           if (!scriptRes.cspBlocked && scriptRes.result) {
             res = scriptRes.result;
           } else {
-            res = await debuggerEval(tab.id, `(${generateAriaSnapshot})(${JSON.stringify(rootSel)}, ${interactiveOnly}, ${maxDepth})`);
+            res = await debuggerEval(tab.id, `(${generateAriaSnapshot})(${JSON.stringify(rootSel)}, ${interactiveOnly}, ${maxDepth}, ${viewportOnly})`);
           }
         } catch (err) {
-          res = await debuggerEval(tab.id, `(${generateAriaSnapshot})(${JSON.stringify(rootSel)}, ${interactiveOnly}, ${maxDepth})`);
+          res = await debuggerEval(tab.id, `(${generateAriaSnapshot})(${JSON.stringify(rootSel)}, ${interactiveOnly}, ${maxDepth}, ${viewportOnly})`);
         }
         if (res && res.snapshot && !res.content) {
           res.content = res.snapshot;
@@ -4702,143 +4729,138 @@ function generateAriaSnapshot(rootSel, interactiveOnly, maxDepth) {
       }
     }
 
+async function fillSingleField(tabId, selectorStr, valStr) {
+  const parsed = parseSelector(selectorStr);
+
+  // For text-based selectors, click the element first then type
+  if (parsed.type === 'text' || parsed.type === 'ref') {
+    const el = await resolveElement(tabId, selectorStr);
+    if (!el || el.found === false) return { ok: false, error: (el && el.error) || ('Element not found: ' + selectorStr) };
+    await debuggerClick(tabId, el.x, el.y);
+    await new Promise(r => setTimeout(r, 100));
+    await debuggerType(tabId, valStr);
+
+    const efterTekst = await debuggerEval(tabId,
+      '(() => { const a = document.activeElement; return a && "value" in a ? String(a.value) : null; })()')
+      .catch(() => undefined);
+    if (efterTekst === undefined || efterTekst === null) {
+      return { ok: true, method: 'debugger', unknown: true,
+        note: 'The text was written, but the field could not be read afterwards, so it is unknown whether it landed.' };
+    }
+    if (efterTekst === String(valStr)) return { ok: true, method: 'debugger', value: efterTekst };
+    if (efterTekst === '') {
+      return { ok: false, method: 'debugger', error: 'field-is-empty', value: efterTekst,
+        note: 'The field was empty after the write.' };
+    }
+    return { ok: true, method: 'debugger', differs: true, value: efterTekst };
+  }
+
+  // Always use debugger for input/textarea — React/Angular/Vue need real keyboard events
+  try {
+    const efterFyld = await debuggerFill(tabId, parsed.selector, valStr);
+    return fyldSvar(efterFyld?.value, valStr, { method: 'debugger' }, efterFyld?.rammeHoerte);
+  } catch (e) {
+    const laesFelt = async () => {
+      const r = await safeExecuteScript(tabId, (sel) => {
+        const el = document.querySelector(sel);
+        return el && 'value' in el ? el.value : null;
+      }, [parsed.selector]).catch(() => null);
+      return r && !r.cspBlocked ? r.result : null;
+    };
+    const fristUdloeb = erCdpFrist(e);
+    if (fristUdloeb) await new Promise((r) => setTimeout(r, 400));
+    const foer = await laesFelt();
+    if (fristUdloeb && foer === valStr) {
+      return { ok: true, method: 'debugger', note: 'landede trods fristen' };
+    }
+    const scriptResult = await safeExecuteScript(tabId, (sel, val) => {
+      const el = document.querySelector(sel);
+      if (!el) return { ok: false, error: 'Element not found: ' + sel };
+      el.scrollIntoView({ block: 'center', behavior: 'instant' });
+      el.focus();
+      if (el._valueTracker) {
+        try { el._valueTracker.setValue(''); } catch {}
+      }
+      const proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+      const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+      if (setter) setter.call(el, val); else el.value = val;
+      try {
+        el.dispatchEvent(new InputEvent('input', { bubbles: true, composed: true, inputType: 'insertText', data: val }));
+      } catch {
+        el.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+      }
+      el.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+      return { ok: true };
+    }, [parsed.selector, valStr]);
+    if (scriptResult.cspBlocked) return { ok: false, error: e.message, method: 'debugger' };
+    if (!scriptResult.result?.ok) return scriptResult.result;
+    await new Promise((r) => setTimeout(r, 200));
+    const endelig = await laesFelt();
+    const v = String(valStr ?? '');
+    if (typeof endelig === 'string' && endelig !== v) {
+      const fordoblet = endelig === v + v || (v.length >= 3 && endelig.includes(v + v));
+      if (fordoblet || (v && endelig === '')) {
+        return {
+          ok: false, method: 'fallback', error: fordoblet ? 'field-doubled' : 'field-cleared',
+          expected: v, actual: endelig
+        };
+      }
+      if (typeof foer === 'string' && endelig === foer) {
+        if (!v) {
+          return { ok: false, method: 'fallback', error: 'field-shows-other', expected: v, actual: endelig };
+        }
+        return { ok: true, method: 'fallback', value: endelig, differs: true, unchanged: true, expected: v, actual: endelig };
+      }
+      return { ok: true, method: 'fallback', value: endelig, differs: true, expected: v, actual: endelig };
+    }
+    return { ok: true, method: 'fallback', value: endelig ?? v };
+  }
+}
+
     case 'fill': {
       const tab = await getSessionTab(port);
       if (tab.url.startsWith('chrome://')) throw new Error('Cannot interact with chrome:// pages');
-      const parsed = parseSelector(params.selector);
 
-      // For text-based selectors, click the element first then type
-      if (parsed.type === 'text' || parsed.type === 'ref') {
-        const el = await resolveElement(tab.id, params.selector);
-        if (!el || el.found === false) return { ok: false, error: (el && el.error) || ('Element not found: ' + params.selector) };
-        await debuggerClick(tab.id, el.x, el.y);
-        await new Promise(r => setTimeout(r, 100));
-        await debuggerType(tab.id, params.value);
-        // MAALT 13/9 (Astras hul-audit): her stod `ok:true` uden at nogen havde set feltet.
-        // Css-grenen laeser allerede vaerdien tilbage og skelner tomt fra fordoblet fra
-        // formateret; tekst-grenen gjorde ikke. Et klik der landede paa noget andet end et
-        // felt, eller en baggrundsfane der slugte tasterne, gav samme ja.
-        const efterTekst = await debuggerEval(tab.id,
-          '(() => { const a = document.activeElement; return a && "value" in a ? String(a.value) : null; })()')
-          .catch(() => undefined);
-        if (efterTekst === undefined || efterTekst === null) {
-          return { ok: true, method: 'debugger', unknown: true,
-            note: 'The text was written, but the field could not be read afterwards, so it is unknown whether ' +
-                  'it landed. Read the field with browser_execute_script if it matters.' };
+      if (params.fields) {
+        let fieldList = [];
+        if (Array.isArray(params.fields)) {
+          fieldList = params.fields;
+        } else if (typeof params.fields === 'object' && params.fields !== null) {
+          fieldList = Object.entries(params.fields).map(([sel, val]) => ({ selector: sel, value: val }));
         }
-        if (efterTekst === String(params.value)) return { ok: true, method: 'debugger', value: efterTekst };
-        if (efterTekst === '') {
-          return { ok: false, method: 'debugger', error: 'field-is-empty', value: efterTekst,
-            note: 'The field was empty after the write. The click may not have hit a field, or the tab ' +
-                  'er i baggrunden, hvor Chrome does not deliver keystrokes. Call browser_switch_tab and try again.' };
-        }
-        return { ok: true, method: 'debugger', differs: true, value: efterTekst,
-          note: 'The field contains something other than what was typed. The page has probably formatted ' +
-                'the value - or something was already there.' };
-      }
 
-      // Always use debugger for input/textarea — React/Angular/Vue need real keyboard events
-      try {
-        const efterFyld = await debuggerFill(tab.id, parsed.selector, params.value);
-        return fyldSvar(efterFyld?.value, params.value, { method: 'debugger' },
-                        efterFyld?.rammeHoerte);
-      } catch (e) {
-        // MAALT 10/9 af Astra: debugger-vejen timede ud, og reserveloesningen skrev saa hele
-        // vaerdien med den native setter. Men Promise.race afbryder ikke — tastetrykkene fra
-        // debugger-forsoeget kan lande BAGEFTER. Reproduceret: "X" blev til "XX", og kaldet
-        // svarede ok:true. To regler: er vaerdien der allerede efter en frist, er vi faerdige;
-        // og efter reserveloesningen laeses feltet igen, saa en fordobling ses i stedet for
-        // at blive meldt som succes.
-        const laesFelt = async () => {
-          const r = await safeExecuteScript(tab.id, (sel) => {
-            const el = document.querySelector(sel);
-            return el && 'value' in el ? el.value : null;
-          }, [parsed.selector]).catch(() => null);
-          return r && !r.cspBlocked ? r.result : null;
-        };
-        const fristUdloeb = erCdpFrist(e);
-        if (fristUdloeb) await new Promise((r) => setTimeout(r, 400));
-        // MAALT 11/9 af Astra (R5 F1): feltet laeses FOER reserveloesningen skriver. Det er det der skiller en
-        // side der afviste vaerdien (feltet stod stille) fra en side der formaterede den (feltet aendrede sig).
-        const foer = await laesFelt();
-        if (fristUdloeb && foer === params.value) {
-          return { ok: true, method: 'debugger', note: 'landede trods fristen' };
-        }
-        // Fallback to executeScript if debugger fails
-        const scriptResult = await safeExecuteScript(tab.id, (sel, val) => {
-          const el = document.querySelector(sel);
-          if (!el) return { ok: false, error: 'Element not found: ' + sel };
-          el.scrollIntoView({ block: 'center', behavior: 'instant' });
-          el.focus();
-          // Use nativeInputValueSetter to bypass React controlled input
-          if (el._valueTracker) {
-            try { el._valueTracker.setValue(''); } catch {}
-          }
-          const proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
-          const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
-          if (setter) setter.call(el, val); else el.value = val;
+        const results = [];
+        let completed = 0;
+
+        for (const item of fieldList) {
+          const sel = item.selector || item.ref || item.field;
+          const val = String(item.value ?? '');
+          if (!sel) continue;
+
           try {
-            el.dispatchEvent(new InputEvent('input', { bubbles: true, composed: true, inputType: 'insertText', data: val }));
-          } catch {
-            el.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+            const res = await fillSingleField(tab.id, sel, val);
+            if (res.ok) completed++;
+            results.push({ selector: sel, ok: res.ok, value: res.value !== undefined ? res.value : val, error: res.error });
+          } catch (err) {
+            results.push({ selector: sel, ok: false, error: err.message || String(err) });
           }
-          el.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
-          return { ok: true };
-        }, [parsed.selector, params.value]);
-        if (scriptResult.cspBlocked) return { ok: false, error: e.message, method: 'debugger' };
-        if (!scriptResult.result?.ok) return scriptResult.result;
-        await new Promise((r) => setTimeout(r, 300));
-        const endelig = await laesFelt();
-        // Kun to sluttilstande er fejl. FORDOBLET: et forsinket Input.insertText landede efter
-        // setteren ("X" -> "XX", reproduceret). TOEMT: et forsinket Cmd+A/Backspace ryddede feltet
-        // igen. Alt andet — "5" der bliver til "5,00 kr", et telefonnummer med mellemrum — er
-        // feltets egen formatering og maa ikke meldes som fejl.
-        const v = String(params.value ?? '');
-        if (typeof endelig === 'string' && endelig !== v) {
-          const fordoblet = endelig === v + v || (v.length >= 3 && endelig.includes(v + v));
-          if (fordoblet || (v && endelig === '')) {
-            return {
-              ok: false, method: 'fallback', error: fordoblet ? 'field-doubled' : 'field-cleared',
-              expected: v, actual: endelig,
-              note: 'A delayed key press from the debugger attempt landed after the fallback.',
-            };
-          }
-          // Anden runde: "OLD" efter fill("NEW") blev kaldt formatering. Tredje og fjerde runde: hver regel for
-          // "det er bare formatering" havde huller ("5" -> "15", "1.5" -> "15", Unicode-minus, "+45" -> "+1 45").
-          // Femte runde (R5 F1): at melde ENHVER afvigelse som fejl gjorde korrekt formatering ("1.234,50 kr",
-          // "+45 12 34 56 78") til ok:false, hvor 1.29.0 sagde ok. Skellet maales nu i stedet for at gaettes:
-          //   stod feltet stille (foer === efter)  -> unknown, og det siges: afviger + uaendret (se nedenfor)
-          //   aendrede det sig til noget andet     -> ok:true, men differs:true med den faktiske vaerdi
-          // Kalderen faar altsaa aldrig en tavs succes paa en anden vaerdi end den der blev skrevet.
-          // Sign-off 11/9 (Astra og Fable, begge reproduceret): feltet viste allerede "1.234,50 kr", fill("1234.5")
-          // blev formateret tilbage til praecis det samme, og svaret var "siden tog ikke imod vaerdien" (1.29.0: ok).
-          // Foer = efter kan ikke skelne en afvisning fra en vaerdi der allerede stod der i sidens format.
-          // Kun en toemning der ikke skete er entydig: intet format goer "" til noget andet.
-          if (typeof foer === 'string' && endelig === foer) {
-            if (!v) {
-              return {
-                ok: false, method: 'fallback', error: 'field-shows-other', expected: v, actual: endelig,
-                note: 'The field was meant to be cleared, but shows the same as before.',
-              };
-            }
-            return {
-              ok: true, method: 'fallback', value: endelig, differs: true, unchanged: true, expected: v, actual: endelig,
-              note: 'The field showed the same before and after the write. Either the value was already there in the page\'s own ' +
-                    'format, or the page did not accept it. Check `faktisk` before moving on.',
-            };
-          }
-          return {
-            ok: true, method: 'fallback', value: endelig, differs: true, expected: v, actual: endelig,
-            ...(typeof foer === 'string' ? {} : { foer_ukendt: true }),
-            note: 'The field changed, but shows different text than what was written - for example formatting ' +
-                  '("5,00 kr", "+45 12 34 56 78") or a truncation. Check `faktisk` if the exact value matters.',
-          };
+
+          // 35ms tick between fields for React state reconciliation
+          await new Promise(r => setTimeout(r, 35));
         }
+
         return {
-          ok: true, method: 'fallback', value: endelig ?? v,
-          ...(typeof endelig === 'string' ? {} : { verificeret: false }),
+          ok: completed === fieldList.length,
+          batch: true,
+          total: fieldList.length,
+          completed: completed,
+          results: results
         };
       }
+
+      const sel = params.selector || params.ref;
+      if (!sel) return { ok: false, error: 'selector or ref required for browser_fill' };
+      return fillSingleField(tab.id, sel, String(params.value ?? ''));
     }
 
     case 'set_date': {

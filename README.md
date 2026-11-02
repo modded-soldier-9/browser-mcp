@@ -1,43 +1,48 @@
 # Browser MCP
 
-**A native, standalone Rust Model Context Protocol (MCP) server that connects AI coding assistants directly to your live, authenticated Brave and Chrome browser sessions.**
+**A native, high-performance standalone Rust Model Context Protocol (MCP) server that connects AI coding assistants directly to your live, authenticated Brave and Chrome browser sessions.**
 
-Created and maintained by **Mohamed Elsheikh** ([@modded-soldier-9](https://github.com/modded-soldier-9)).
+Engineered & maintained by **Mohamed Elsheikh** ([@modded-soldier-9](https://github.com/modded-soldier-9)).
 
 ---
 
-## Why Browser MCP?
+## What is Browser MCP?
 
-Most AI browser tools rely on headless instances that trigger Cloudflare bot walls, break authenticated sessions, and burn 20,000+ tokens per interaction. Browser MCP automates your real daily browser profile with zero friction:
+Most AI browser automation frameworks rely on headless Playwright or Puppeteer instances that trigger Cloudflare bot blocks, break existing 2FA/SSO authenticated sessions, and flood LLM context windows with 35,000+ tokens of raw HTML on every step.
 
-- **🦀 Pure Rust Standalone Executable**: Single 3.07 MB static binary (`browser-mcp.exe`). Boots in **< 4 ms** and idles at **~3.8 MB RAM** with zero external dependencies (Node.js eliminated).
-- **⚡ Non-Blocking Stdio Engine**: Asynchronous Tokio loop answers MCP `ping` keep-alives on a dedicated sub-millisecond fast path, eliminating client timeout disconnects during heavy browser actions.
-- **🛡️ Manifest V2 Persistent Longevity**: Runs as a persistent MV2 background worker, avoiding the 30-second service-worker idle disconnects of Manifest V3.
-- **📉 95% Token Reduction**: Generates compact semantic accessibility snapshots (`format="snapshot"`) with direct element handles (`[e1]`, `[e2]`) instead of massive raw HTML dumps.
-- **📦 Embedded Self-Installer**: Embeds the extension assets inside the binary. Run `browser-mcp install` to extract and configure your environment in 50 ms.
-- **🔒 Loopback Origin Security**: Rejects unauthorized local connections, strictly enforcing `Origin: chrome-extension://[a-p]{32}` across loopback ports `127.0.0.1:9876-9895`.
-- **41 Tools Green**: Complete coverage across navigation, DOM inspection, semantic element search, CDP hardware input, form controls, cookies, and human-in-the-loop dialogs.
+Browser MCP connects directly to your daily browser session through a native Rust server and persistent Manifest V2 WebSocket bridge:
+
+- **🦀 Pure Rust Standalone Executable**: Single static binary (`browser-mcp.exe`). Boots in **< 4 ms** and idles at **~3.8 MB RAM** with zero external dependencies (Node.js eliminated).
+- **📉 Token Shield & Semantic Pruning**: Semantic distillation (`format="interactive"`) delivers 400–1,200 token accessibility trees with monotonic handles (`[e1]`, `[e2]`). Automatic **Context Shield** spools oversized payloads (>2,500 tokens) to local disk with in-band pagination.
+- **⚡ Spatial Viewport Filtering (`viewport_only=true`)**: Prunes off-screen nodes outside the active viewport, slashing token consumption by an additional **50–70%** on long feeds and infinite-scroll apps.
+- **📝 Atomic Form Batching (`browser_fill`)**: Fills multi-field forms in a single atomic turn using `fields: [{ selector, value }]`, eliminating 5–10 sequential round-trips.
+- **🎯 Targeted Element Search (`browser_search_elements`)**: Finds interactive buttons, links, and inputs by accessible label in **sub-100 tokens** without reading the whole page.
+- **🔄 State Delta Streaming (`format="delta"`)**: Emits only added and removed interactive mutations following actions, cutting multi-turn token overhead by ~85%.
+- **🔒 Loopback Origin Security**: Strictly enforces `Origin: chrome-extension://[a-p]{32}` across loopback ports `127.0.0.1:9876-9895` to block unauthorized local connections.
+- **41 Tools Green**: Comprehensive coverage across navigation, DOM inspection, hardware CDP input, cookies, storage, and human-in-the-loop dialogs.
 
 ---
 
 ## Quick Start
 
-### 1. Build or Install
+### 1. Build & Install
+
 ```bash
 # Clone the repository
 git clone https://github.com/modded-soldier-9/browser-mcp.git
 cd browser-mcp
 
-# Build native binary
+# Build native release binary
 cargo build --release --manifest-path crates/browser-mcp-server/Cargo.toml
 
-# Run self-installer to unpack extension
+# Unpack extension assets into ~/.browser-mcp/extension
 ./target/release/browser-mcp install
 ```
 
 ### 2. Load Extension in Browser
+
 1. Open `brave://extensions` or `chrome://extensions`.
-2. Enable **Developer mode** (top right).
+2. Enable **Developer mode** (top right toggle).
 3. Click **Load unpacked** and select `~/.browser-mcp/extension` (or `./extension`).
 
 ### 3. Connect Your AI Assistant
@@ -84,6 +89,12 @@ Browser MCP provides 41 tools grouped by execution domain:
 | **Storage & State** | `browser_get_cookies`, `browser_set_cookies`, `browser_get_local_storage`, `browser_set_local_storage`, `browser_extract_token` |
 | **Network & Overlays** | `browser_fetch`, `browser_wait`, `browser_wait_for_network`, `browser_handle_dialog`, `browser_dismiss_overlays`, `browser_reattach_debugger` |
 | **User Interaction** | `browser_ask_user`, `browser_solve_captcha`, `browser_execute_script`, `browser_provide_feedback` |
+
+---
+
+## Acknowledgements & Inspiration
+
+Original concept, prototype ideas, and initial architecture inspired by Agent360 ([@Agent360dk](https://github.com/Agent360dk)).
 
 ---
 

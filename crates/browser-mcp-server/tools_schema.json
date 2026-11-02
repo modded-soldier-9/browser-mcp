@@ -83,6 +83,10 @@
         "limit": {
           "type": "number",
           "description": "Maximum lines to return when paginating shielded snapshots (default: 100)."
+        },
+        "viewport_only": {
+          "type": "boolean",
+          "description": "When true, prunes elements outside the visible viewport window (cutting tokens by 50-70% on long/feed pages). Returns telemetry (in_viewport, offscreen_below) so the agent knows whether scrolling is required."
         }
       }
     }
@@ -250,12 +254,30 @@
         "value": {
           "type": "string",
           "description": "Value to fill in"
+        },
+        "fields": {
+          "type": "array",
+          "description": "Batch mode: array of field objects [{ \"selector\": \"[e1]\", \"value\": \"foo\" }] to fill multiple form inputs in a single atomic turn without separate round-trips. Accepts both handles (e.g. [e1]) and CSS selectors.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "selector": {
+                "type": "string",
+                "description": "Element handle (e.g. [e1]) or CSS selector."
+              },
+              "value": {
+                "type": "string",
+                "description": "Value to input into the field."
+              }
+            },
+            "required": [
+              "selector",
+              "value"
+            ]
+          }
         }
       },
-      "required": [
-        "selector",
-        "value"
-      ]
+      "required": []
     }
   },
   {
