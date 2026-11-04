@@ -1,0 +1,109 @@
+name: CI & Quality Gates
+
+on:
+  pull_request:
+    branches: [main, beta]
+  push:
+    branches: [main, beta]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  version-consistency:
+    name: Version Consistency Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify Version Parity Across Manifests
+        run: |
+          node -e "
+          import { readFileSync } from 'node:fs';
+          const p1 = JSON.parse(readFileSync('package.json', 'utf8')).version;
+          const m1 = JSON.parse(readFileSync('extension/manifest.json', 'utf8')).version;
+          const cargo = readFileSync('crates/browser-mcp-server/Cargo.toml', 'utf8');
+          const cMatch = cargo.match(/version\s*=\s*\"([^\"]+)\"/)?.[1];
+          console.log('Versions:', { rootPkg: p1, extManifest: m1, cargoVersion: cMatch });
+          if (p1 !== m1 || p1 !== cMatch) {
+            console.error('Version mismatch detected across manifests!');
+            process.exit(1);
+          }
+          console.log('All manifests are in sync!');
+          "
+
+  docs-quality:
+    name: Docs Site Quality Gate
+    needs: version-consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify docs generator output matches committed HTML
+        run: |
+          python3 scripts/generate-docs.py
+          if [ -n "$(git status --porcelain -- docs/)" ]; then
+            echo "::error::docs/ HTML differs from generator output. Edit content/*.md and re-run scripts/generate-docs.py"
+            git status --porcelain -- docs/
+            exit 1
+          fi
+      - name: Run docs integrity and link check
+        run: python3 scripts/check-docs.py
+
+  extension-quality:
+    name: Extension Syntax & Integrity Gate
+    needs: version-consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run Extension Validation
+        run: node scripts/build-extension.mjs
+
+  rust-quality:
+    name: Rust Server Quality (${{ matrix.os }})
+    needs: version-consistency
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+      - name: Check Rust Server Compilation
+        run: cargo check --manifest-path crates/browser-mcp-server/Cargo.toml --release
+      - name: Run Rust Server Integration Tests
+        run: cargo test --manifest-path crates/browser-mcp-server/Cargo.toml
+
+  pr-gate:
+    name: Quality Gate (All Checks Passing)
+    needs: [version-consistency, docs-quality, extension-quality, rust-quality]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Overall Status
+        run: |
+          if [ "${{ needs.version-consistency.result }}" != "success" ] || \
+             [ "${{ needs.docs-quality.result }}" != "success" ] || \
+             [ "${{ needs.extension-quality.result }}" != "success" ] || \
+             [ "${{ needs.rust-quality.result }}" != "success" ]; then
+            echo "Quality gate failed: Not all required CI checks succeeded."
+            exit 1
+          fi
+          echo "All quality gates passed! Ready for merge."

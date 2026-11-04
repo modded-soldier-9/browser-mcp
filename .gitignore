@@ -1,0 +1,22 @@
+node_modules/
+__pycache__/
+*.pyc
+.DS_Store
+*.log
+.env
+.env.*
+.npmrc
+.playwright-mcp/
+chrome/
+/graft/
+*.tgz
+target/
+**/target/
+
+# Internal workflow, design documents, and temporary review reports
+*_report.md
+*brief*.md
+design_draft.md
+*DRIFT_REPORT.md
+docs/designs/
+.agents/

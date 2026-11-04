@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <!-- Black Squircle Container -->
+  <rect width="512" height="512" rx="112" fill="#09090b"/>
+  <rect x="2" y="2" width="508" height="508" rx="110" stroke="#27272a" stroke-width="4"/>
+
+  <!-- Browser Window Chrome (Top Bar) -->
+  <path d="M 32 144 L 480 144" stroke="#27272a" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Window Dots (Left) -->
+  <circle cx="76" cy="88" r="9" fill="#27272a"/>
+  <circle cx="104" cy="88" r="9" fill="#27272a"/>
+  <circle cx="132" cy="88" r="9" fill="#27272a"/>
+
+  <!-- AI Header / Omnibox at Top -->
+  <!-- Omnibox Pill -->
+  <rect x="168" y="62" width="276" height="52" rx="26" fill="#18181b" stroke="#3f3f46" stroke-width="2"/>
+
+  <!-- AI Sparkle Icon -->
+  <path d="M 198 88 C 198 83 203 78 208 78 C 203 78 198 73 198 68 C 198 73 193 78 188 78 C 193 78 198 83 198 88 Z" fill="#ffffff"/>
+  <circle cx="209" cy="71" r="2" fill="#a1a1aa"/>
+
+  <!-- "AI" Bold Text at Top -->
+  <text x="220" y="96" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="22" fill="#ffffff" letter-spacing="1.5">AI</text>
+
+  <!-- URL text / indicator -->
+  <text x="256" y="95" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="500" font-size="14" fill="#71717a">browser-mcp</text>
+
+  <!-- Status indicator dot in omnibox -->
+  <circle cx="418" cy="88" r="5" fill="#ffffff"/>
+
+  <!-- Browser Main Content Area -->
+  <!-- Viewport Grid / Card Elements -->
+  <!-- Search / Command Bar inside viewport -->
+  <rect x="68" y="176" width="376" height="48" rx="14" fill="#18181b" stroke="#27272a" stroke-width="2"/>
+  <text x="92" y="206" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" fill="#ffffff" font-weight="600">&gt; browser_navigate</text>
+  <rect x="256" y="192" width="8" height="17" fill="#ffffff"/>
+
+  <!-- Content cards (Left and Right) -->
+  <rect x="68" y="244" width="232" height="196" rx="16" fill="#121215" stroke="#27272a" stroke-width="2"/>
+  <!-- Card Header Line -->
+  <rect x="92" y="272" width="120" height="12" rx="6" fill="#ffffff"/>
+  <!-- Card Content Lines -->
+  <rect x="92" y="304" width="184" height="8" rx="4" fill="#3f3f46"/>
+  <rect x="92" y="324" width="160" height="8" rx="4" fill="#27272a"/>
+  <rect x="92" y="344" width="176" height="8" rx="4" fill="#27272a"/>
+  <!-- Interactive Handle Badge [e1] -->
+  <rect x="92" y="380" width="48" height="26" rx="6" fill="#27272a" stroke="#3f3f46" stroke-width="1.5"/>
+  <text x="116" y="398" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" fill="#ffffff" font-weight="700">[e1]</text>
+
+  <rect x="148" y="380" width="56" height="26" rx="6" fill="#ffffff"/>
+  <text x="176" y="398" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="12" fill="#09090b" font-weight="700">Click</text>
+
+  <!-- Right Side Sidebar / Telemetry -->
+  <rect x="316" y="244" width="128" height="196" rx="16" fill="#121215" stroke="#27272a" stroke-width="2"/>
+  <!-- Telemetry Lines -->
+  <rect x="336" y="272" width="64" height="10" rx="5" fill="#a1a1aa"/>
+  <rect x="336" y="300" width="88" height="6" rx="3" fill="#27272a"/>
+  <rect x="336" y="316" width="76" height="6" rx="3" fill="#27272a"/>
+  <rect x="336" y="332" width="84" height="6" rx="3" fill="#27272a"/>
+
+  <!-- MCP Shield Badge -->
+  <rect x="336" y="374" width="88" height="36" rx="10" fill="#18181b" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="380" y="397" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" fill="#ffffff" font-weight="700">43 TOOLS</text>
+</svg>
