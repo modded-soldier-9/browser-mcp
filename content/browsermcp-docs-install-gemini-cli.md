@@ -10,12 +10,12 @@
 
 ## The whole thing, in four steps
 
-**1 - Install the Chrome extension.** One click from the [Chrome Web Store](https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl).
+**1 - Install the extension.** Run `browser-mcp install` to unpack the extension into `~/.browser-mcp/extension/`, then load it under `chrome://extensions` or `brave://extensions` (Developer mode ON → **Load unpacked**).
 
 **2 - Add the MCP server.** One command. Required - the extension does nothing on its own:
 
 ```bash
-gemini mcp add browser-mcp npx browser-mcp@latest
+gemini mcp add browser-mcp browser-mcp
 ```
 
 Add `-s user` if you want it available in every project rather than just this one. The default scope is the project.
@@ -35,10 +35,7 @@ You get an image back instead of *"I don't have browser access"*. **That's it - 
 ```json
 {
   "mcpServers": {
-    "browser-mcp": {
-      "command": "npx",
-      "args": ["-y", "browser-mcp@latest"]
-    }
+    "browser-mcp": {"command": "browser-mcp"}
   }
 }
 ```

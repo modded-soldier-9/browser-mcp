@@ -35,12 +35,12 @@ The tool behind that pause is `browser_ask_user`. It stops the run, shows you a 
 
 Two halves, both required:
 
-**1 - The Chrome extension.** [One click from the Chrome Web Store](https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl).
+**1 - The Chrome extension.** Run `browser-mcp install` to unpack into `~/.browser-mcp/extension/` and load unpacked in `chrome://extensions` or `brave://extensions` (Developer mode ON → **Load unpacked**).
 
 **2 - The MCP server, registered with Codex:**
 
 ```bash
-codex mcp add browser-mcp -- npx browser-mcp@latest
+codex mcp add browser-mcp -- browser-mcp
 ```
 
 Restart your Codex session. Full walkthrough: [Install for Codex](/docs/install-codex/).

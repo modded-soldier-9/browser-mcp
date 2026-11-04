@@ -6,7 +6,7 @@
 
 **Short answer:** if you searched "browser mcp" and landed here, you're probably looking for **browsermcp.io** (GitHub: `BrowserMCP/mcp`) - it's bigger, older, and ranks higher. It has a much larger installed base than we do. It also hasn't shipped a code change since April 24, 2025. Both of those things are true at the same time, and this page exists to show you the dated evidence for both rather than ask you to take our word for it.
 
-We are **Browser MCP** (created and maintained by Mohamed Elsheikh [@modded-soldier-9], npm `browser-mcp`, [browsermcp.dev](https://browsermcp.dev)) - a separate, unaffiliated project that happens to solve the same problem with a nearly identical name: a standard stdio MCP server that gives any MCP client - Claude Code, Cursor, VS Code agent mode, or anything else that speaks the protocol, not just those three - control of your real, already-logged-in Chrome instead of a fresh headless session.
+We are **Browser MCP** (created and maintained by Mohamed Elsheikh [@modded-soldier-9], GitHub: [modded-soldier-9/browser-mcp](https://github.com/modded-soldier-9/browser-mcp), [browsermcp.dev](https://browsermcp.dev)) - a separate, unaffiliated project that happens to solve the same problem with a nearly identical name: a standard stdio MCP server that gives any MCP client - Claude Code, Cursor, VS Code agent mode, or anything else that speaks the protocol, not just those three - control of your real, already-logged-in Chrome instead of a fresh headless session.
 
 ## The two projects, side by side
 
@@ -19,15 +19,14 @@ Every number below was measured on 2026-09-18, both columns on the same day, fro
 | **Last commit pushed** | **2025-04-24** | **2026-09-13** |
 | Published GitHub releases | 0 | 1 (`v1.0.0`) |
 | Latest release | `0.1.3` - published 2025-04-11, unchanged since | `1.0.0` |
-| npm downloads, last 30 days | 38,527 (`@browsermcp/mcp`) | 3,427 (`browser-mcp`) |
-| Chrome Web Store users | **100,000** | 973 |
-| Chrome Web Store rating | 4.8 / 5 (718 ratings) | no ratings yet |
+| Distribution | npm package (`@browsermcp/mcp`) | Standalone native binary (`browser-mcp`) |
+| Chrome Web Store users | **100,000** | Unpacked (not on Web Store) |
+| Chrome Web Store rating | 4.8 / 5 (718 ratings) | N/A (Standalone unpacked) |
 | Open GitHub issues | 130 | 4 |
 | License | Apache-2.0 | MIT |
-| Tools exposed | Not publicly documented (not audited here) | 43, auto-listed at [`/docs/tools`](/docs/tools) |
-| Install | `npx @browsermcp/mcp` (npm) or Chrome Web Store | Chrome Web Store extension + `claude mcp add` |
+| Install | `npx @browsermcp/mcp` (npm) or Chrome Web Store | Standalone binary (`browser-mcp install`) + `claude mcp add` |
 
-*All figures above were re-pulled live on 2026-09-18. npm's public download API reports some days as zero for every package, including both of these, so the 30-day totals understate both projects equally. Originally pulled via the GitHub REST API, the public npm registry API, and the Chrome Web Store listing pages for both extensions (`bjfgambnhccakkhmkepdoekmckoijdlc` and `jdehgalffmffhfhmmhaokfbfnafnmgcl`). See "How we verified this" below.*
+*All figures above were re-pulled live on 2026-09-18. npm's public download API reports some days as zero for every package, including both of these, so the 30-day totals understate both projects equally. Originally pulled via the GitHub REST API, the public npm registry API, and the Chrome Web Store listing page for browsermcp.io (`bjfgambnhccakkhmkepdoekmckoijdlc`). See "How we verified this" below.*
 
 ## The one thing that actually matters here: maintenance
 
@@ -43,7 +42,7 @@ That's the entire pitch of this page, stated as plainly as we can: **actively ma
 
 Being honest about the maintenance gap doesn't mean pretending the rest of the table doesn't exist:
 
-- **100,000 Chrome Web Store users vs. our 973.** It has a real, large, established user base. We don't.
+- **100,000 Chrome Web Store users.** It has a real, large, established user base on the Web Store, whereas Browser MCP is distributed standalone unpacked.
 - **4.8/5 from 718 ratings.** People who installed it and stuck around like it.
 - **7,107 GitHub stars vs. our 44.** It's the far more visible project if you're browsing GitHub or an "awesome MCP servers" list.
 - **It has a real npm package and a one-click Chrome Web Store listing** - for the record, this corrects an old claim in our own README, which described it as "manual clone only." That hasn't been accurate for a while; it installs about as easily as ours does.
@@ -57,10 +56,10 @@ Chrome ships changes to extension APIs, debugger protocols, and Manifest V3 beha
 ## Frequently asked questions
 
 **Are these the same product?**
-No. Two separate teams, two separate GitHub orgs (`BrowserMCP` vs. `modded-soldier-9`), two separate npm packages (`@browsermcp/mcp` vs. `browser-mcp`), two separate Chrome extensions. The name overlap ("Browser MCP") is coincidental, not a rebrand or a fork of each other.
+No. Two separate teams, two separate GitHub orgs (`BrowserMCP` vs. `modded-soldier-9`), two separate distribution models (theirs is an npm package `@browsermcp/mcp`, ours is a standalone native binary `browser-mcp`), two separate Chrome extensions. The name overlap ("Browser MCP") is coincidental, not a rebrand or a fork of each other.
 
 **Which one has more users?**
-browsermcp.io, by a wide margin - 100,000 Chrome Web Store users vs. our 973, as of 2026-09-18.
+browsermcp.io, by a wide margin - 100,000 Chrome Web Store users vs. our fresh standalone project, as of 2026-09-18.
 
 **Which one is actively maintained?**
 Browser MCP (by Mohamed Elsheikh). Last push 2026-09-13 vs. browsermcp.io's last commit on 2025-04-24.
@@ -77,9 +76,9 @@ No - read the "Where browsermcp.io genuinely wins" section above. The scale numb
 ## Try it yourself
 
 ```bash
-# 1. the Chrome extension: chromewebstore.google.com - search "Browser MCP"
+# 1. the Chrome extension: run browser-mcp install (unpacked into ~/.browser-mcp/extension)
 # 2. the MCP server (Claude Code):
-claude mcp add --scope user browser-mcp -- npx browser-mcp@latest
+claude mcp add --scope user browser-mcp -- browser-mcp
 ```
 
 Two parts, both required - about a minute. MIT licensed, 43 tools, runs on your own machine. [Full install guide →](/docs/install-claude-code) · [Or install browsermcp.io if that's the right call for you](https://browsermcp.io) - we mean that.
@@ -93,7 +92,7 @@ All figures on this page were pulled directly on **2026-09-18**, from primary so
 - **GitHub stars, push dates, release counts, license, open issues:** `api.github.com/repos/BrowserMCP/mcp` and `api.github.com/repos/modded-soldier-9/browser-mcp`, fetched directly. Issue counts come from the search API with `is:issue`, so pull requests are excluded from both columns.
 - **npm download counts:** `api.npmjs.org/downloads/range/<start>:<end>/<package>` for the last 30 days, fetched directly for both packages. The API reports some days as zero for every package; both totals include the same zero days.
 - **npm version + publish dates:** `registry.npmjs.org/<package>`, `dist-tags.latest` and the corresponding `time` entry, fetched directly.
-- **Chrome Web Store users and rating:** the live public listing pages for extension IDs `bjfgambnhccakkhmkepdoekmckoijdlc` (browsermcp.io) and `jdehgalffmffhfhmmhaokfbfnafnmgcl` (Browser MCP). Chrome blocks extensions from scripting the store, so the user count was read out of the page's raw HTML rather than the rendered DOM.
+- **Chrome Web Store users and rating:** the live public listing page for extension ID `bjfgambnhccakkhmkepdoekmckoijdlc` (browsermcp.io). Chrome blocks extensions from scripting the store, so the user count was read out of the page's raw HTML rather than the rendered DOM.
 
 This table will go stale - that's the nature of a dated comparison. We'll refresh it when either project's numbers move meaningfully. If you're reading this significantly after September 2026 and want current numbers, the four sources above take about five minutes to re-check yourself.
 

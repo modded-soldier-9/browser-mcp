@@ -22,9 +22,9 @@
 <hr>
 <p><b>Give Gemini CLI control of your real, already-logged-in Chrome - about 90 seconds, four steps.</b> Your cookies, your sessions, your 2FA, instead of a blank browser that hits every login wall as a stranger.</p>
 <h2 id="the-whole-thing-in-four-steps">The whole thing, in four steps</h2>
-<p><b>1 - Install the Chrome extension.</b> One click from the <a href="https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl">Chrome Web Store</a>.</p>
+<p><b>1 - Install the extension.</b> Run <code>browser-mcp install</code> to unpack the extension into <code>~/.browser-mcp/extension/</code>, then load it under <code>chrome://extensions</code> or <code>brave://extensions</code> (Developer mode ON → <b>Load unpacked</b>).</p>
 <p><b>2 - Add the MCP server.</b> One command. Required - the extension does nothing on its own:</p>
-<div class="code"><pre>gemini mcp add browser-mcp npx browser-mcp@latest</pre><button class="copy">Copy</button></div>
+<div class="code"><pre>gemini mcp add browser-mcp browser-mcp</pre><button class="copy">Copy</button></div>
 <p>Add <code>-s user</code> if you want it available in every project rather than just this one. The default scope is the project.</p>
 <p><b>3 - Restart Gemini CLI.</b> Their own tutorial says so, and it matters: <code>/mcp refresh</code> has open bugs and does not reliably pick up a new server. Close it and start it again.</p>
 <p><b>4 - Say this, to check it worked.</b> Paste it to Gemini:</p>
@@ -34,10 +34,7 @@
 <p><code>gemini mcp add</code> writes to <code>~/.gemini/settings.json</code> (user scope) or <code>.gemini/settings.json</code> (project scope). The same thing by hand:</p>
 <div class="code"><pre>{
   &quot;mcpServers&quot;: {
-    &quot;browser-mcp&quot;: {
-      &quot;command&quot;: &quot;npx&quot;,
-      &quot;args&quot;: [&quot;-y&quot;, &quot;browser-mcp@latest&quot;]
-    }
+    &quot;browser-mcp&quot;: {&quot;command&quot;: &quot;browser-mcp&quot;}
   }
 }</pre><button class="copy">Copy</button></div>
 <h2 id="things-worth-knowing-before-you-hit-them">Things worth knowing before you hit them</h2>

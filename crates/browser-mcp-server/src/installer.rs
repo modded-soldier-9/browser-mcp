@@ -48,6 +48,15 @@ pub fn run_install() -> Result<(), Box<dyn std::error::Error>> {
     println!("       }}");
     println!("     }}");
 
+    println!("\n  -> Claude Desktop configuration (macOS: ~/Library/Application Support/Claude/claude_desktop_config.json, Windows: %APPDATA%\\Claude\\claude_desktop_config.json):");
+    println!("     {{");
+    println!("       \"mcpServers\": {{");
+    println!("         \"browser-mcp\": {{");
+    println!("           \"command\": \"{}\"", exe_str.replace('\\', "\\\\"));
+    println!("         }}");
+    println!("       }}");
+    println!("     }}");
+
     println!("\n[3/3] Load the extension in your browser:");
     println!("      1. Open Brave (brave://extensions) or Chrome (chrome://extensions)");
     println!("      2. Turn ON 'Developer mode' (toggle in top-right corner)");

@@ -1,4 +1,4 @@
-// KILDE: mcp-server/bin/cli.js (install registrerer med `claude mcp add --scope user browser-mcp -- npx browser-mcp@latest`) - kontrolleret mod cli.js og en falsk claude-shim 26/9 (fuld review D). Claude Codes egen dokumentation er ikke hentet paa ny.
+// KILDE: mcp-server/bin/cli.js (install registrerer med `claude mcp add --scope user browser-mcp -- browser-mcp`) - kontrolleret mod cli.js og en falsk claude-shim 26/9 (fuld review D). Claude Codes egen dokumentation er ikke hentet paa ny.
 # Add Browser MCP to Claude Code
 *Suggested meta description: "Four steps, about a minute. Claude drives the Chrome you are already signed in to, so it can read and act on pages behind your logins."*
 
@@ -7,12 +7,12 @@
 
 ## The whole thing, in four steps
 
-**1 - Install the Chrome extension.** One click from the [Chrome Web Store](https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl); Chrome keeps it updated. No store? The unpacked install is further down.
+**1 - Install the extension.** Run `browser-mcp install` to unpack the extension into `~/.browser-mcp/extension/`, then load it under `chrome://extensions` or `brave://extensions` (Developer mode ON → **Load unpacked**).
 
 **2 - Add the MCP server.** Paste this in a terminal. Required - the extension does nothing on its own:
 
 ```bash
-claude mcp add --scope user browser-mcp -- npx browser-mcp@latest
+claude mcp add --scope user browser-mcp -- browser-mcp
 ```
 
 **3 - Restart Claude Code.** That is what starts the server. The extension shows no badge until step 4 - the server only takes a port the first time your agent actually uses the browser. A green badge with the number of connected agents appears then; nothing on the icon before that is normal. (The icon itself never changes colour - it is the badge that turns green.)
@@ -30,12 +30,12 @@ Using Cursor, VS Code, Codex or Windsurf instead? Same server, that client's own
 
 ## Step-by-step install (Claude Code)
 
-**Why two steps?** Browser MCP is two halves and both are required: a **Chrome extension** that drives the browser, and a **local MCP server** that Claude Code talks to. Chrome forbids extensions installing themselves from npm, and npm cannot install a Chrome extension - so neither half can install the other. If you already have the extension (e.g. from the Chrome Web Store), you still need Step 1; if you only run Step 1, you still need Step 2.
+**Why two steps?** Browser MCP is two halves and both are required: a **Chrome extension** that drives the browser, and a **local native MCP server** that Claude Code talks to. Chrome forbids extensions from installing themselves without human confirmation in Developer mode. Both halves are necessary for the bridge to work.
 
 ### Step 1 - Register the MCP server with Claude Code
 
 ```bash
-claude mcp add --scope user browser-mcp -- npx browser-mcp@latest
+claude mcp add --scope user browser-mcp -- browser-mcp
 ```
 
 That is Claude Code's own MCP command, so the entry lands in the config Claude Code actually reads. `--scope user` makes Browser MCP available in every project instead of just the current directory; drop it if you only want it here.
@@ -45,27 +45,22 @@ Prefer to edit the config by hand? Add this to `~/.claude.json`:
 ```json
 {
   "mcpServers": {
-    "browser-mcp": {
-      "command": "npx",
-      "args": ["browser-mcp@latest"]
-    }
+    "browser-mcp": {"command": "browser-mcp"}
   }
 }
 ```
 
-The `@latest` matters: it is what makes the server update itself on every run.
-
 If you want the extension files on disk too (for the unpacked install in Step 2), run:
 
 ```bash
-npx browser-mcp install
+browser-mcp install
 ```
 
 It copies the extension to `~/.browser-mcp/extension/` and prints the path - copy it, you'll need it in Step 2. Do not rely on it to configure Claude Code; use the `claude mcp add` command above for that.
 
 ### Step 2 - Load the extension in Chrome
 
-Chrome doesn't let extensions install themselves from npm, so this one step is manual:
+Chrome requires extensions in Developer mode to be loaded by the user:
 
 1. Open Chrome and go to `chrome://extensions`
 2. Toggle **Developer mode** ON (top right)
@@ -75,7 +70,7 @@ Chrome doesn't let extensions install themselves from npm, so this one step is m
    - **Windows:** paste `%USERPROFILE%\.browser-mcp\extension\` into the address bar
    - **Linux:** type `~/.browser-mcp/extension/` into the path field
 
-Don't want Developer mode on? Use the [Chrome Web Store install](#no-developer-mode-chrome-web-store) instead - see below.
+Loading unpacked takes 10 seconds and requires Developer mode ON in Chrome or Brave.
 
 ### Step 3 - Restart Claude Code
 
@@ -119,7 +114,7 @@ The pattern: **anything you would do yourself in a browser, on a site you are al
 
 ## Alternative installs
 
-### No npm? Manual zip download
+### Manual zip download
 
 1. Download the extension zip from the [latest GitHub release](https://github.com/modded-soldier-9/browser-mcp/releases/latest)
 2. Unzip it anywhere (e.g. `~/Downloads/browser-mcp-extension/`)
@@ -129,10 +124,7 @@ The pattern: **anything you would do yourself in a browser, on a site you are al
 ```json
 {
   "mcpServers": {
-    "browser-mcp": {
-      "command": "npx",
-      "args": ["browser-mcp@latest"]
-    }
+    "browser-mcp": {"command": "browser-mcp"}
   }
 }
 ```
@@ -140,22 +132,8 @@ The pattern: **anything you would do yourself in a browser, on a site you are al
 Or skip the manual JSON entirely and let Claude Code write it:
 
 ```bash
-claude mcp add --scope user browser-mcp -- npx browser-mcp@latest
+claude mcp add --scope user browser-mcp -- browser-mcp
 ```
-
-### No Developer mode - Chrome Web Store
-
-[Install from the Chrome Web Store →](https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl)
-
-No Developer mode toggle needed, and Chrome updates the extension automatically in the background. **This replaces Step 2, not Step 1** - the store hands you the extension, and the extension still needs a server to talk to. So run:
-
-```bash
-claude mcp add --scope user browser-mcp -- npx browser-mcp@latest
-```
-
-That registers the server and leaves your store-installed extension alone. Restart Claude Code afterwards.
-
-**Installed from the store and the icon says "Not connected"?** That is Step 1 missing - not a bug. Run the command above and restart Claude Code. It still says "Not connected" until you ask Claude to use the browser once - that first call is what starts the connection.
 
 ---
 
@@ -191,7 +169,7 @@ Full source: [github.com/modded-soldier-9/browser-mcp](https://github.com/modded
 | Human-in-the-loop | `browser_ask_user` pauses, asks you for a code, and continues in the same tab | None. 72 tools, none of which can ask the person anything (checked 2026-09-19) |
 | Several agents at once | 20 concurrent, color-coded tab groups | Also supported via their extension: one tab group per connected client |
 | Provider integrations | 9 built-in (Stripe, HubSpot, Slack, Shopify, Pipedrive, Calendly, Mailchimp, Google, LinkedIn) | None |
-| Install | `npx browser-mcp install` | `npx @playwright/mcp` |
+| Install | `browser-mcp install` | `npx @playwright/mcp` |
 
 
 > **Corrected 2026-09-19.** Four rows in this table used to say Playwright MCP was headless, made
@@ -210,7 +188,7 @@ Each conversation gets its own MCP server on its own port (9876-9895), and the e
 ## FAQ
 
 **How do I add an MCP server to Claude Code?**
-Run `claude mcp add --scope user browser-mcp -- npx browser-mcp@latest`. That is Claude Code's built-in command for registering an MCP server, so no manual JSON is required. Restart Claude Code afterward so it picks up the new server.
+Run `claude mcp add --scope user browser-mcp -- browser-mcp`. That is Claude Code's built-in command for registering an MCP server, so no manual JSON is required. Restart Claude Code afterward so it picks up the new server.
 
 **What is Browser MCP?**
 An MCP (Model Context Protocol) server that gives Claude Code - or any MCP client, including Cursor and VS Code agent mode - control of your actual, already-logged-in Chrome: your cookies, your sessions, your 2FA. 43 tools, MIT-licensed, runs on your own machine.
@@ -221,23 +199,23 @@ Yes. MIT license, no account, no paid tier.
 **Does it only work with Claude Code, or also Cursor / VS Code?**
 Any MCP-compatible client. The install command wires up Claude Code specifically. For Cursor or VS Code agent mode, add the same block to that client's MCP config instead:
 ```json
-{"mcpServers": {"browser-mcp": {"command": "npx", "args": ["browser-mcp@latest"]}}}
+{"mcpServers": {"browser-mcp": {"command": "browser-mcp"}}}
 ```
 
 **Why do I have to load the extension manually instead of it just installing?**
-Chrome blocks extensions from self-installing from npm or any script - that's a Chrome security boundary, not a Browser MCP limitation. Loading unpacked once, or installing from the Chrome Web Store, are the only two ways in.
+Chrome blocks extensions from self-installing from external scripts - that's a Chrome security boundary, not a Browser MCP limitation. Loading unpacked once via `browser-mcp install` is the direct, standard way in.
 
 **Does my browsing data leave my machine?**
 Not to us. The MCP server runs locally over stdio, talks to the extension over a local WebSocket, and the extension talks to Chrome through Chrome's own APIs. What your agent reads goes to your AI client and on to its model provider, like anything else you show it - there is no remote server.
 
 **How do I update it?**
-The MCP server updates itself - every Claude Code session runs `npx browser-mcp@latest` (note the `@latest` in your config), so there's nothing to do. The extension auto-updates only if you installed it from the Chrome Web Store; if you loaded it unpacked, re-run `npx browser-mcp install` and click **↻ reload** on `chrome://extensions`.
+The MCP server is a standalone native binary that runs directly. To update the extension, re-run `browser-mcp install` and click **↻ reload** on `chrome://extensions`.
 
 **Chrome extension says "not connected" - what do I check?**
-First: did you register the MCP server, not just install the extension? If you got the extension from the Chrome Web Store and never added the server to your MCP config, that is the whole problem - the extension has nothing to connect to. Run `claude mcp add --scope user browser-mcp -- npx browser-mcp@latest` and restart Claude Code. If the server *is* configured, confirm the extension is loaded under `chrome://extensions`, click the extension icon → "Reconnect," and give it 2-3 seconds - it scans ports 9876-9895 for the running server. Still stuck: [troubleshooting](/docs/troubleshooting).
+First: did you register the MCP server, not just install the extension? If you loaded the extension and never added the server to your MCP config, that is the whole problem - the extension has nothing to connect to. Run `claude mcp add --scope user browser-mcp -- browser-mcp` and restart Claude Code. If the server *is* configured, confirm the extension is loaded under `chrome://extensions`, click the extension icon → "Reconnect," and give it 2-3 seconds - it scans ports 9876-9895 for the running server. Still stuck: [troubleshooting](/docs/troubleshooting).
 
 **Is this the same as browsermcp.io?**
-No - different project, same underlying idea (MCP + your real Chrome), separate codebase. If you found this page searching generically for "browser mcp," make sure you're grabbing the one you meant: this one is `browser-mcp` on npm, `github.com/modded-soldier-9/browser-mcp` on GitHub.
+No - different project, same underlying idea (MCP + your real Chrome), separate codebase. If you found this page searching generically for "browser mcp," make sure you're grabbing the one you meant: this one is `browser-mcp` on GitHub (`modded-soldier-9/browser-mcp`).
 
 **Can I run it across multiple Claude Code conversations at once?**
 Yes - up to 20 concurrent sessions, each on its own port with its own color-coded Chrome tab group, so sessions can't see or control each other's tabs.

@@ -10,7 +10,7 @@
 
 ## The whole thing, in four steps
 
-**1 - Install the Chrome extension.** One click from the [Chrome Web Store](https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl).
+**1 - Install the extension.** Run `browser-mcp install` to unpack the extension into `~/.browser-mcp/extension/`, then load it under `chrome://extensions` or `brave://extensions` (Developer mode ON → **Load unpacked**).
 
 **2 - Add the server.** Easiest way: Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`) → **MCP: Add Server** → follow the guided flow and pick Workspace or Global.
 
@@ -21,8 +21,7 @@
   "servers": {
     "browser-mcp": {
       "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "browser-mcp@latest"]
+      "command": "browser-mcp"
     }
   }
 }

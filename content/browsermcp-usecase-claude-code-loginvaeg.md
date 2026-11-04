@@ -26,12 +26,12 @@ No login step, because there is nothing to log in to. The tab is yours.
 
 Two halves, both required:
 
-**1 - The Chrome extension.** [One click from the Chrome Web Store](https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl).
+**1 - The Chrome extension.** Run `browser-mcp install` to unpack into `~/.browser-mcp/extension/` and load unpacked in `chrome://extensions` or `brave://extensions` (Developer mode ON → **Load unpacked**).
 
 **2 - The MCP server:**
 
 ```bash
-claude mcp add --scope user browser-mcp -- npx browser-mcp@latest
+claude mcp add --scope user browser-mcp -- browser-mcp
 ```
 
 Restart Claude Code. Full walkthrough: [Install for Claude Code](/docs/install-claude-code/).

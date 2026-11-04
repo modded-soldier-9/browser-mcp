@@ -13,16 +13,16 @@
 Paste this into your browser's address bar and press Enter. Trae opens, shows you the configuration, and you confirm:
 
 ```
-trae://trae.ai-ide/mcp-import?type=stdio&name=browser-mcp&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIkBhZ2VudDM2MC9icm93c2VyLW1jcEBsYXRlc3QiXX0%3D
+trae://trae.ai-ide/mcp-import?type=stdio&name=browser-mcp&config=eyJjb21tYW5kIjoiYnJvd3Nlci1tY3AifQ%3D%3D
 ```
 
 That is Trae's own install-link format. The unreadable part is the base64 of exactly the config shown below - nothing hidden, and you can decode it yourself before you run it.
 
-Then install the [Chrome extension](https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl) - the server is only half of it.
+Then unpack and load the Chrome extension (`browser-mcp install`, then load unpacked in `chrome://extensions`) - the server is only half of it.
 
 ## Or four steps, by hand
 
-**1 - Install the Chrome extension.** One click from the [Chrome Web Store](https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl).
+**1 - Install the extension.** Run `browser-mcp install` to unpack the extension into `~/.browser-mcp/extension/`, then load it under `chrome://extensions` or `brave://extensions` (Developer mode ON → **Load unpacked**).
 
 **2 - Open the MCP window.** Settings icon (top right) → **MCP**. In SOLO mode the same icon sits at the top right of the chat panel.
 
@@ -31,10 +31,7 @@ Then install the [Chrome extension](https://chromewebstore.google.com/detail/bro
 ```json
 {
   "mcpServers": {
-    "browser-mcp": {
-      "command": "npx",
-      "args": ["-y", "browser-mcp@latest"]
-    }
+    "browser-mcp": {"command": "browser-mcp"}
   }
 }
 ```
@@ -59,7 +56,7 @@ Trae:    [browser_navigate]
 
 **The project-level file needs a switch.** You can put `mcp.json` in `.trae/` in the project root, but Trae ignores it until **Settings → MCP → Enable Project MCP** is toggled on and confirmed. A config file that is simply never read looks exactly like a broken server.
 
-**No spaces in `command`.** Trae's own wording: *"The command must not contain spaces, otherwise parsing errors will occur."* `npx` is fine. A Windows path with `Program Files` in it is not - use a path without spaces, or let `npx` resolve it.
+**No spaces in `command`.** Trae's own wording: *"The command must not contain spaces, otherwise parsing errors will occur."* A command of `browser-mcp` is fine. A Windows path with `Program Files` in it is not - use a path without spaces, or add `browser-mcp` to your system `PATH`.
 
 **The startup timeout is yours to set.** Browser MCP takes its port the first time the browser is actually used, not at startup, so a slow first call is normal rather than a hang. If your machine is slow to fetch the package, raise it:
 

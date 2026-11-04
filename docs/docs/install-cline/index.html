@@ -22,14 +22,13 @@
 <hr>
 <p><b>Give Cline control of your real, already-logged-in Chrome - about 90 seconds, four steps.</b> Your cookies, your sessions, your 2FA, instead of a blank browser that hits every login wall as a stranger.</p>
 <h2 id="the-whole-thing-in-four-steps">The whole thing, in four steps</h2>
-<p><b>1 - Install the Chrome extension.</b> One click from the <a href="https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl">Chrome Web Store</a>.</p>
+<p><b>1 - Install the extension.</b> Run <code>browser-mcp install</code> to unpack the extension into <code>~/.browser-mcp/extension/</code>, then load it under <code>chrome://extensions</code> or <code>brave://extensions</code> (Developer mode ON → <b>Load unpacked</b>).</p>
 <p><b>2 - Open Cline's MCP settings.</b> In the Cline panel, click the <b>MCP Servers</b> icon, then <b>Configure MCP Servers</b>. That opens the right file for your install - don't go hunting for the path yourself.</p>
 <p><b>3 - Add the server.</b> Cline uses the <code>mcpServers</code> key:</p>
 <div class="code"><pre>{
   &quot;mcpServers&quot;: {
     &quot;browser-mcp&quot;: {
-      &quot;command&quot;: &quot;npx&quot;,
-      &quot;args&quot;: [&quot;-y&quot;, &quot;browser-mcp@latest&quot;],
+      &quot;command&quot;: &quot;browser-mcp&quot;,
       &quot;disabled&quot;: false,
       &quot;autoApprove&quot;: []
     }

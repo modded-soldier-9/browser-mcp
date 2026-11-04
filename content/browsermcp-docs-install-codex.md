@@ -8,12 +8,12 @@
 
 ## The whole thing, in four steps
 
-**1 - Install the Chrome extension.** One click from the [Chrome Web Store](https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl); Chrome keeps it updated. No store? The unpacked install is further down.
+**1 - Install the extension.** Run `browser-mcp install` to unpack the extension into `~/.browser-mcp/extension/`, then load it under `chrome://extensions` or `brave://extensions` (Developer mode ON → **Load unpacked**).
 
 **2 - Add the MCP server to Codex.** Paste this in a terminal. Required - the extension does nothing on its own:
 
 ```bash
-codex mcp add browser-mcp -- npx browser-mcp@latest
+codex mcp add browser-mcp -- browser-mcp
 ```
 
 **3 - Restart your Codex session.** That is what starts the server. The extension shows no badge until step 4 - the server only takes a port the first time your agent actually uses the browser. A green badge with the number of connected agents appears then; nothing on the icon before that is normal. (The icon itself never changes colour - it is the badge that turns green.)
@@ -31,15 +31,14 @@ Everything below is the long version.
 ### Step 1: Add the MCP server to Codex
 
 ```bash
-codex mcp add browser-mcp -- npx browser-mcp@latest
+codex mcp add browser-mcp -- browser-mcp
 ```
 
 This writes a `[mcp_servers.browser-mcp]` entry to `~/.codex/config.toml` (Codex's own config command does the writing - you don't touch the file by hand). If you'd rather edit it yourself, the entry looks like this:
 
 ```toml
 [mcp_servers.browser-mcp]
-command = "npx"
-args = ["browser-mcp@latest"]
+command = "browser-mcp"
 ```
 
 Default location: `~/.codex/config.toml` on Mac/Linux (`%USERPROFILE%\.codex\config.toml` on Windows). You can also scope it to one project with a `.codex/config.toml` in that repo, if it's a trusted project.
@@ -48,20 +47,13 @@ Default location: `~/.codex/config.toml` on Mac/Linux (`%USERPROFILE%\.codex\con
 
 The MCP server needs a companion Chrome extension to actually drive the browser - this part is identical no matter which MCP client you use.
 
-**Recommended - Chrome Web Store (auto-updates, zero config):**
+**Load the extension unpacked:**
 
-1. [Install from the Chrome Web Store →](https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl)
-2. Done. Chrome updates it in the background on its own.
-
-**Alternative - manual load (no Chrome Web Store account, or you want the dev version):**
-
-1. [Download the latest release zip](https://github.com/modded-soldier-9/browser-mcp/releases/latest) and unzip it anywhere
+1. Run `browser-mcp install` (or [download the latest release zip](https://github.com/modded-soldier-9/browser-mcp/releases/latest)) to extract the extension into `~/.browser-mcp/extension/`
 2. Open Chrome → `chrome://extensions`
 3. Toggle **Developer mode** on (top right)
-4. Click **Load unpacked** (top left) and select the unzipped folder
+4. Click **Load unpacked** (top left) and select `~/.browser-mcp/extension/`
 5. The Browser MCP icon appears in your toolbar
-
-With the manual route, Chrome won't auto-update the extension - re-download the zip and click **↻ reload** on `chrome://extensions` when you want the latest version.
 
 ### Step 3: Restart Codex and verify
 
@@ -119,7 +111,7 @@ Runs up to 20 concurrent browser sessions with color-coded Chrome tab groups, so
 
 ## Works with any MCP client
 
-Browser MCP is a standard stdio MCP server - it doesn't know or care which client is talking to it. The same `~/.codex/config.toml` entry is shared by the **ChatGPT desktop app**, **Codex CLI**, and the **Codex IDE extension**, so one setup unlocks all three. Outside the Codex/ChatGPT family it works identically with Claude Code, Claude Desktop, Cursor, Cline, Continue, or anything else that speaks MCP - same package, same extension, same `npx browser-mcp` command, just wired in with that client's own config format instead of `codex mcp add`.
+Browser MCP is a standard stdio MCP server - it doesn't know or care which client is talking to it. The same `~/.codex/config.toml` entry is shared by the **ChatGPT desktop app**, **Codex CLI**, and the **Codex IDE extension**, so one setup unlocks all three. Outside the Codex/ChatGPT family it works identically with Claude Code, Claude Desktop, Cursor, Cline, Continue, or anything else that speaks MCP - same binary, same extension, same `browser-mcp` command, just wired in with that client's own config format instead of `codex mcp add`.
 
 ## FAQ
 
@@ -139,11 +131,11 @@ Three layers: (1) auto-detect and click reCAPTCHA/hCaptcha/Turnstile checkboxes,
 Yes - MIT-licensed, open source, no paywall, no account, no API key. Built by [Mohamed Elsheikh](https://github.com/modded-soldier-9/browser-mcp) as part of its developer-tools work.
 
 **How do I remove it?**
-`codex mcp remove browser-mcp` drops the entry from `config.toml`, then remove the extension from `chrome://extensions`. There's no global npm install to clean up - `npx` runs the server directly each time, it's never installed persistently.
+`codex mcp remove browser-mcp` drops the entry from `config.toml`, then remove the extension from `chrome://extensions`. You can also remove the binary and the unpacked directory at `~/.browser-mcp/extension`.
 
 **What if I already have Browser MCP set up for Claude Code?**
 The Chrome extension is shared - you only load it once, regardless of how many MCP clients point at it. You just need one more `codex mcp add` (or manual config.toml entry) so Codex knows about the same local server.
 
 ---
 
-by [Mohamed Elsheikh](https://github.com/modded-soldier-9/browser-mcp) · MIT License · [GitHub](https://github.com/modded-soldier-9/browser-mcp) · [npm](https://www.npmjs.com/package/browser-mcp)
+by [Mohamed Elsheikh](https://github.com/modded-soldier-9/browser-mcp) · MIT License · [GitHub](https://github.com/modded-soldier-9/browser-mcp)

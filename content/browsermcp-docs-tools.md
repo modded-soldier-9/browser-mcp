@@ -115,10 +115,10 @@ Yes. `browser_ask_user` pauses, asks you on your own screen - a 2FA code, a CAPT
 
 | Tool | Description |
 |---|---|
-| `browser_provide_feedback` | Self-check plus report in one call. Compares this server against the latest published on npm, the connected extension against this server, and detects more than one Browser MCP extension connected at once - the three things that explain most "it just stopped working" moments. Returns a verdict, concrete fix steps, and a pre-filled issue link for whatever is genuinely missing. The agent calls it on its own whenever a tool blocks it. |
+| `browser_provide_feedback` | Local self-check and diagnostic feedback tool. Records user feedback and agent diagnostic reports locally to `~/.browser-mcp/feedback.log` for troubleshooting. Returns confirmation and log location. |
 | `browser_about` | Return Browser MCP info plus pre-filled links for the user to submit a feature wish, share a use-case, or report a bug. |
 | `browser_reattach_debugger` | Force-detach and re-attach the Chrome debugger on the current tab. Use when click/fill/press_key start timing out or report a ghost attach while `browser_list_tabs` still works - faster than reloading the extension. |
 
 ---
 
-**Total: 43 tools** (5 + 14 + 6 + 5 + 2 + 3 + 1 + 1 + 3 + 3 = 43), verified against `mcp-server/tools.js` line-by-line - no invented tools.
+**Total: 43 tools** (5 + 14 + 6 + 5 + 2 + 3 + 1 + 1 + 3 + 3 = 43), verified against `tools_schema.json` line-by-line - no invented tools.

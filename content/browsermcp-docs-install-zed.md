@@ -10,7 +10,7 @@
 
 ## The whole thing, in four steps
 
-**1 - Install the Chrome extension.** One click from the [Chrome Web Store](https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl).
+**1 - Install the extension.** Run `browser-mcp install` to unpack the extension into `~/.browser-mcp/extension/`, then load it under `chrome://extensions` or `brave://extensions` (Developer mode ON → **Load unpacked**).
 
 **2 - Open Zed's settings.** Command Palette → `agent: open settings` → **MCP Servers** → **Add Server** → **Add Local Server**. Or edit `settings.json` directly.
 
@@ -21,8 +21,7 @@
   "context_servers": {
     "browser-mcp": {
       "source": "custom",
-      "command": "npx",
-      "args": ["-y", "browser-mcp@latest"],
+      "command": "browser-mcp",
       "env": {}
     }
   }

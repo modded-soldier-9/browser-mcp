@@ -6,7 +6,7 @@
 
 ---
 
-**Short answer:** the four issues you are most likely to hit, with the fastest fix for each: **(0)** brand-new install that never connects → you are missing the MCP server half; register it with your agent (`claude mcp add --scope user browser-mcp -- npx browser-mcp@latest` for Claude Code); **(1)** "Chrome extension not connected" on a setup that used to work → kill stale server processes and reload the extension; **(2)** debugger detaches after 2-3 actions on one tab → continue in a fresh tab, or lean on `navigate`/`screenshot` which survive it; **(3)** text *appends* instead of replacing in React/Angular forms on macOS → **fixed in v1.24.0** - upgrade and reload the extension; **(4)** `execute_script` blocked on strict-CSP sites → prefer the dedicated tools (`fill`, `click`, `set_combobox`) over raw scripts. Details, causes and fix status below - we found every one of these using the tool on our own work, and we would rather publish them than have you discover them.
+**Short answer:** the four issues you are most likely to hit, with the fastest fix for each: **(0)** brand-new install that never connects → you are missing the MCP server half; register it with your agent (`claude mcp add --scope user browser-mcp -- browser-mcp` for Claude Code); **(1)** "Chrome extension not connected" on a setup that used to work → kill stale server processes and reload the extension; **(2)** debugger detaches after 2-3 actions on one tab → continue in a fresh tab, or lean on `navigate`/`screenshot` which survive it; **(3)** text *appends* instead of replacing in React/Angular forms on macOS → **fixed in v1.24.0** - upgrade and reload the extension; **(4)** `execute_script` blocked on strict-CSP sites → prefer the dedicated tools (`fill`, `click`, `set_combobox`) over raw scripts. Details, causes and fix status below - we found every one of these using the tool on our own work, and we would rather publish them than have you discover them.
 
 ## First: is it actually installed?
 
@@ -53,33 +53,33 @@ event.
 
 ## Brand-new install: the extension says "not connected" and never turns green
 
-**Symptom:** you installed the extension (usually from the Chrome Web Store), clicked the toolbar icon, and it sits on **"Not connected"**. Reconnect does nothing. No tool calls work, and your agent says it has no browser access.
+**Symptom:** you unpacked and loaded the extension, clicked the toolbar icon, and it sits on **"Not connected"**. Reconnect does nothing. No tool calls work, and your agent says it has no browser access.
 
-**Cause: nothing is wrong - you have installed half the product.** Browser MCP is a Chrome extension **plus** a local MCP server, and the extension's only job is to connect to that server. The Chrome Web Store cannot ship the server (it is an npm package your agent runs), and npm cannot ship the extension (Chrome forbids self-installing extensions). So each half is installed separately, and installing only the extension leaves it with nothing to connect to.
+**Cause: nothing is wrong - you have installed half the product.** Browser MCP is a Chrome extension **plus** a local native MCP server, and the extension's only job is to connect to that server. The extension must be connected to the native MCP server binary that your agent runs. Each half is configured separately, and loading only the extension leaves it with nothing to connect to.
 
 **Fix - register the missing half with your agent.** Claude Code:
 
 ```bash
-claude mcp add --scope user browser-mcp -- npx browser-mcp@latest
+claude mcp add --scope user browser-mcp -- browser-mcp
 ```
 
 Codex:
 
 ```bash
-codex mcp add browser-mcp -- npx browser-mcp@latest
+codex mcp add browser-mcp -- browser-mcp
 ```
 
 Cursor, VS Code, Windsurf or anything else - add this to that client's MCP config:
 
 ```json
-{"mcpServers": {"browser-mcp": {"command": "npx", "args": ["browser-mcp@latest"]}}}
+{"mcpServers": {"browser-mcp": {"command": "browser-mcp"}}}
 ```
 
 Then **restart your agent** so it launches the server, and click the extension icon again. Per-client walkthroughs: [Claude Code](/docs/install-claude-code) · [Cursor](/docs/install-cursor) · [VS Code](/docs/install-vscode) · [Codex](/docs/install-codex).
 
-**Note on `npx browser-mcp install`:** that command copies the extension files to `~/.browser-mcp/extension/`, which is useful for an unpacked install - but do not rely on it to register the server with Claude Code. Use `claude mcp add` above.
+**Note on `browser-mcp install`:** that command copies the extension files to `~/.browser-mcp/extension/`, which is useful for an unpacked install - but do not rely on it to register the server with Claude Code. Use `claude mcp add` above.
 
-**How to tell this apart from a real fault:** if you have never run an `npx browser-mcp …` command on this machine, this is your problem - not the sections below. A quick check that a server is running at all:
+**How to tell this apart from a real fault:** if you have never registered or run `browser-mcp` on this machine, this is your problem - not the sections below. A quick check that a server is running at all:
 
 ```bash
 lsof -iTCP:9876-9895 -sTCP:LISTEN    # macOS/Linux - expect one line per active agent session
@@ -134,8 +134,8 @@ Because we use Browser MCP all day on real work, the failure modes above are fac
 
 ## FAQ
 
-**I installed it from the Chrome Web Store. Why do I still have to run a terminal command?**
-Because the store can only give you the extension, and the extension is a bridge - it needs the local MCP server on the other end. That server is the npm package your agent runs, and Google has no way to register it for you. One command, once: `claude mcp add --scope user browser-mcp -- npx browser-mcp@latest` (or the equivalent for your client).
+**I loaded the unpacked extension. Why do I still have to register an MCP server?**
+Because the extension is only half of the bridge - it needs the native MCP server on the other end. That server is the standalone binary your agent runs. One command, once: `claude mcp add --scope user browser-mcp -- browser-mcp` (or the equivalent config for Cursor, VS Code, or Codex).
 
 **Does the debugger banner ("Browser MCP started debugging this browser") mean something is wrong?**
 No - that is Chrome's standard notice whenever the Debugger API is attached. It disappears when the session ends.

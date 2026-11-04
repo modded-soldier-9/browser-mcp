@@ -10,7 +10,7 @@
 
 ## The whole thing, in four steps
 
-**1 - Install the Chrome extension.** One click from the [Chrome Web Store](https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl).
+**1 - Install the extension.** Run `browser-mcp install` to unpack the extension into `~/.browser-mcp/extension/`, then load it under `chrome://extensions` or `brave://extensions` (Developer mode ON → **Load unpacked**).
 
 **2 - Open the MCP config.** Command Palette → **Kiro: Open user MCP config (JSON)** for every workspace, or **Kiro: Open workspace MCP config (JSON)** for just this one. There is also an "Open MCP Config" icon in the Kiro panel.
 
@@ -20,8 +20,7 @@
 {
   "mcpServers": {
     "browser-mcp": {
-      "command": "npx",
-      "args": ["-y", "browser-mcp@latest"],
+      "command": "browser-mcp",
       "env": {},
       "disabled": false
     }
@@ -39,7 +38,7 @@ You get an image back instead of *"I don't have browser access"*. **That's it - 
 
 **Kiro does not inherit your shell's PATH.**
 
-If `npx` works in your terminal but the server will not start in Kiro, this is why: Kiro runs with its own environment, and a bare command name may not resolve. Their own documentation says to test the command first and use a full path if needed. On a typical macOS setup that is something like `/usr/local/bin/npx` or `~/.nvm/versions/node/<version>/bin/npx` - run `which npx` and use what it tells you.
+If `browser-mcp` works in your terminal but the server will not start in Kiro, this is why: Kiro runs with its own environment, and a bare command name may not resolve if it's not in Kiro's system PATH. Test the command first and use a full absolute path to the executable if needed (e.g. `/usr/local/bin/browser-mcp` or `C:\Users\...\browser-mcp.exe`).
 
 This is not a Browser MCP quirk. It hits every MCP server in Kiro, and it is the reason a config that is character-for-character correct can still do nothing.
 

@@ -23,19 +23,16 @@
 <p><b>Give Trae's agent control of your real, already-logged-in Chrome.</b> Your cookies, your sessions, your 2FA, instead of a blank browser that hits every login wall as a stranger.</p>
 <h2 id="one-click">One click</h2>
 <p>Paste this into your browser's address bar and press Enter. Trae opens, shows you the configuration, and you confirm:</p>
-<div class="code"><pre>trae://trae.ai-ide/mcp-import?type=stdio&amp;name=browser-mcp&amp;config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIkBhZ2VudDM2MC9icm93c2VyLW1jcEBsYXRlc3QiXX0%3D</pre><button class="copy">Copy</button></div>
+<div class="code"><pre>trae://trae.ai-ide/mcp-import?type=stdio&amp;name=browser-mcp&amp;config=eyJjb21tYW5kIjoiYnJvd3Nlci1tY3AifQ%3D%3D</pre><button class="copy">Copy</button></div>
 <p>That is Trae's own install-link format. The unreadable part is the base64 of exactly the config shown below - nothing hidden, and you can decode it yourself before you run it.</p>
-<p>Then install the <a href="https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl">Chrome extension</a> - the server is only half of it.</p>
+<p>Then unpack and load the Chrome extension (<code>browser-mcp install</code>, then load unpacked in <code>chrome://extensions</code>) - the server is only half of it.</p>
 <h2 id="or-four-steps-by-hand">Or four steps, by hand</h2>
-<p><b>1 - Install the Chrome extension.</b> One click from the <a href="https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl">Chrome Web Store</a>.</p>
+<p><b>1 - Install the extension.</b> Run <code>browser-mcp install</code> to unpack the extension into <code>~/.browser-mcp/extension/</code>, then load it under <code>chrome://extensions</code> or <code>brave://extensions</code> (Developer mode ON → <b>Load unpacked</b>).</p>
 <p><b>2 - Open the MCP window.</b> Settings icon (top right) → <b>MCP</b>. In SOLO mode the same icon sits at the top right of the chat panel.</p>
 <p><b>3 - Add &gt; Add Manually</b>, and paste:</p>
 <div class="code"><pre>{
   &quot;mcpServers&quot;: {
-    &quot;browser-mcp&quot;: {
-      &quot;command&quot;: &quot;npx&quot;,
-      &quot;args&quot;: [&quot;-y&quot;, &quot;browser-mcp@latest&quot;]
-    }
+    &quot;browser-mcp&quot;: {&quot;command&quot;: &quot;browser-mcp&quot;}
   }
 }</pre><button class="copy">Copy</button></div>
 <p><b>4 - Say this, to check it worked.</b> In the agent panel:</p>
@@ -49,7 +46,7 @@ Trae:    [browser_navigate]
          41 orders yesterday. No login step - you were already signed in.</pre><button class="copy">Copy</button></div>
 <h2 id="three-things-that-fail-silently-in-trae">Three things that fail silently in Trae</h2>
 <p><b>The project-level file needs a switch.</b> You can put <code>mcp.json</code> in <code>.trae/</code> in the project root, but Trae ignores it until <b>Settings → MCP → Enable Project MCP</b> is toggled on and confirmed. A config file that is simply never read looks exactly like a broken server.</p>
-<p><b>No spaces in <code>command</code>.</b> Trae's own wording: <i>"The command must not contain spaces, otherwise parsing errors will occur."</i> <code>npx</code> is fine. A Windows path with <code>Program Files</code> in it is not - use a path without spaces, or let <code>npx</code> resolve it.</p>
+<p><b>No spaces in <code>command</code>.</b> Trae's own wording: <i>"The command must not contain spaces, otherwise parsing errors will occur."</i> A command of <code>browser-mcp</code> is fine. A Windows path with <code>Program Files</code> in it is not - use a path without spaces, or add <code>browser-mcp</code> to your system <code>PATH</code>.</p>
 <p><b>The startup timeout is yours to set.</b> Browser MCP takes its port the first time the browser is actually used, not at startup, so a slow first call is normal rather than a hang. If your machine is slow to fetch the package, raise it:</p>
 <div class="code"><pre>&quot;env&quot;: {
   &quot;START_MCP_TIMEOUT_MS&quot;: &quot;60000&quot;,

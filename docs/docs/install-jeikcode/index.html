@@ -23,17 +23,16 @@
 <h2 id="quick-setup-1-minute">Quick Setup (1 Minute)</h2>
 <h3 id="1-register-with-jeikcode-cli">1. Register with JeikCode CLI</h3>
 <p>Run this command in your terminal:</p>
-<div class="code"><pre>jeikcode mcp add browser-mcp npx -y browser-mcp@latest --global</pre><button class="copy">Copy</button></div>
+<div class="code"><pre>jeikcode mcp add browser-mcp browser-mcp --global</pre><button class="copy">Copy</button></div>
 <p>Or run the Browser MCP installer directly:</p>
-<div class="code"><pre>npx browser-mcp install</pre><button class="copy">Copy</button></div>
+<div class="code"><pre>browser-mcp install</pre><button class="copy">Copy</button></div>
 <p>The installer detects your JeikCode installation automatically and registers <code>browser-mcp</code> with <code>scope: "session"</code> and <code>maxConcurrentCalls: 1</code>.</p>
 <h3 id="2-manual-configuration-optional">2. Manual Configuration (Optional)</h3>
 <p>Alternatively, add <code>browser-mcp</code> to your global <code>~/.jeikcode/mcp.json</code> or project-level <code>.mcp.json</code>:</p>
 <div class="code"><pre>{
   &quot;mcpServers&quot;: {
     &quot;browser-mcp&quot;: {
-      &quot;command&quot;: &quot;npx&quot;,
-      &quot;args&quot;: [&quot;-y&quot;, &quot;browser-mcp@latest&quot;],
+      &quot;command&quot;: &quot;browser-mcp&quot;,
       &quot;timeout_ms&quot;: 30000,
       &quot;maxConcurrentCalls&quot;: 1,
       &quot;scope&quot;: &quot;session&quot;

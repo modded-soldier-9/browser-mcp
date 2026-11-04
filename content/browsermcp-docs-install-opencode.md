@@ -10,7 +10,7 @@
 
 ## The whole thing, in four steps
 
-**1 - Install the Chrome extension.** One click from the [Chrome Web Store](https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl).
+**1 - Install the extension.** Run `browser-mcp install` to unpack the extension into `~/.browser-mcp/extension/`, then load it under `chrome://extensions` or `brave://extensions` (Developer mode ON → **Load unpacked**).
 
 **2 - Open your config.** `opencode.jsonc` (or `opencode.json`), in the project or your global config.
 
@@ -49,8 +49,7 @@ opencode: [browser_navigate]
 **`command` is an array, not a string.** Every other MCP client splits this into `command` plus `args`:
 
 ```json
-"command": "npx",
-"args": ["-y", "browser-mcp@latest"]
+"command": "browser-mcp"
 ```
 
 opencode does not. It takes one array with the executable first:

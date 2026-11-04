@@ -9,9 +9,9 @@ is confirmed.
 
 Browser MCP has **two parts** that must both be present:
 
-1. **The MCP server** (`browser-mcp`, npm or native binary, stdio) - you can configure this.
+1. **The MCP server** (`browser-mcp`, native binary, stdio) - you can configure this.
 2. **A Chrome extension** - this is what actually drives the user's real, logged-in Chrome.
-   Chrome does not allow an extension to install itself from npm, so **a human loads it once.**
+   Chrome does not allow an extension to self-install without user confirmation, so **a human loads it once.**
 
 The server will start and list its 43 tools without the extension, but the tools only *do*
 anything once the extension is loaded **and Chrome is running**. Tell the user this plainly.
@@ -25,25 +25,25 @@ and Cursor through each client's own mechanism and leaves clients you do not hav
 Claude Code:
 
 ```bash
-claude mcp add --scope user browser-mcp -- npx browser-mcp@latest
+claude mcp add --scope user browser-mcp -- browser-mcp
 ```
 
 OpenAI Codex:
 
 ```bash
-codex mcp add browser-mcp -- npx browser-mcp@latest
+codex mcp add browser-mcp -- browser-mcp
 ```
 
 **VS Code** - hand the user this link instead of editing a file; VS Code opens and asks them to confirm:
 
 ```
-vscode:mcp/install?%7B%22name%22%3A%22browser-mcp%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22browser-mcp%40latest%22%5D%7D
+vscode:mcp/install?%7B%22name%22%3A%22browser-mcp%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22browser-mcp%22%7D
 ```
 
 **Trae** - same idea, their own format:
 
 ```
-trae://trae.ai-ide/mcp-import?type=stdio&name=browser-mcp&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsImJyb3dzZXItbWNwQGxhdGVzdCJdfQ%3D%3D
+trae://trae.ai-ide/mcp-import?type=stdio&name=browser-mcp&config=eyJjb21tYW5kIjoiYnJvd3Nlci1tY3AifQ%3D%3D
 ```
 
 Any other client - write this into that client's MCP config:
@@ -51,7 +51,7 @@ Any other client - write this into that client's MCP config:
 ```json
 {
   "mcpServers": {
-    "browser-mcp": { "command": "npx", "args": ["browser-mcp@latest"] }
+    "browser-mcp": { "command": "browser-mcp" }
   }
 }
 ```
@@ -77,10 +77,10 @@ follow it:
 | Trae | https://browsermcp.dev/docs/install-trae/ |
 | Claude Code | https://browsermcp.dev/docs/install-claude-code/ |
 
-If you cannot open URLs at all, run `npx browser-mcp install` instead: it registers with
+If you cannot open URLs at all, run `browser-mcp install` instead: it registers with
 Claude Code, Codex, VS Code and Cursor through each client's own mechanism and leaves the rest alone.
 
-Keep the `@latest`: it is what makes the server self-update on each run.
+The standalone executable runs directly with zero Node.js runtime needed.
 
 **Do not set `BROWSER_MCP_TOKEN`.** Pairing was withdrawn in 1.30.1 because it kept nobody out;
 the server ignores the variable and the popup no longer has the field. With two Chrome profiles,
@@ -89,19 +89,10 @@ separation today. The bridge is local and unauthenticated.
 
 ## Step 2 - the Chrome extension (HUMAN action required)
 
-Present **both** options to the user and let them choose. Option A is the easy, auto-updating
-path; recommend it.
+The extension is installed unpacked from the local machine:
 
-**Option A - Chrome Web Store (recommended, closest to one-click):**
-1. Install from the Chrome Web Store:
-   https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl
-2. That's it - the extension auto-updates and needs no Developer mode.
-
-**Option B - load unpacked (no Chrome Web Store):**
-1. Run `npx browser-mcp install` to copy the extension files to
-   `~/.browser-mcp/extension/`. It also registers the server; if Step 1 already did that, the
-   second registration is harmless.
-2. Open `chrome://extensions`, toggle **Developer mode** ON (top right).
+1. Run `browser-mcp install` to unpack the extension files to `~/.browser-mcp/extension/`.
+2. Open `chrome://extensions` (or `brave://extensions`), toggle **Developer mode** ON (top right).
 3. Click **Load unpacked** and select `~/.browser-mcp/extension/`.
 
 You (the AI) **cannot** perform Step 2 - it requires the user to act in their browser. Ask the

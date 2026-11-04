@@ -12,13 +12,13 @@
 Run this command in your terminal:
 
 ```bash
-jeikcode mcp add browser-mcp npx -y browser-mcp@latest --global
+jeikcode mcp add browser-mcp browser-mcp --global
 ```
 
 Or run the Browser MCP installer directly:
 
 ```bash
-npx browser-mcp install
+browser-mcp install
 ```
 
 The installer detects your JeikCode installation automatically and registers `browser-mcp` with `scope: "session"` and `maxConcurrentCalls: 1`.
@@ -31,8 +31,7 @@ Alternatively, add `browser-mcp` to your global `~/.jeikcode/mcp.json` or projec
 {
   "mcpServers": {
     "browser-mcp": {
-      "command": "npx",
-      "args": ["-y", "browser-mcp@latest"],
+      "command": "browser-mcp",
       "timeout_ms": 30000,
       "maxConcurrentCalls": 1,
       "scope": "session"

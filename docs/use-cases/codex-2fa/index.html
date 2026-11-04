@@ -40,9 +40,9 @@ Codex:  [continues in the same tab, exports the file]
 <p>The tool behind that pause is <code>browser_ask_user</code>. It stops the run, shows you a prompt on your own screen, waits, and carries on in the tab that was already signed in. No credential ever leaves your machine, because none was needed.</p>
 <h2 id="setting-it-up">Setting it up</h2>
 <p>Two halves, both required:</p>
-<p><b>1 - The Chrome extension.</b> <a href="https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl">One click from the Chrome Web Store</a>.</p>
+<p><b>1 - The Chrome extension.</b> Run <code>browser-mcp install</code> to unpack into <code>~/.browser-mcp/extension/</code> and load unpacked in <code>chrome://extensions</code> or <code>brave://extensions</code> (Developer mode ON → <b>Load unpacked</b>).</p>
 <p><b>2 - The MCP server, registered with Codex:</b></p>
-<div class="code"><pre>codex mcp add browser-mcp -- npx browser-mcp@latest</pre><button class="copy">Copy</button></div>
+<div class="code"><pre>codex mcp add browser-mcp -- browser-mcp</pre><button class="copy">Copy</button></div>
 <p>Restart your Codex session. Full walkthrough: <a href="/docs/install-codex/">Install for Codex</a>.</p>
 <h2 id="two-things-to-know-before-you-rely-on-it">Two things to know before you rely on it</h2>
 <p><b>The tab has to be the one in front.</b> Chrome does not deliver keystrokes to a tab you are not looking at - it accepts the command and drops it. Browser MCP tools detect this and report it honestly instead of pretending it worked, and the fix is <code>browser_switch_tab</code>. We measured whether giving the session its own window would remove the problem: it does not. What matters is whether the <i>window</i> has focus, not whether the tab is visible in it.</p>

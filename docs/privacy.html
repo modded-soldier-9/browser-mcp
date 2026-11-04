@@ -132,7 +132,7 @@
     <ul>
       <li>The Chrome extension communicates with a local MCP server via WebSocket (localhost only)</li>
       <li>The MCP server communicates with Claude Code (or other MCP clients) via stdio</li>
-      <li>Browser MCP itself contacts no server of ours or any third party. What does leave your machine: the pages your agent reads go to your AI client and on to its model provider; the browser visits the sites your agent opens; and <code>npx browser-mcp@latest</code> looks the package up on npm once when the server starts</li>
+      <li>Browser MCP itself contacts no server of ours or any third party. What does leave your machine: the pages your agent reads go to your AI client and on to its model provider; the browser visits the sites your agent opens. Browser MCP runs as a standalone native binary with zero npm lookups and zero external telemetry.</li>
     </ul>
 
     <p>The localhost WebSocket bridge is not password-protected - it trusts connections from your own machine. That means the extension is only as private as your computer: any software already running on it could, in principle, connect to the same local port. Browser MCP never exposes this bridge beyond <code>localhost</code>, and the bridge itself sends nothing off your machine. If you share your computer with untrusted software, disable or remove the extension when you are not using it.</p>

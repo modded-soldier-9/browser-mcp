@@ -15,7 +15,7 @@ The full specification is maintained at [modelcontextprotocol.io](https://modelc
 Browser MCP is an MCP server for **browser automation through your real Chrome profile**. Concretely, it is two cooperating pieces:
 
 - A **Chrome extension** (Manifest V3), which holds the tab groups, reads cookies/localStorage, and executes actions through Chrome's own APIs (including Chrome's `debugger` API / DevTools Protocol, so it can read, screenshot and run scripts in a tab you are not looking at. Mouse and keyboard are the exception: Chrome does not deliver those to a tab that is not the visible one in its window, and the tools say so rather than pretend).
-- A **local MCP server** (`npx browser-mcp`) that your MCP client talks to over stdio, and that bridges to the extension over a local WebSocket connection (ports 9876-9895, one per concurrent session).
+- A **local MCP server** (`browser-mcp`) that your MCP client talks to over stdio, and that bridges to the extension over a local WebSocket connection (ports 9876-9895, one per concurrent session).
 
 An AI agent connected to it can navigate pages, read and fill forms, click by CSS or by visible text, take screenshots, run JavaScript in page context, manage tabs and iframes, read cookies and localStorage, make CORS-free fetch calls from the extension, wait for a specific network call to finish, attempt CAPTCHA solves, pull an API token straight off a provider's dashboard (zero-config shortcuts for common ones like Stripe, HubSpot, or Slack - and general-purpose navigate-and-read support for any provider that isn't preconfigured), and hand control back to you mid-task for anything that needs a human (2FA code, a password, a judgment call). The full list of the 43 tools, grouped by category, is in the [tools reference](/docs/tools).
 
@@ -61,7 +61,7 @@ If your task is "verify my checkout flow still works in a clean environment," re
 
 ## Why does controlling a real, logged-in browser matter?
 
-Most of the software a person actually uses in a day - a CRM, an internal admin panel, LinkedIn, a bank portal, a SaaS dashboard with no public API - is guarded by exactly the things headless automation struggles with: a login wall, a 2FA prompt, or a bot-detection layer that headless browsers trip by default (see [Chrome Web Store distribution model](https://developer.chrome.com/docs/webstore) for how the extension itself is delivered like any other Chrome extension, not a special automation binary).
+Most of the software a person actually uses in a day - a CRM, an internal admin panel, LinkedIn, a bank portal, a SaaS dashboard with no public API - is guarded by exactly the things headless automation struggles with: a login wall, a 2FA prompt, or a bot-detection layer that headless browsers trip by default (the extension runs as a standard Manifest V3 extension loaded unpacked into your browser via `browser-mcp install`, not a special automation binary).
 
 Because Browser MCP drives your real, already-authenticated Chrome, an agent using it doesn't need to solve the login problem at all - it's already logged in, the same way you are. When a site does throw a one-time verification step mid-flow, the agent can pause, read the code from another tab you have open (your email client, an authenticator page), and continue - with you watching and able to step in via `browser_ask_user` at any point that needs a human decision.
 
@@ -73,12 +73,12 @@ Browser MCP is MIT-licensed, free, and runs on your own machine. There is no clo
 
 In two parts, because it *is* two parts.
 
-**1. The Chrome extension** - one click from the [Chrome Web Store](https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl) (auto-updating, no Developer mode). Or run `npx browser-mcp install` to drop the files in `~/.browser-mcp/extension/` and load them via `chrome://extensions` → Developer mode → Load unpacked.
+**1. The Chrome extension** - run `browser-mcp install` to unpack the extension files into `~/.browser-mcp/extension/` and load them via `chrome://extensions` or `brave://extensions` → Developer mode → Load unpacked.
 
 **2. The MCP server** - registered with your client. Claude Code:
 
 ```bash
-claude mcp add --scope user browser-mcp -- npx browser-mcp@latest
+claude mcp add --scope user browser-mcp -- browser-mcp
 ```
 
 Neither half can install the other, so both steps are required - the extension on its own sits on "Not connected". Client-specific walkthroughs:
@@ -99,4 +99,4 @@ Not for testing your own app in a clean environment - that's still Playwright's 
 Any MCP-compatible client: Claude Code, Cursor, VS Code in agent mode, and others that implement the [Model Context Protocol](https://modelcontextprotocol.io) client side.
 
 **How many tools does it expose?**
-34, spanning navigation, page content, interaction (click/fill/select/date-pickers), tabs and iframes, cookies and storage, network waiting, CAPTCHA assistance, and human-in-the-loop handoff. Full reference: [/docs/tools](/docs/tools).
+43, spanning navigation, page content, interaction (click/fill/select/date-pickers), tabs and iframes, cookies and storage, network waiting, CAPTCHA assistance, and human-in-the-loop handoff. Full reference: [/docs/tools](/docs/tools).

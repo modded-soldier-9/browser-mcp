@@ -10,8 +10,8 @@
 
 ## Uninstall in two steps
 
-1. **Remove the Chrome extension.** Open `chrome://extensions`, find Browser MCP, and click **Remove**. If you loaded it unpacked, delete the extension folder too.
-2. **Remove the MCP server from your client.** Delete the `browser-mcp` entry from your MCP config (e.g. `claude mcp remove browser-mcp`, or delete the block from your Cursor/VS Code/Codex config). If you installed globally, `npm uninstall -g browser-mcp`.
+1. **Remove the Chrome extension.** Open `chrome://extensions`, find Browser MCP, and click **Remove**. If you loaded it unpacked, delete the `~/.browser-mcp/extension` folder too.
+2. **Remove the MCP server from your client.** Delete the `browser-mcp` entry from your MCP config (e.g. `claude mcp remove browser-mcp`, or delete the block from your Cursor/VS Code/Codex config), and remove the `browser-mcp` executable.
 
 That's it. There is no uninstaller to run, no account to close, and no data of yours on any server to delete.
 
@@ -45,7 +45,7 @@ This is a lot of access, and we won't pretend otherwise. It is the same access a
 
 The extension talks to a local MCP server over a `127.0.0.1` WebSocket bridge, and that server talks to your MCP client on the same machine. There is no remote backend in the loop. Your pages, cookies, sessions and keystrokes are never sent to us - there is nowhere for them to be sent, because we don't run a server that receives them. The project is open source (MIT), so this isn't a promise you have to take on trust: you can read `extension/background.js` and confirm there is no outbound telemetry.
 
-What does leave your machine is what you would expect from any AI agent: the pages your agent reads are handed to your AI client (Claude Code, Cursor, Codex...), which sends them to its model provider the same way it sends anything else you show it. The browser visits the sites your agent opens. And if you start the server with `npx ...@latest`, npm looks the package up once at startup.
+What does leave your machine is what you would expect from any AI agent: the pages your agent reads are handed to your AI client (Claude Code, Cursor, Codex...), which sends them to its model provider the same way it sends anything else you show it. The browser visits the sites your agent opens. The standalone native binary performs zero network lookups at startup and sends zero telemetry.
 
 ## FAQ
 

@@ -31,9 +31,9 @@ Claude: [opens the dashboard in your Chrome - already signed in]
 <p>No login step, because there is nothing to log in to. The tab is yours.</p>
 <h2 id="setting-it-up">Setting it up</h2>
 <p>Two halves, both required:</p>
-<p><b>1 - The Chrome extension.</b> <a href="https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl">One click from the Chrome Web Store</a>.</p>
+<p><b>1 - The Chrome extension.</b> Run <code>browser-mcp install</code> to unpack into <code>~/.browser-mcp/extension/</code> and load unpacked in <code>chrome://extensions</code> or <code>brave://extensions</code> (Developer mode ON → <b>Load unpacked</b>).</p>
 <p><b>2 - The MCP server:</b></p>
-<div class="code"><pre>claude mcp add --scope user browser-mcp -- npx browser-mcp@latest</pre><button class="copy">Copy</button></div>
+<div class="code"><pre>claude mcp add --scope user browser-mcp -- browser-mcp</pre><button class="copy">Copy</button></div>
 <p>Restart Claude Code. Full walkthrough: <a href="/docs/install-claude-code/">Install for Claude Code</a>.</p>
 <h2 id="when-it-still-asks-you-for-something">When it still asks you for something</h2>
 <p>Some pages re-challenge even an authenticated session: a step-up 2FA prompt, a CAPTCHA, a "choose an account" screen. The agent stops and asks you on your own screen, then carries on in the same tab. That is <code>browser_ask_user</code>, and it is covered in <a href="/use-cases/codex-2fa/">Codex + 2FA</a> - the mechanism is identical whichever client you use.</p>

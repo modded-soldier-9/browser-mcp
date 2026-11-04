@@ -35,14 +35,11 @@ Cursor:  [continues in the same tab]
          Rates are in - zone 3 went up 4% this month.</pre><button class="copy">Copy</button></div>
 <p><code>browser_solve_captcha</code> attempts the checkbox challenge. When the page escalates to images or a slider, it shows you the tab and waits. <code>browser_ask_user</code> is the same mechanism for anything else only a human can answer.</p>
 <h2 id="setting-it-up">Setting it up</h2>
-<p><b>1 - The Chrome extension.</b> <a href="https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl">One click from the Chrome Web Store</a>.</p>
+<p><b>1 - The Chrome extension.</b> Run <code>browser-mcp install</code> to unpack into <code>~/.browser-mcp/extension/</code> and load unpacked in <code>chrome://extensions</code> or <code>brave://extensions</code> (Developer mode ON → <b>Load unpacked</b>).</p>
 <p><b>2 - The MCP server.</b> Add to <code>~/.cursor/mcp.json</code> (global) or <code>.cursor/mcp.json</code> (one project):</p>
 <div class="code"><pre>{
   &quot;mcpServers&quot;: {
-    &quot;browser-mcp&quot;: {
-      &quot;command&quot;: &quot;npx&quot;,
-      &quot;args&quot;: [&quot;-y&quot;, &quot;browser-mcp@latest&quot;]
-    }
+    &quot;browser-mcp&quot;: {&quot;command&quot;: &quot;browser-mcp&quot;}
   }
 }</pre><button class="copy">Copy</button></div>
 <p>Full walkthrough: <a href="/docs/install-cursor/">Install for Cursor</a>.</p>

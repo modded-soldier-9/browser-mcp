@@ -22,14 +22,13 @@
 <hr>
 <p><b>Give Kiro control of your real, already-logged-in Chrome - about 90 seconds, four steps.</b> Your cookies, your sessions, your 2FA, instead of a blank browser that hits every login wall as a stranger.</p>
 <h2 id="the-whole-thing-in-four-steps">The whole thing, in four steps</h2>
-<p><b>1 - Install the Chrome extension.</b> One click from the <a href="https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl">Chrome Web Store</a>.</p>
+<p><b>1 - Install the extension.</b> Run <code>browser-mcp install</code> to unpack the extension into <code>~/.browser-mcp/extension/</code>, then load it under <code>chrome://extensions</code> or <code>brave://extensions</code> (Developer mode ON → <b>Load unpacked</b>).</p>
 <p><b>2 - Open the MCP config.</b> Command Palette → <b>Kiro: Open user MCP config (JSON)</b> for every workspace, or <b>Kiro: Open workspace MCP config (JSON)</b> for just this one. There is also an "Open MCP Config" icon in the Kiro panel.</p>
 <p><b>3 - Add the server:</b></p>
 <div class="code"><pre>{
   &quot;mcpServers&quot;: {
     &quot;browser-mcp&quot;: {
-      &quot;command&quot;: &quot;npx&quot;,
-      &quot;args&quot;: [&quot;-y&quot;, &quot;browser-mcp@latest&quot;],
+      &quot;command&quot;: &quot;browser-mcp&quot;,
       &quot;env&quot;: {},
       &quot;disabled&quot;: false
     }
@@ -40,7 +39,7 @@
 <p>You get an image back instead of <i>"I don't have browser access"</i>. <b>That's it - you're running.</b></p>
 <h2 id="the-one-that-catches-people-here-and-nowhere-else">The one that catches people here and nowhere else</h2>
 <p><b>Kiro does not inherit your shell's PATH.</b></p>
-<p>If <code>npx</code> works in your terminal but the server will not start in Kiro, this is why: Kiro runs with its own environment, and a bare command name may not resolve. Their own documentation says to test the command first and use a full path if needed. On a typical macOS setup that is something like <code>/usr/local/bin/npx</code> or <code>~/.nvm/versions/node/&lt;version&gt;/bin/npx</code> - run <code>which npx</code> and use what it tells you.</p>
+<p>If <code>browser-mcp</code> works in your terminal but the server will not start in Kiro, this is why: Kiro runs with its own environment, and a bare command name may not resolve if it's not in Kiro's system PATH. Test the command first and use a full absolute path to the executable if needed (e.g. <code>/usr/local/bin/browser-mcp</code> or <code>C:\Users\...\browser-mcp.exe</code>).</p>
 <p>This is not a Browser MCP quirk. It hits every MCP server in Kiro, and it is the reason a config that is character-for-character correct can still do nothing.</p>
 <h2 id="where-the-files-live">Where the files live</h2>
 <div class="scroll"><table><tr><th></th><th></th></tr><tr><td>Global (all workspaces)</td><td><code>~/.kiro/settings/mcp.json</code></td></tr><tr><td>Workspace</td><td><code>.kiro/settings/mcp.json</code></td></tr></table></div>

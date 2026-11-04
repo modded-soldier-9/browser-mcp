@@ -36,6 +36,13 @@ Browser MCP connects directly to your daily browser session through a native Rus
 
 ### 1. Build & Install
 
+**Option A — Pre-built Binary (Recommended):**
+Download the latest executable for your OS from [GitHub Releases](https://github.com/modded-soldier-9/browser-mcp/releases), place `browser-mcp` in your `PATH`, and run:
+```bash
+browser-mcp install
+```
+
+**Option B — Build from Source:**
 ```bash
 # Clone the repository
 git clone https://github.com/modded-soldier-9/browser-mcp.git
@@ -52,7 +59,7 @@ cargo build --release --manifest-path crates/browser-mcp-server/Cargo.toml
 
 1. Open `brave://extensions` or `chrome://extensions`.
 2. Enable **Developer mode** (top right toggle).
-3. Click **Load unpacked** and select `~/.browser-mcp/extension` (or `./extension`).
+3. Click **Load unpacked** and select `~/.browser-mcp/extension` (or `%USERPROFILE%\.browser-mcp\extension` on Windows).
 
 ### 3. Connect Your AI Assistant
 
@@ -73,6 +80,20 @@ claude mcp add browser-mcp -- browser-mcp
 ```
 
 #### Antigravity (`~/.gemini/config/mcp_config.json`)
+```json
+{
+  "mcpServers": {
+    "browser-mcp": {
+      "command": "browser-mcp"
+    }
+  }
+}
+```
+
+#### Claude Desktop
+- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+
 ```json
 {
   "mcpServers": {

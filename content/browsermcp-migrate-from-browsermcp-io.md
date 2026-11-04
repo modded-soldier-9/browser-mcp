@@ -22,15 +22,15 @@ Everything else about MCP registration stays the same. Only the package changes:
  {
    "mcpServers": {
      "browser-mcp": {
-       "command": "npx",
+-      "command": "npx",
 -      "args": ["@browsermcp/mcp@latest"]
-+      "args": ["-y", "browser-mcp@latest"]
++      "command": "browser-mcp"
      }
    }
  }
 ```
 
-You also need **our** Chrome extension - theirs will not talk to this server, and both of them wanting the debugger at once is its own kind of bad day. Remove theirs, or disable it: [Chrome Web Store](https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl).
+You also need **our** Chrome extension - theirs will not talk to this server, and both of them wanting the debugger at once is its own kind of bad day. Remove theirs, or disable it, then run `browser-mcp install` to extract our extension into `~/.browser-mcp/extension/` and load unpacked under `chrome://extensions` (Developer mode ON).
 
 ## Checking it worked
 
@@ -66,14 +66,14 @@ We do not have them. If your flow depends on browser history navigation or dragg
 
 ## What you get that is not in the thirteen
 
-The useful half of the difference is not the tools with matching names. It is the twenty-seven that have no counterpart: `browser_ask_user` (it stops and asks you for a 2FA code, then carries on in the same tab), `browser_solve_captcha`, `browser_upload_file`, `browser_extract_token`, `browser_set_cookies`, `browser_wait_for_network`, `browser_list_frames` and `browser_select_frame` for cross-origin iframes, and twenty concurrent sessions each in its own colour-coded tab group.
+The useful half of the difference is not the tools with matching names. It is the thirty that have no counterpart: `browser_ask_user` (it stops and asks you for a 2FA code, then carries on in the same tab), `browser_solve_captcha`, `browser_upload_file`, `browser_extract_token`, `browser_set_cookies`, `browser_wait_for_network`, `browser_list_frames` and `browser_select_frame` for cross-origin iframes, and twenty concurrent sessions each in its own colour-coded tab group.
 
 And one difference that does not show up in a tool list: Browser MCP tools measure whether the page actually received the action, rather than trusting that Chrome accepted the command. Nine of them used to answer yes when nothing had happened. [The whole story is written up here](/learn/tools-that-lie/), including the parts that went badly.
 
 ## Frequently asked questions
 
 **Are these the same project?**
-No. Two teams, two GitHub organisations, two npm packages, two Chrome extensions. The name overlap is a coincidence, not a fork.
+No. Two teams, two GitHub organisations, two architectures (theirs is a Node package, ours is a standalone native binary), two Chrome extensions. The name overlap is a coincidence, not a fork.
 
 **Can I run both at once?**
 You can install both extensions, but you should not. Chrome allows one debugger per tab, so the two fight over it and every mouse, key and file tool starts failing with errors that point at the page rather than at the conflict.

@@ -10,12 +10,12 @@
 
 ## The whole thing, in four steps
 
-**1 - Install the Chrome extension.** One click from the [Chrome Web Store](https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl).
+**1 - Install the extension.** Run `browser-mcp install` to unpack the extension into `~/.browser-mcp/extension/`, then load it under `chrome://extensions` or `brave://extensions` (Developer mode ON → **Load unpacked**).
 
 **2 - Add the MCP server.** One command. Required - the extension does nothing on its own:
 
 ```bash
-qwen mcp add browser-mcp npx -y browser-mcp@latest
+qwen mcp add browser-mcp browser-mcp
 ```
 
 It answers:
@@ -34,7 +34,7 @@ What comes back when it works:
 
 ```text
 Configured MCP servers:
-✓ browser-mcp: npx -y browser-mcp@latest (stdio) - Connected
+✓ browser-mcp: browser-mcp (stdio) - Connected
 ```
 
 `Connected` means Qwen Code launched the server and completed the MCP handshake. Chrome does not have to be open for this step.
@@ -50,10 +50,7 @@ Configured MCP servers:
 ```json
 {
   "mcpServers": {
-    "browser-mcp": {
-      "command": "npx",
-      "args": ["-y", "browser-mcp@latest"]
-    }
+    "browser-mcp": {"command": "browser-mcp"}
   }
 }
 ```
@@ -66,7 +63,7 @@ Configured MCP servers:
 
 ```text
 Configured MCP servers:
-● browser-mcp: npx -y browser-mcp@latest (stdio) - Pending approval
+● browser-mcp: browser-mcp (stdio) - Pending approval
 ```
 
 Approve it once for that workspace:

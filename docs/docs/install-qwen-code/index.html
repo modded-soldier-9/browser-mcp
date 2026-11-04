@@ -22,16 +22,16 @@
 <hr>
 <p><b>Give Qwen Code control of your real, already-logged-in Chrome - about 90 seconds, four steps.</b> Your cookies, your sessions, your 2FA, instead of a blank browser that hits every login wall as a stranger.</p>
 <h2 id="the-whole-thing-in-four-steps">The whole thing, in four steps</h2>
-<p><b>1 - Install the Chrome extension.</b> One click from the <a href="https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl">Chrome Web Store</a>.</p>
+<p><b>1 - Install the extension.</b> Run <code>browser-mcp install</code> to unpack the extension into <code>~/.browser-mcp/extension/</code>, then load it under <code>chrome://extensions</code> or <code>brave://extensions</code> (Developer mode ON → <b>Load unpacked</b>).</p>
 <p><b>2 - Add the MCP server.</b> One command. Required - the extension does nothing on its own:</p>
-<div class="code"><pre>qwen mcp add browser-mcp npx -y browser-mcp@latest</pre><button class="copy">Copy</button></div>
+<div class="code"><pre>qwen mcp add browser-mcp browser-mcp</pre><button class="copy">Copy</button></div>
 <p>It answers:</p>
 <div class="code"><pre>MCP server &quot;browser-mcp&quot; added to user settings. (stdio)</pre><button class="copy">Copy</button></div>
 <p><b>3 - Check that Qwen Code can start it.</b></p>
 <div class="code"><pre>qwen mcp list</pre><button class="copy">Copy</button></div>
 <p>What comes back when it works:</p>
 <div class="code"><pre>Configured MCP servers:
-✓ browser-mcp: npx -y browser-mcp@latest (stdio) - Connected</pre><button class="copy">Copy</button></div>
+✓ browser-mcp: browser-mcp (stdio) - Connected</pre><button class="copy">Copy</button></div>
 <p><code>Connected</code> means Qwen Code launched the server and completed the MCP handshake. Chrome does not have to be open for this step.</p>
 <p><b>4 - Ask for something in the browser.</b> Start <code>qwen</code> and paste:</p>
 <blockquote>Take a screenshot of my current Chrome tab.</blockquote>
@@ -39,17 +39,14 @@
 <p><code>qwen mcp add</code> writes to <code>~/.qwen/settings.json</code> by default. The same thing by hand:</p>
 <div class="code"><pre>{
   &quot;mcpServers&quot;: {
-    &quot;browser-mcp&quot;: {
-      &quot;command&quot;: &quot;npx&quot;,
-      &quot;args&quot;: [&quot;-y&quot;, &quot;browser-mcp@latest&quot;]
-    }
+    &quot;browser-mcp&quot;: {&quot;command&quot;: &quot;browser-mcp&quot;}
   }
 }</pre><button class="copy">Copy</button></div>
 <h2 id="things-worth-knowing-before-you-hit-them">Things worth knowing before you hit them</h2>
 <p><b>The default scope is user, not project.</b> Unlike Gemini CLI, which Qwen Code is based on, <code>qwen mcp add</code> writes to your user settings unless you pass <code>-s project</code>. That puts the browser in every project, which is usually what you want.</p>
 <p><b>A project-scoped server has to be approved first.</b> With <code>-s project</code> the server goes into <code>.qwen/settings.json</code> in the current directory, and <code>qwen mcp list</code> shows it as not yet allowed to run:</p>
 <div class="code"><pre>Configured MCP servers:
-● browser-mcp: npx -y browser-mcp@latest (stdio) - Pending approval</pre><button class="copy">Copy</button></div>
+● browser-mcp: browser-mcp (stdio) - Pending approval</pre><button class="copy">Copy</button></div>
 <p>Approve it once for that workspace:</p>
 <div class="code"><pre>qwen mcp approve browser-mcp</pre><button class="copy">Copy</button></div>
 <div class="code"><pre>Approved MCP server &quot;browser-mcp&quot; (bound to its current config).

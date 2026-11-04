@@ -44,7 +44,7 @@ would make three parallel agents unusable the first time two of them disagreed.
 
 ## Setting it up
 
-**1 - The Chrome extension.** [One click from the Chrome Web Store](https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl).
+**1 - The Chrome extension.** Run `browser-mcp install` to unpack into `~/.browser-mcp/extension/` and load unpacked in `chrome://extensions` or `brave://extensions` (Developer mode ON → **Load unpacked**).
 
 **2 - The MCP server.** Command Palette → **MCP: Add Server**, or `.vscode/mcp.json`:
 
@@ -53,8 +53,7 @@ would make three parallel agents unusable the first time two of them disagreed.
   "servers": {
     "browser-mcp": {
       "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "browser-mcp@latest"]
+      "command": "browser-mcp"
     }
   }
 }

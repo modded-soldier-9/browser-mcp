@@ -29,17 +29,14 @@ Cursor:  [continues in the same tab]
 
 ## Setting it up
 
-**1 - The Chrome extension.** [One click from the Chrome Web Store](https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl).
+**1 - The Chrome extension.** Run `browser-mcp install` to unpack into `~/.browser-mcp/extension/` and load unpacked in `chrome://extensions` or `brave://extensions` (Developer mode ON → **Load unpacked**).
 
 **2 - The MCP server.** Add to `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (one project):
 
 ```json
 {
   "mcpServers": {
-    "browser-mcp": {
-      "command": "npx",
-      "args": ["-y", "browser-mcp@latest"]
-    }
+    "browser-mcp": {"command": "browser-mcp"}
   }
 }
 ```

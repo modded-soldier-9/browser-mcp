@@ -11,7 +11,7 @@
 Paste this into VS Code's Quick Open (`Cmd/Ctrl+P`) or your browser's address bar:
 
 ```
-vscode:mcp/install?%7B%22name%22%3A%22browser-mcp%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22browser-mcp%40latest%22%5D%7D
+vscode:mcp/install?%7B%22name%22%3A%22browser-mcp%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22browser-mcp%22%7D
 ```
 
 That is VS Code's own install-link format: the encoded part is the same four-line config shown in step 3, URL-encoded. Insiders users swap `vscode:` for `vscode-insiders:`.
@@ -20,12 +20,12 @@ You still need the Chrome extension - the server is only half of it.
 
 ## The whole thing, in four steps
 
-**1 - Install the Chrome extension.** One click from the [Chrome Web Store](https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl); Chrome keeps it updated. No store? The unpacked install is further down.
+**1 - Install the extension.** Run `browser-mcp install` to unpack the extension into `~/.browser-mcp/extension/`, then load it under `chrome://extensions` or `brave://extensions` (Developer mode ON → **Load unpacked**).
 
 **2 - Register the MCP server with VS Code.** Paste this in a terminal. Required - the extension does nothing on its own:
 
 ```bash
-code --add-mcp "{\"name\":\"browser-mcp\",\"command\":\"npx\",\"args\":[\"browser-mcp@latest\"]}"
+code --add-mcp "{\"name\":\"browser-mcp\",\"command\":\"browser-mcp\"}"
 ```
 
 **3 - Start the server, then switch Copilot Chat to Agent mode.** Command Palette → **MCP: List Servers** → **Start**, then set the chat mode dropdown to **Agent** (MCP tools only run there). The extension shows no badge until step 4 - the server only takes a port the first time your agent actually uses the browser. A green badge with the number of connected agents appears then; nothing on the icon before that is normal. (The icon itself never changes colour - it is the badge that turns green.)
@@ -49,7 +49,7 @@ Browser MCP's tools surface inside Copilot Chat, so you need the **GitHub Copilo
 ### Step 1 - Install the Chrome extension files
 
 ```bash
-npx browser-mcp install
+browser-mcp install
 ```
 
 This copies the extension to `~/.browser-mcp/extension/` and prints the path - copy it, you'll need it in Step 3. (It also writes a Claude Code config entry if you have Claude Code installed; harmless to ignore if you don't.)
@@ -61,7 +61,7 @@ Pick whichever of these three is easiest - they all end up in the same place.
 **A. One-line CLI (fastest)**
 
 ```bash
-code --add-mcp "{\"name\":\"browser-mcp\",\"command\":\"npx\",\"args\":[\"browser-mcp@latest\"]}"
+code --add-mcp "{\"name\":\"browser-mcp\",\"command\":\"browser-mcp\"}"
 ```
 
 Writes the server into your VS Code **user profile** config, so it's available in every window, not just one project. Requires the `code` CLI on your `PATH` - if it's not recognized, run `Shell Command: Install 'code' command in PATH` from the Command Palette first.
@@ -70,7 +70,7 @@ Writes the server into your VS Code **user profile** config, so it's available i
 
 1. `Cmd+Shift+P` / `Ctrl+Shift+P` → **MCP: Add Server**
 2. Choose **Workspace** (writes `.vscode/mcp.json` in this project, good for committing so teammates get it too) or **Global** (user profile, same result as method A)
-3. Pick **stdio** as the server type, `npx` as the command, `browser-mcp` as the argument
+3. Pick **stdio** as the server type, and enter `browser-mcp` as the command
 
 **C. Edit the JSON by hand**
 
@@ -81,8 +81,7 @@ Workspace-level - create or edit `.vscode/mcp.json` at your project root:
   "servers": {
     "browser-mcp": {
       "type": "stdio",
-      "command": "npx",
-      "args": ["browser-mcp@latest"]
+      "command": "browser-mcp"
     }
   }
 }
@@ -92,7 +91,7 @@ For user-level instead, run **MCP: Open User Configuration** from the Command Pa
 
 ### Step 3 - Load the extension in Chrome
 
-Chrome doesn't let extensions install themselves from npm, so this one step is manual:
+Chrome requires extensions in Developer mode to be loaded by the user:
 
 1. Open Chrome and go to `chrome://extensions`
 2. Toggle **Developer mode** ON (top right)
@@ -102,7 +101,7 @@ Chrome doesn't let extensions install themselves from npm, so this one step is m
    - **Windows:** paste `%USERPROFILE%\.browser-mcp\extension\` into the address bar
    - **Linux:** type `~/.browser-mcp/extension/` into the path field
 
-Don't want Developer mode on? Use the [Chrome Web Store install](#no-developer-mode-chrome-web-store) instead - see below.
+Loading unpacked takes 10 seconds and requires Developer mode ON in Chrome or Brave.
 
 ### Step 4 - Start the server and switch to Agent mode
 
@@ -148,18 +147,12 @@ The pattern: **anything you would do yourself in a browser, on a site you are al
 
 ## Alternative installs
 
-### No npm? Manual zip download
+### Manual zip download
 
 1. Download the extension zip from the [latest GitHub release](https://github.com/modded-soldier-9/browser-mcp/releases/latest)
 2. Unzip it anywhere (e.g. `~/Downloads/browser-mcp-extension/`)
 3. Follow Step 3 above, but select the unzipped folder instead of `~/.browser-mcp/extension/`
-4. Register the server with VS Code - `code --add-mcp "{\"name\":\"browser-mcp\",\"command\":\"npx\",\"args\":[\"browser-mcp@latest\"]}"`, or add the `.vscode/mcp.json` block from Step 2C by hand
-
-### No Developer mode - Chrome Web Store
-
-[Install from the Chrome Web Store →](https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl)
-
-No Developer mode toggle needed, and Chrome updates the extension automatically in the background. Then register the server with VS Code using either method from Step 2 above - the extension and the MCP server config are independent of each other.
+4. Register the server with VS Code - `code --add-mcp "{\"name\":\"browser-mcp\",\"command\":\"browser-mcp\"}"`, or add the `.vscode/mcp.json` block from Step 2C by hand
 
 ---
 
@@ -215,14 +208,14 @@ Each running MCP server - whether spawned by VS Code, Claude Code, or Cursor - b
 
 ## Works with any MCP client
 
-Browser MCP is a standard MCP server over stdio - nothing about it is VS Code-specific under the hood. The exact same `npx browser-mcp` command works in Claude Code, Cursor, or any other MCP-compatible client; only the config file, and its root key (`servers` here vs. `mcpServers` elsewhere), differs. Also using Claude Code? See the [Claude Code install guide](/docs/install-claude-code).
+Browser MCP is a standard MCP server over stdio - nothing about it is VS Code-specific under the hood. The exact same `browser-mcp` command works in Claude Code, Cursor, or any other MCP-compatible client; only the config file, and its root key (`servers` here vs. `mcpServers` elsewhere), differs. Also using Claude Code? See the [Claude Code install guide](/docs/install-claude-code).
 
 ---
 
 ## FAQ
 
 **How do I add an MCP server to VS Code?**
-Run `code --add-mcp "{\"name\":\"browser-mcp\",\"command\":\"npx\",\"args\":[\"browser-mcp@latest\"]}"` from a terminal, or open the Command Palette (`Cmd/Ctrl+Shift+P`) → **MCP: Add Server** → choose Workspace or Global → **stdio** → command `npx`, argument `browser-mcp@latest`. Start the server afterward via **MCP: List Servers** from the Command Palette.
+Run `code --add-mcp "{\"name\":\"browser-mcp\",\"command\":\"browser-mcp\"}"` from a terminal, or open the Command Palette (`Cmd/Ctrl+Shift+P`) → **MCP: Add Server** → choose Workspace or Global → **stdio** → command `browser-mcp`. Start the server afterward via **MCP: List Servers** from the Command Palette.
 
 **Do I need GitHub Copilot?**
 Yes. Browser MCP's tools surface through Copilot Chat's Agent mode, so you need the GitHub Copilot Chat extension installed and signed in (the free tier is enough) with the chat mode dropdown set to **Agent** - not Ask or Edit.
@@ -231,7 +224,7 @@ Yes. Browser MCP's tools surface through Copilot Chat's Agent mode, so you need 
 Workspace (`.vscode/mcp.json`) if you want the server scoped to one project and want to commit the config so teammates get it automatically. User/global (via `code --add-mcp` or **MCP: Open User Configuration**) if you want it available in every VS Code window. Browser MCP works identically either way.
 
 **Why is the JSON key `servers` instead of `mcpServers`?**
-That's VS Code's own convention - Claude Code and Cursor use `mcpServers` as the root key, VS Code uses `servers`. Same server, same package (`browser-mcp`), different config wrapper. Don't copy a Claude Code config block into `.vscode/mcp.json` verbatim - swap the root key.
+That's VS Code's own convention - Claude Code and Cursor use `mcpServers` as the root key, VS Code uses `servers`. Same server, same executable (`browser-mcp`), different config wrapper. Don't copy a Claude Code config block into `.vscode/mcp.json` verbatim - swap the root key.
 
 **What is Browser MCP?**
 An MCP (Model Context Protocol) server that gives VS Code's Copilot agent mode - or any MCP client, including Claude Code and Cursor - control of your actual, already-logged-in Chrome: your cookies, your sessions, your 2FA. 43 tools, MIT-licensed, runs on your own machine.
@@ -243,13 +236,13 @@ Yes. MIT license, no account, no paid tier. (GitHub Copilot's free tier is enoug
 Not to us. The MCP server runs locally over stdio, talks to the extension over a local WebSocket, and the extension talks to Chrome through Chrome's own APIs. What your agent reads goes to your AI client and on to its model provider, like anything else you show it - there is no remote server.
 
 **How do I update it?**
-The MCP server updates itself - every session runs `npx browser-mcp@latest`, so there's nothing to do. The extension auto-updates only if you installed it from the Chrome Web Store; if you loaded it unpacked, re-run `npx browser-mcp install` and click **↻ reload** on `chrome://extensions`.
+The MCP server is a standalone native binary that runs directly. To update the extension, re-run `browser-mcp install` and click **↻ reload** on `chrome://extensions`.
 
 **Chrome extension says "not connected" - what do I check?**
-First: did you register the MCP server, not just install the extension? If you got the extension from the Chrome Web Store and never added `browser-mcp` to VS Code's MCP config, that is the whole problem - the extension has nothing to connect to. Add the config block from Step 2 above and restart VS Code. If the server *is* configured, confirm the extension is loaded under `chrome://extensions`, click the extension icon → "Reconnect," and give it 2-3 seconds - it scans ports 9876-9895 for the running server. Still stuck: [troubleshooting](/docs/troubleshooting).
+First: did you register the MCP server, not just install the extension? If you loaded the extension and never added `browser-mcp` to VS Code's MCP config, that is the whole problem - the extension has nothing to connect to. Add the config block from Step 2 above and restart VS Code. If the server *is* configured, confirm the extension is loaded under `chrome://extensions`, click the extension icon → "Reconnect," and give it 2-3 seconds - it scans ports 9876-9895 for the running server. Still stuck: [troubleshooting](/docs/troubleshooting).
 
 **Is this the same as browsermcp.io?**
-No - different project, same underlying idea (MCP + your real Chrome), separate codebase. If you found this page searching generically for "browser mcp," make sure you're grabbing the one you meant: this one is `browser-mcp` on npm, `github.com/modded-soldier-9/browser-mcp` on GitHub.
+No - different project, same underlying idea (MCP + your real Chrome), separate codebase. If you found this page searching generically for "browser mcp," make sure you're grabbing the one you meant: this one is `browser-mcp` on GitHub (`modded-soldier-9/browser-mcp`).
 
 **Can I run it in more than one VS Code window at once?**
 Yes - each running server instance gets its own port (9876-9895) and its own color-coded Chrome tab group, so concurrent windows or clients don't see or control each other's tabs.

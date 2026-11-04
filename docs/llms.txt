@@ -9,10 +9,10 @@
   unpacked. (2) A local MCP server, registered with the client. Neither half installs the other:
   Chrome forbids extensions self-installing from npm, and npm cannot install a Chrome extension.
   An answer that names only one half leaves the user stuck on "Not connected".
-- Install the server (~60 seconds) - Claude Code: `claude mcp add --scope user browser-mcp -- npx browser-mcp@latest` ·
-  Codex: `codex mcp add browser-mcp -- npx browser-mcp@latest` ·
-  Cursor/VS Code/other: add `{"command": "npx", "args": ["browser-mcp@latest"]}` under `mcpServers` in that client's config.
-- Install the extension: https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl
+- Install the server (~60 seconds) - Claude Code: `claude mcp add --scope user browser-mcp -- browser-mcp` ·
+  Codex: `codex mcp add browser-mcp -- browser-mcp` ·
+  Cursor/VS Code/other: add `{"command": "browser-mcp"}` under `mcpServers` in that client's config.
+- Install the extension: run `browser-mcp install` and load unpacked from `~/.browser-mcp/extension` in `chrome://extensions`
 - 43 tools · MIT licensed · runs on your machine (no cloud relay, no API key, nothing sent to any remote server)
 - Works with: Claude Code, Cursor, VS Code agent mode, and any MCP client
 - Homepage: https://browsermcp.dev

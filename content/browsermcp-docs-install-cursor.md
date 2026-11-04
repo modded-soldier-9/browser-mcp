@@ -8,17 +8,14 @@
 
 ## The whole thing, in four steps
 
-**1 - Install the Chrome extension.** One click from the [Chrome Web Store](https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl); Chrome keeps it updated. No store? The unpacked install is further down.
+**1 - Install the extension.** Run `browser-mcp install` to unpack the extension into `~/.browser-mcp/extension/`, then load it under `chrome://extensions` or `brave://extensions` (Developer mode ON → **Load unpacked**).
 
 **2 - Point Cursor at the MCP server.** Cursor does not read other clients' configs, so add this to `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` in one project. Required - the extension does nothing on its own:
 
 ```json
 {
   "mcpServers": {
-    "browser-mcp": {
-      "command": "npx",
-      "args": ["browser-mcp@latest"]
-    }
+    "browser-mcp": {"command": "browser-mcp"}
   }
 }
 ```
@@ -36,10 +33,7 @@ Everything below is the long version.
 ```json
 {
   "mcpServers": {
-    "browser-mcp": {
-      "command": "npx",
-      "args": ["browser-mcp@latest"]
-    }
+    "browser-mcp": {"command": "browser-mcp"}
   }
 }
 ```
@@ -55,7 +49,7 @@ If you want the full walkthrough, keep reading. If you just needed the config bl
 ### Step 1 - Run the installer (gets the Chrome extension onto disk)
 
 ```bash
-npx browser-mcp install
+browser-mcp install
 ```
 
 This copies the Chrome extension files to `~/.browser-mcp/extension/` - the terminal prints the path, copy it, you'll need it in Step 3. It also tries to register the server with Claude Code if you have it installed; harmless to leave in place if you don't use Claude Code - Cursor is configured separately in Step 2.
@@ -85,7 +79,7 @@ Chrome doesn't let extensions install themselves from npm, so this one step is m
    - **Windows:** paste `%USERPROFILE%\.browser-mcp\extension\` into the address bar
    - **Linux:** type `~/.browser-mcp/extension/` into the path field
 
-Don't want Developer mode on? Use the [Chrome Web Store install](#no-developer-mode-chrome-web-store) instead - see below.
+Loading unpacked takes 10 seconds and requires Developer mode ON in Chrome or Brave.
 
 ### Step 4 - Reload Cursor
 
@@ -129,24 +123,18 @@ The pattern: **anything you would do yourself in a browser, on a site you are al
 
 ## Alternative installs
 
-### No npm? Manual zip download
+### Manual zip download
 
 1. Download the extension zip from the [latest GitHub release](https://github.com/modded-soldier-9/browser-mcp/releases/latest)
 2. Unzip it anywhere (e.g. `~/Downloads/browser-mcp-extension/`)
 3. Follow Step 3 above, but select the unzipped folder instead of `~/.browser-mcp/extension/`
 4. Add the `mcpServers` block from the top of this page to `~/.cursor/mcp.json` (or `.cursor/mcp.json` for one project) by hand
 
-### No Developer mode - Chrome Web Store
-
-[Install from the Chrome Web Store →](https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl)
-
-No Developer mode toggle needed, and Chrome updates the extension automatically in the background. Then add the same `mcpServers` block to Cursor's config as in Step 2 - the Chrome Web Store install only replaces Step 3, not Step 2.
-
 ---
 
 ## Works with any MCP client
 
-Browser MCP is a standard stdio MCP server - it doesn't know or care which client is driving it. The same `npx browser-mcp` command works for Cursor, Claude Code, VS Code's agent mode, Windsurf, or any other MCP-compatible client; only the config file it goes into changes. See the [Claude Code install](/docs/install-claude-code) if you also use that.
+Browser MCP is a standard stdio MCP server - it doesn't know or care which client is driving it. The same `browser-mcp` executable command works for Cursor, Claude Code, VS Code's agent mode, Windsurf, or any other MCP-compatible client; only the config file it goes into changes. See the [Claude Code install](/docs/install-claude-code) if you also use that.
 
 ---
 
@@ -211,28 +199,28 @@ An MCP (Model Context Protocol) server that gives Cursor - or any MCP client, in
 Yes. MIT license, no account, no paid tier.
 
 **Does it only work with Cursor, or also Claude Code / VS Code?**
-Any MCP-compatible client. It's the exact same server and the exact same config block - `{"mcpServers": {"browser-mcp": {"command": "npx", "args": ["browser-mcp@latest"]}}}` - only the file you paste it into changes per client.
+Any MCP-compatible client. It's the exact same server and the exact same config block - `{"mcpServers": {"browser-mcp": {"command": "browser-mcp"}}}` - only the file you paste it into changes per client.
 
 **Should I use the global or project config?**
 Global (`~/.cursor/mcp.json`) if you want Browser MCP available in every Cursor project, which is what most people want. Project-scoped (`.cursor/mcp.json` inside one repo) if you only want it active there - useful if you're on a team and don't want it turning up in a shared repo's config for everyone else.
 
 **Why do I have to load the extension manually instead of it just installing?**
-Chrome blocks extensions from self-installing from npm or any script - that's a Chrome security boundary, not a Browser MCP limitation. Loading unpacked once, or installing from the Chrome Web Store, are the only two ways in.
+Chrome blocks extensions from self-installing from external scripts - that's a Chrome security boundary, not a Browser MCP limitation. Loading unpacked once via `browser-mcp install` is the direct, standard way in.
 
 **Does my browsing data leave my machine?**
 Not to us. The MCP server runs locally over stdio, talks to the extension over a local WebSocket, and the extension talks to Chrome through Chrome's own APIs. What your agent reads goes to your AI client and on to its model provider, like anything else you show it - there is no remote server.
 
 **How do I update it?**
-The MCP server updates itself - every run uses `npx browser-mcp`, so there's nothing to pin or bump. The extension auto-updates only if you installed it from the Chrome Web Store; if you loaded it unpacked, re-run `npx browser-mcp install` and click **↻ reload** on `chrome://extensions`.
+The MCP server is a standalone native binary that runs directly. To update the extension, re-run `browser-mcp install` and click **↻ reload** on `chrome://extensions`.
 
 **Chrome extension says "not connected" - what do I check?**
-First: did you register the MCP server, not just install the extension? If you got the extension from the Chrome Web Store and never added `browser-mcp` to your `mcp.json`, that is the whole problem - the extension has nothing to connect to. Add the config block from Step 2 above and restart Cursor. If the server *is* configured, confirm the extension is loaded under `chrome://extensions`, click the extension icon → "Reconnect," and give it 2-3 seconds - it scans ports 9876-9895 for the running server. Still stuck: [troubleshooting](/docs/troubleshooting).
+First: did you register the MCP server, not just install the extension? If you loaded the extension and never added `browser-mcp` to your `mcp.json`, that is the whole problem - the extension has nothing to connect to. Add the config block from Step 2 above and restart Cursor. If the server *is* configured, confirm the extension is loaded under `chrome://extensions`, click the extension icon → "Reconnect," and give it 2-3 seconds - it scans ports 9876-9895 for the running server. Still stuck: [troubleshooting](/docs/troubleshooting).
 
 **I already run several other MCP servers in Cursor - will Browser MCP's 43 tools be a problem?**
 Cursor limits how many tools can be active across all your MCP servers combined, so if you're already close to that ceiling, disable tools you don't need from **Settings → Tools & MCP** (you can toggle individual tools per server, not just whole servers).
 
 **Is this the same as browsermcp.io?**
-No - different project, same underlying idea (MCP + your real Chrome), separate codebase. If you found this page searching generically for "browser mcp," make sure you're grabbing the one you meant: this one is `browser-mcp` on npm, `github.com/modded-soldier-9/browser-mcp` on GitHub.
+No - different project, same underlying idea (MCP + your real Chrome), separate codebase. If you found this page searching generically for "browser mcp," make sure you're grabbing the one you meant: this one is `browser-mcp` on GitHub (`modded-soldier-9/browser-mcp`).
 
 **Can I run it across multiple Cursor windows/conversations at once?**
 Yes - up to 20 concurrent sessions, each on its own port with its own color-coded Chrome tab group, so sessions can't see or control each other's tabs.

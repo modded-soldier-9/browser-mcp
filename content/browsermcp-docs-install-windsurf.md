@@ -10,7 +10,7 @@
 
 ## The whole thing, in four steps
 
-**1 - Install the Chrome extension.** One click from the [Chrome Web Store](https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl).
+**1 - Install the extension.** Run `browser-mcp install` to unpack the extension into `~/.browser-mcp/extension/`, then load it under `chrome://extensions` or `brave://extensions` (Developer mode ON → **Load unpacked**).
 
 **2 - Open the MCP panel.** The **MCPs** icon in the top right of the Cascade panel, or **Settings → Cascade → MCP Servers**. There is a raw editor there for the config file.
 
@@ -19,10 +19,7 @@
 ```json
 {
   "mcpServers": {
-    "browser-mcp": {
-      "command": "npx",
-      "args": ["-y", "browser-mcp@latest"]
-    }
+    "browser-mcp": {"command": "browser-mcp"}
   }
 }
 ```
@@ -43,7 +40,7 @@ Browser MCP is 43 of them. That is a large share of the budget, and it is a real
 
 - Running Browser MCP plus two or three other large servers will push you over, and tools start disappearing from Cascade's view rather than announcing themselves.
 - If you are near the limit, turn off servers you are not using in that session instead of trying to guess which tools got dropped.
-- If you only ever use Browser MCP for logged-in pages and screenshots, you are still paying for all 40 definitions. There is no way to load a subset today, in Windsurf or anywhere else.
+- If you only ever use Browser MCP for logged-in pages and screenshots, you are still paying for all 43 definitions. There is no way to load a subset today, in Windsurf or anywhere else.
 
 We would rather you knew that before installing than found it as a mystery three servers later.
 

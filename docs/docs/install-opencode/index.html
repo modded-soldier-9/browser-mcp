@@ -22,7 +22,7 @@
 <hr>
 <p><b>Give opencode control of your real, already-logged-in Chrome - about 90 seconds, four steps.</b> Your cookies, your sessions, your 2FA, instead of a blank browser that hits every login wall as a stranger.</p>
 <h2 id="the-whole-thing-in-four-steps">The whole thing, in four steps</h2>
-<p><b>1 - Install the Chrome extension.</b> One click from the <a href="https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl">Chrome Web Store</a>.</p>
+<p><b>1 - Install the extension.</b> Run <code>browser-mcp install</code> to unpack the extension into <code>~/.browser-mcp/extension/</code>, then load it under <code>chrome://extensions</code> or <code>brave://extensions</code> (Developer mode ON → <b>Load unpacked</b>).</p>
 <p><b>2 - Open your config.</b> <code>opencode.jsonc</code> (or <code>opencode.json</code>), in the project or your global config.</p>
 <p><b>3 - Add the server under <code>mcp</code>:</b></p>
 <div class="code"><pre>{
@@ -45,8 +45,7 @@ opencode: [browser_navigate]
           41 signups yesterday. No login step - you were already signed in.</pre><button class="copy">Copy</button></div>
 <h2 id="the-one-thing-that-trips-people-up-here">The one thing that trips people up here</h2>
 <p><b><code>command</code> is an array, not a string.</b> Every other MCP client splits this into <code>command</code> plus <code>args</code>:</p>
-<div class="code"><pre>&quot;command&quot;: &quot;npx&quot;,
-&quot;args&quot;: [&quot;-y&quot;, &quot;browser-mcp@latest&quot;]</pre><button class="copy">Copy</button></div>
+<div class="code"><pre>&quot;command&quot;: &quot;browser-mcp&quot;</pre><button class="copy">Copy</button></div>
 <p>opencode does not. It takes one array with the executable first:</p>
 <div class="code"><pre>&quot;command&quot;: [&quot;browser-mcp&quot;]</pre><button class="copy">Copy</button></div>
 <p>If you copy a config from a Claude Code or Cursor guide, this is the line that breaks, and the failure looks like the server never starting rather than a config error.</p>

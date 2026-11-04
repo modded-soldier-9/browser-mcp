@@ -10,7 +10,7 @@
 
 ## The whole thing, in four steps
 
-**1 - Install the Chrome extension.** One click from the [Chrome Web Store](https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl).
+**1 - Install the extension.** Run `browser-mcp install` to unpack the extension into `~/.browser-mcp/extension/`, then load it under `chrome://extensions` or `brave://extensions` (Developer mode ON → **Load unpacked**).
 
 **2 - Open Cline's MCP settings.** In the Cline panel, click the **MCP Servers** icon, then **Configure MCP Servers**. That opens the right file for your install - don't go hunting for the path yourself.
 
@@ -20,8 +20,7 @@
 {
   "mcpServers": {
     "browser-mcp": {
-      "command": "npx",
-      "args": ["-y", "browser-mcp@latest"],
+      "command": "browser-mcp",
       "disabled": false,
       "autoApprove": []
     }

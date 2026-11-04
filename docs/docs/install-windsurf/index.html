@@ -22,15 +22,12 @@
 <hr>
 <p><b>Give Cascade control of your real, already-logged-in Chrome - about 90 seconds, four steps.</b> Your cookies, your sessions, your 2FA, instead of a blank browser that hits every login wall as a stranger.</p>
 <h2 id="the-whole-thing-in-four-steps">The whole thing, in four steps</h2>
-<p><b>1 - Install the Chrome extension.</b> One click from the <a href="https://chromewebstore.google.com/detail/browser-mcp/jdehgalffmffhfhmmhaokfbfnafnmgcl">Chrome Web Store</a>.</p>
+<p><b>1 - Install the extension.</b> Run <code>browser-mcp install</code> to unpack the extension into <code>~/.browser-mcp/extension/</code>, then load it under <code>chrome://extensions</code> or <code>brave://extensions</code> (Developer mode ON → <b>Load unpacked</b>).</p>
 <p><b>2 - Open the MCP panel.</b> The <b>MCPs</b> icon in the top right of the Cascade panel, or <b>Settings → Cascade → MCP Servers</b>. There is a raw editor there for the config file.</p>
 <p><b>3 - Add the server.</b> Windsurf uses the same <code>mcpServers</code> shape as Claude Desktop:</p>
 <div class="code"><pre>{
   &quot;mcpServers&quot;: {
-    &quot;browser-mcp&quot;: {
-      &quot;command&quot;: &quot;npx&quot;,
-      &quot;args&quot;: [&quot;-y&quot;, &quot;browser-mcp@latest&quot;]
-    }
+    &quot;browser-mcp&quot;: {&quot;command&quot;: &quot;browser-mcp&quot;}
   }
 }</pre><button class="copy">Copy</button></div>
 <p>The file is <code>~/.codeium/windsurf/mcp_config.json</code>. The <code>codeium</code> in that path is the old company name - it has not moved.</p>
@@ -40,7 +37,7 @@
 <h2 id="the-thing-that-will-actually-bite-you-100-tools">The thing that will actually bite you: 100 tools</h2>
 <p>Windsurf's own wording: <i>"Cascade has a limit of 100 total tools that it has access to at any given time."</i></p>
 <p>Browser MCP is 43 of them. That is a large share of the budget, and it is a real trade-off rather than something to hide:</p>
-<ul><li>Running Browser MCP plus two or three other large servers will push you over, and tools start disappearing from Cascade's view rather than announcing themselves.</li><li>If you are near the limit, turn off servers you are not using in that session instead of trying to guess which tools got dropped.</li><li>If you only ever use Browser MCP for logged-in pages and screenshots, you are still paying for all 40 definitions. There is no way to load a subset today, in Windsurf or anywhere else.</li></ul>
+<ul><li>Running Browser MCP plus two or three other large servers will push you over, and tools start disappearing from Cascade's view rather than announcing themselves.</li><li>If you are near the limit, turn off servers you are not using in that session instead of trying to guess which tools got dropped.</li><li>If you only ever use Browser MCP for logged-in pages and screenshots, you are still paying for all 43 definitions. There is no way to load a subset today, in Windsurf or anywhere else.</li></ul>
 <p>We would rather you knew that before installing than found it as a mystery three servers later.</p>
 <h2 id="two-names-one-product">Two names, one product</h2>
 <p>Windsurf's MCP documentation now redirects to <code>docs.devin.ai</code>, and the page carries the note <i>"The MCP configuration on this page applies to the legacy Cascade agent only. The Devin Local agent - the default agent for new tabs..."</i></p>
