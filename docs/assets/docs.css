@@ -42,10 +42,9 @@ code {
 
 /* Calm Header Bar */
 .top {
-  border-bottom: 1px solid var(--line);
   position: sticky;
   top: 0;
-  background: rgba(9, 13, 21, 0.9);
+  background: rgba(9, 13, 21, 0.95);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   z-index: 20;
@@ -158,9 +157,7 @@ h2 {
   font-weight: 700;
   font-size: 21px;
   letter-spacing: -0.015em;
-  margin: 36px 0 10px;
-  padding-top: 24px;
-  border-top: 1px solid var(--line);
+  margin: 44px 0 12px;
 }
 h3 {
   font-size: 16.5px;
@@ -186,8 +183,8 @@ li {
 }
 hr {
   border: none;
-  border-top: 1px solid var(--line);
-  margin: 26px 0;
+  height: 32px;
+  margin: 0;
 }
 
 /* Code Blocks */
@@ -281,9 +278,7 @@ td code {
 
 /* Related section */
 .related {
-  margin-top: 40px;
-  padding-top: 24px;
-  border-top: 1px solid var(--line);
+  margin-top: 48px;
 }
 .related h2 {
   border-top: none;

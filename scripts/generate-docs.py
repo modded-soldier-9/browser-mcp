@@ -363,7 +363,7 @@ for fn,grp,label,url in LIVE:
     title=title_of(lines); desc=meta_desc(lines, SOURCES[url]); faq=extract_faq(lines); nfaq+=1 if faq else 0
     body=md_to_html(lines)
     page='<!doctype html><html lang="en"><head>\n'+head(title,desc,url)+'\n'+jsonld(title,desc,url,grp,faq,git_datoer(fn))+'\n</head><body>'
-    page+='<div class="top"><div class="top-in"><a class="logo" href="/" style="color:inherit"><img src="/logo.svg" alt="Browser MCP" width="24" height="24" style="border-radius:9999px;border:1px solid var(--line);vertical-align:middle;display:inline-block"> Browser MCP</a><a class="star" href="https://github.com/modded-soldier-9/browser-mcp" style="color:inherit;text-decoration:none">GitHub &#8599;</a></div></div>'
+    page+='<div class="top"><div class="top-in"><a class="logo" href="/" style="color:inherit"><img src="/logo.svg" alt="Browser MCP" width="24" height="24" style="border-radius:9999px;vertical-align:middle;display:inline-block"> Browser MCP</a><a class="star" href="https://github.com/modded-soldier-9/browser-mcp" style="color:inherit;text-decoration:none">GitHub &#8599;</a></div></div>'
     page+='<div class="shell"><nav class="side">'+sidebar(url)+'</nav><main class="content">'+body+related(url)+'</main></div>'
     page+='<script src="/assets/docs.js"></script></body></html>'
     disk=REPO+url.strip('/')+'/index.html'
