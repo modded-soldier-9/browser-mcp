@@ -1,64 +1,60 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
-  <!-- Black Squircle Container -->
-  <rect width="512" height="512" rx="112" fill="#09090b"/>
-  <rect x="2" y="2" width="508" height="508" rx="110" stroke="#27272a" stroke-width="4"/>
+  <defs>
+    <linearGradient id="coreGradient" x1="256" y1="224" x2="256" y2="336" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="50%" stop-color="#93c5fd"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+    <linearGradient id="cardGlow" x1="256" y1="76" x2="256" y2="436" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#141d2e"/>
+      <stop offset="100%" stop-color="#0c121e"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="256" cy="280" r="110" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.16"/>
+      <stop offset="70%" stop-color="#38bdf8" stop-opacity="0.04"/>
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
 
-  <!-- Browser Window Chrome (Top Bar) -->
-  <path d="M 32 144 L 480 144" stroke="#27272a" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Calm Round Outer Squircle Container -->
+  <rect x="8" y="8" width="496" height="496" rx="124" fill="#080c14" stroke="#1e293d" stroke-width="4"/>
 
-  <!-- Window Dots (Left) -->
-  <circle cx="76" cy="88" r="9" fill="#27272a"/>
-  <circle cx="104" cy="88" r="9" fill="#27272a"/>
-  <circle cx="132" cy="88" r="9" fill="#27272a"/>
+  <!-- Centered Calm Orbit Ring -->
+  <circle cx="256" cy="256" r="220" stroke="#162236" stroke-width="2" stroke-dasharray="6 8"/>
 
-  <!-- AI Header / Omnibox at Top -->
-  <!-- Omnibox Pill -->
-  <rect x="168" y="62" width="276" height="52" rx="26" fill="#18181b" stroke="#3f3f46" stroke-width="2"/>
+  <!-- Centered Rounded Browser Card -->
+  <rect x="76" y="76" width="360" height="360" rx="56" fill="url(#cardGlow)" stroke="#22334d" stroke-width="3"/>
 
-  <!-- AI Sparkle Icon -->
-  <path d="M 198 88 C 198 83 203 78 208 78 C 203 78 198 73 198 68 C 198 73 193 78 188 78 C 193 78 198 83 198 88 Z" fill="#ffffff"/>
-  <circle cx="209" cy="71" r="2" fill="#a1a1aa"/>
+  <!-- Window Chrome: Three Calm Dots -->
+  <circle cx="118" cy="120" r="6.5" fill="#2d3f5c"/>
+  <circle cx="138" cy="120" r="6.5" fill="#2d3f5c"/>
+  <circle cx="158" cy="120" r="6.5" fill="#2d3f5c"/>
 
-  <!-- "AI" Bold Text at Top -->
-  <text x="220" y="96" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="22" fill="#ffffff" letter-spacing="1.5">AI</text>
+  <!-- Centered Omnibox Pill -->
+  <rect x="184" y="104" width="192" height="32" rx="16" fill="#162032" stroke="#293c5a" stroke-width="1.5"/>
+  <circle cx="202" cy="120" r="4" fill="#38bdf8"/>
+  <text x="216" y="125" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="600" font-size="12" fill="#94a3b8" letter-spacing="0.4">browser-mcp</text>
+  <circle cx="360" cy="120" r="4" fill="#34d399"/>
 
-  <!-- URL text / indicator -->
-  <text x="256" y="95" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-weight="500" font-size="14" fill="#71717a">browser-mcp</text>
+  <!-- Header Divider -->
+  <line x1="98" y1="154" x2="414" y2="154" stroke="#1a273c" stroke-width="2" stroke-linecap="round"/>
 
-  <!-- Status indicator dot in omnibox -->
-  <circle cx="418" cy="88" r="5" fill="#ffffff"/>
+  <!-- Calm Centered Core Glow -->
+  <circle cx="256" cy="278" r="100" fill="url(#halo)"/>
+  <circle cx="256" cy="278" r="76" fill="none" stroke="#1c2b42" stroke-width="2"/>
+  <circle cx="256" cy="278" r="54" fill="#111826" stroke="#273a56" stroke-width="2"/>
 
-  <!-- Browser Main Content Area -->
-  <!-- Viewport Grid / Card Elements -->
-  <!-- Search / Command Bar inside viewport -->
-  <rect x="68" y="176" width="376" height="48" rx="14" fill="#18181b" stroke="#27272a" stroke-width="2"/>
-  <text x="92" y="206" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="15" fill="#ffffff" font-weight="600">&gt; browser_navigate</text>
-  <rect x="256" y="192" width="8" height="17" fill="#ffffff"/>
+  <!-- Centered Radiant MCP Spark / Star -->
+  <path d="M 256 230 C 256 258 256 278 228 278 C 256 278 256 298 256 326 C 256 298 256 278 284 278 C 256 278 256 258 256 230 Z" fill="url(#coreGradient)"/>
+  <circle cx="256" cy="278" r="6" fill="#ffffff"/>
 
-  <!-- Content cards (Left and Right) -->
-  <rect x="68" y="244" width="232" height="196" rx="16" fill="#121215" stroke="#27272a" stroke-width="2"/>
-  <!-- Card Header Line -->
-  <rect x="92" y="272" width="120" height="12" rx="6" fill="#ffffff"/>
-  <!-- Card Content Lines -->
-  <rect x="92" y="304" width="184" height="8" rx="4" fill="#3f3f46"/>
-  <rect x="92" y="324" width="160" height="8" rx="4" fill="#27272a"/>
-  <rect x="92" y="344" width="176" height="8" rx="4" fill="#27272a"/>
-  <!-- Interactive Handle Badge [e1] -->
-  <rect x="92" y="380" width="48" height="26" rx="6" fill="#27272a" stroke="#3f3f46" stroke-width="1.5"/>
-  <text x="116" y="398" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12" fill="#ffffff" font-weight="700">[e1]</text>
+  <!-- Orbiting Tab/Agent Nodes (Smooth Rounded Satellites) -->
+  <circle cx="192" cy="236" r="8" fill="#162235" stroke="#38bdf8" stroke-width="2"/>
+  <circle cx="320" cy="236" r="8" fill="#162235" stroke="#38bdf8" stroke-width="2"/>
+  <circle cx="192" cy="320" r="8" fill="#162235" stroke="#60a5fa" stroke-width="2"/>
+  <circle cx="320" cy="320" r="8" fill="#162235" stroke="#60a5fa" stroke-width="2"/>
 
-  <rect x="148" y="380" width="56" height="26" rx="6" fill="#ffffff"/>
-  <text x="176" y="398" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="12" fill="#09090b" font-weight="700">Click</text>
-
-  <!-- Right Side Sidebar / Telemetry -->
-  <rect x="316" y="244" width="128" height="196" rx="16" fill="#121215" stroke="#27272a" stroke-width="2"/>
-  <!-- Telemetry Lines -->
-  <rect x="336" y="272" width="64" height="10" rx="5" fill="#a1a1aa"/>
-  <rect x="336" y="300" width="88" height="6" rx="3" fill="#27272a"/>
-  <rect x="336" y="316" width="76" height="6" rx="3" fill="#27272a"/>
-  <rect x="336" y="332" width="84" height="6" rx="3" fill="#27272a"/>
-
-  <!-- MCP Shield Badge -->
-  <rect x="336" y="374" width="88" height="36" rx="10" fill="#18181b" stroke="#ffffff" stroke-width="1.5"/>
-  <text x="380" y="397" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" fill="#ffffff" font-weight="700">43 TOOLS</text>
+  <!-- Bottom Centered 43 Tools Pill -->
+  <rect x="194" y="380" width="124" height="26" rx="13" fill="#141e30" stroke="#293c5a" stroke-width="1.5"/>
+  <text x="256" y="397" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" font-weight="700" fill="#e2e8f0" letter-spacing="1">43 TOOLS</text>
 </svg>
