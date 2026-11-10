@@ -61,7 +61,7 @@ async fn test_bridge_ensure_port() {
     let port_res = bridge.ensure_port().await;
     assert!(port_res.is_ok(), "Bridge should successfully bind to an available loopback port");
     let port = port_res.unwrap();
-    assert!(port >= 9876 && port <= 9895, "Port must be in range 9876..=9895");
+    assert!((9876..=9895).contains(&port), "Port must be in range 9876..=9895");
 
     let (active_port, clients, _) = bridge.get_status().await;
     assert_eq!(active_port, Some(port));

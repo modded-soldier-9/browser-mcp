@@ -66,7 +66,7 @@ pub fn decode_base64(input: &str) -> Option<Vec<u8>> {
     let bytes: Vec<u8> = input.bytes().filter(|&b| !b.is_ascii_whitespace() && b != b'=').collect();
     let mut out = Vec::with_capacity(bytes.len() * 3 / 4);
     for chunk in bytes.chunks(4) {
-        let b0 = *table.get(*chunk.get(0)? as usize)?;
+        let b0 = *table.get(*chunk.first()? as usize)?;
         let b1 = *table.get(*chunk.get(1)? as usize)?;
         if b0 == 255 || b1 == 255 { return None; }
         out.push((b0 << 2) | (b1 >> 4));

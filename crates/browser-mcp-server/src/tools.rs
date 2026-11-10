@@ -65,10 +65,8 @@ pub fn get_tools_list(strip_prefix: bool) -> Vec<Value> {
     }
     TOOLS_RAW.iter().map(|tool| {
         let mut t = tool.clone();
-        if let Some(name) = t.get("name").and_then(|v| v.as_str()) {
-            if let Some(stripped) = name.strip_prefix("browser_") {
-                t["name"] = Value::String(stripped.to_string());
-            }
+        if let Some(stripped) = t.get("name").and_then(|v| v.as_str()).and_then(|name| name.strip_prefix("browser_")) {
+            t["name"] = Value::String(stripped.to_string());
         }
         t
     }).collect()

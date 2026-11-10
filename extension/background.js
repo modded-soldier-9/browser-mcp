@@ -775,7 +775,7 @@ chrome.debugger.onDetach.addListener((source, reason) => {
 // Side-effectful methods (Input.*, DOM.setFileInputFiles) must NEVER auto-retry:
 // Chrome may detach AFTER processing the input (e.g., keystroke triggered navigation),
 // and a blind retry would double-type or double-click.
-// MAALT 9/9-2026 (fundet af Astra, reproduceret her): `Runtime.evaluate` stod paa listen,
+// MAALT 9/9-2026 (fundet i test, reproduceret her): `Runtime.evaluate` stod paa listen,
 // fordi de fleste kald er laesninger. Men vi kan ikke afgoere paa metodenavnet om et
 // udtryk MUTERER — og flere af dem goer:
 //   * settle-udtrykket i debuggerClick FYRER reserveloesnings-klikket
@@ -814,7 +814,7 @@ const RETRYABLE_CDP_METHODS = new Set([
 // det tilfaelde, ligger i et `catch` og kunne aldrig naas. En haenger er ikke en exception.
 // Fristen findes for at reserveloesningen kan naas. Alt der HAR en reserveloesning skal
 // kunne naas via en frist, ikke kun via en fejl.
-// Foerste udgave satte 1.500 ms paa ALT. Astra fandt 9/9 at det indfoerte en ny fejlklasse:
+// Foerste udgave satte 1.500 ms paa ALT. test fandt 9/9 at det indfoerte en ny fejlklasse:
 // dialog-ventetider bruger 3.000 ms, og et Page.captureScreenshot paa en tung side kan
 // lovligt tage laengere. Fristen skar dem over, og skaermbilledets reserveloesning blev
 // dermed naaet i almindelig drift — se rettelse B nedenfor.
@@ -840,20 +840,20 @@ function cdpFrist(method, params) {
 }
 
 // Skaermbilledet har et budget for HELE kaeden, ikke kun pr. kald.
-// MAALT 11/9 af Astra (sign-off, R5 F8): standardoptagelsen hang og koblede foerst fra efter 19 s. cdpSend gentog den,
+// MAALT 11/9 i test (sign-off, R5 F8): standardoptagelsen hang og koblede foerst fra efter 19 s. cdpSend gentog den,
 // fordi den staar som sikker at gentage, og billedet kom efter ca. 38 s - serveren havde opgivet ved 30 s. I 1.29.0
 // sendte en frist paa 8 s kaldet videre til fromSurface:false, som svarede paa et halvt sekund.
 // Standardoptagelsen faar derfor 10 s. Reserven faar resten af budgettet, saa svaret naar frem foer serverens frist.
-// MAALT 11/9 af Fable (e2e-review): haenger BEGGE optagelser, haevede 1.29.0 vinduet og leverede et billede efter 16,7 s.
+// MAALT 11/9 i test (e2e-review): haenger BEGGE optagelser, haevede 1.29.0 vinduet og leverede et billede efter 16,7 s.
 // En frist afskar den sidste udvej her, saa der kom intet billede. Budgettet reserverer derfor haevMs til den haevede runde.
 //
-// MAALT 12/9 af Astra (tredje runde paa samme sted): en gentilslutning paa 12,5 s betoed at kandidaten opgav efter 26,9 s,
+// MAALT 12/9 i test (tredje runde paa samme sted): en gentilslutning paa 12,5 s betoed at kandidaten opgav efter 26,9 s,
 // hvor 1.29.0 leverede et billede efter 29,2 s. Aarsagen var ikke logikken, men TALLET: 26 s var valgt frit, ikke udledt.
 // Hver runde fandt et nyt scenarie i de 4 sekunder vi gav bort. Budgettet er derfor nu udledt af det eneste tal der
-// betyder noget - serverens egen frist pr. kald (sendToExtension i mcp-server/index.js) - minus den tid svaret skal
+// betyder noget - serverens egen frist pr. kald (bridge.rs timeout) - minus den tid svaret skal
 // bruge paa at komme tilbage gennem broen. Aendrer serverens frist sig, foelger budgettet med.
-const SERVER_FRIST_MS = 30000;      // sendToExtension(..., timeoutMs = 30000) i mcp-server/index.js
-// MAALT 12/9 af Astra: hjemrejsen for en skaermbillede-stor nyttelast over den lokale WebSocket er 84-154 ms
+const SERVER_FRIST_MS = 30000;      // standard bridge request timeout: 30000ms
+// MAALT 12/9 i test: hjemrejsen for en skaermbillede-stor nyttelast over den lokale WebSocket er 84-154 ms
 // (0,5 / 2 / 8 MB, tre maalinger hver). 1500 ms var 10x det - altsaa endnu et frit valgt tal i den regel der lige var
 // lukket. 500 ms er tre gange det maalte og krymper baandet, hvor 1.29.0 leverer og vi ikke goer, fra ~1,35 s til ~0,35 s.
 const SVARETS_HJEMREJSE_MS = 500;   // udvidelse -> offscreen -> WebSocket -> server
@@ -861,12 +861,12 @@ function skaermbilledeFrister() {
   return { foersteMs: 10000, samletMs: SERVER_FRIST_MS - SVARETS_HJEMREJSE_MS, haevMs: 8000 };
 }
 
-// wait_for_network har samme loft hos serveren (30 s). MAALT 11/9 af Astra (e2e-review): svaret kom efter 13 s, body-kaldet
+// wait_for_network har samme loft hos serveren (30 s). MAALT 11/9 i test (e2e-review): svaret kom efter 13 s, body-kaldet
 // fik CDP_FRIST_TUNG_MS (20 s) oveni, og serveren opgav ved 30 s, hvor 1.29.0 svarede efter 21 s med body:null.
 // Hele vaerktoejet har derfor ét budget, og body-kaldet faar kun det der er tilbage.
-// Astra (efterproevning af c826f63): budgettet skar en body over der kom efter 27 s + 2 s, som 1.29.0 leverede efter 29 s.
+// Efterproevning af c826f63: budgettet skar en body over der kom efter 27 s + 2 s, som 1.29.0 leverede efter 29 s.
 // Body-kaldet faar derfor aldrig kortere tid end 1.29.0's frist (CDP_FRIST_MS) og aldrig mere end CDP_FRIST_TUNG_MS.
-// MAALT 12/9 af Astra: her stod 28000 haardkodet - det SAMME frie tal som skaermbilledets budget lige var sluppet af med.
+// MAALT 12/9 i test: her stod 28000 haardkodet - det SAMME frie tal som skaermbilledets budget lige var sluppet af med.
 // Begge budgetter udledes nu af serverens egen frist, saa reglen gaelder hele vejen og ikke kun dér hvor den blev fundet.
 function netvaerkFrister() {
   return { budgetMs: SERVER_FRIST_MS - SVARETS_HJEMREJSE_MS, bodyMinMs: CDP_FRIST_MS, bodyMaxMs: CDP_FRIST_TUNG_MS };
@@ -874,9 +874,9 @@ function netvaerkFrister() {
 
 
 // ── CDP-fristen er et SIGNAL, ikke en saetning ──────────────────────────────
-// FUNDET 19/9 af Astra, efterproevet: fire steder afgjorde de, at en handling var
+// FUNDET 19/9 i test, efterproevet: fire steder afgjorde de, at en handling var
 // UVIS - og dermed om svaret baerer `maaske_landet` - ved at regex-matche den danske
-// tekst «svarede ikke inden» i fejlens besked. Astra oversatte teksten i hukommelsen
+// tekst «svarede ikke inden» i fejlens besked. testen oversatte teksten i hukommelsen
 // og koerte samme press_key-forloeb: `maaske_landet` forsvandt, og advarslen mod blind
 // gentagelse med den. Altsaa kunne en ren tekstrettelse - eller en oversaettelse -
 // tavst slaa praecis den aerlighed fra som 1.29.2 handlede om.
@@ -1264,7 +1264,7 @@ async function evaluerTaalmodigt(tabId, params, ms = 3000) {
   return { result: { value: { landed: true, fallbackFired: false, rendererSvarede: false, observeret: false } } };
 }
 
-// Én regel for om et klik landede - brugt af click, click_xy og select_option. Astra, tredje runde:
+// Én regel for om et klik landede - brugt af click, click_xy og select_option. tredje testrunde:
 // select_option havde stadig den gamle ("ikke falsk" = landet), saa et unknown klik blev til ok:true.
 function klikLandede(r) {
   return r?.landed === true || r?.detached === true;
@@ -1276,7 +1276,7 @@ const UVIST_NOTE = 'The click was sent, and the page changed on mousedown - but 
 const UVERIFICERET_NOTE = 'The mouse button was sent, but the page could not be read afterwards (the lookup failed and the page did not navigate). ' +
   'The click may have landed. Check the state before clicking again.';
 
-// MAALT 12/9 af Astra: der er TO uvisheds-kanaler - `unknown` (kun mousedown aendrede noget) og `uverificeret`
+// MAALT 12/9 i test: der er TO uvisheds-kanaler - `unknown` (kun mousedown aendrede noget) og `uverificeret`
 // (settle-opslaget fejlede uden navigation, men museknappen ER sendt). Rettelsen roerte kun den foerste, saa den anden
 // gav stadig et bart ok:false hvor 1.29.0 gav ok:true - og et bart nej faar agenten til at klikke igen.
 // Betingelsen spoerger derfor paa landed === null, ikke paa ét flag: en fremtidig tredje kanal er daekket fra dag ét.
@@ -1293,7 +1293,7 @@ function uvisVurdering(r, egenNote) {
   return { maybe_landed: true, note: 'The action was sent, but its effect could not be confirmed. Check the state before repeating it.' };
 }
 
-// MAALT 10/9 af Astra (anden runde): et settle-opslag der FEJLEDE gav null, og null blev til ok:true.
+// MAALT 10/9 i test (anden runde): et settle-opslag der FEJLEDE gav null, og null blev til ok:true.
 // Men den hyppigste grund til at opslaget fejler er at klikket navigerede - det er en virkning, og agenten
 // maa ikke faa at vide at den skal klikke igen.
 // Tredje runde: "detached", "closed" og "Cannot find" er IKKE bevis for navigation - afkobling sker ogsaa
@@ -1373,7 +1373,7 @@ async function debuggerClick(tabId, x, y) {
     //    synthesize a *trusted* 'click' from the pair. Without them, web-components
     //    that gate on the trusted click event (Google Ads, Material Web) never fire.
     trykSendt = true;
-    // Astra, tredje runde: fejlede mousePressed EFTER at vaere leveret, blev mouseReleased aldrig sendt,
+    // tredje testrunde: fejlede mousePressed EFTER at vaere leveret, blev mouseReleased aldrig sendt,
     // og siden stod tilbage med knappen nede (drag-tilstand). Knappen slippes nu altid.
     let trykFejl = null;
     try {
@@ -1412,7 +1412,7 @@ async function debuggerClick(tabId, x, y) {
         // Et billigt fingeraftryk af det et klik plejer at aendre: antal noder, synlig tekst,
         // adressen, og om noget er aabnet/valgt. Bevidst groft — det skal kunne tages to gange
         // paa faa millisekunder, ikke beskrive siden.
-        // MAALT 11/9 af Astra (R5 F6): tekst og feltvaerdier blev talt i LAENGDE, saa AAAA -> BBBB var
+        // MAALT 11/9 i test (R5 F6): tekst og feltvaerdier blev talt i LAENGDE, saa AAAA -> BBBB var
         // usynlig, og et klik der virkede blev meldt som fejl. Nu hashes indholdet (FNV-1a, 32 bit).
         const hash = (s) => {
           let x = 2166136261;
@@ -1425,7 +1425,7 @@ async function debuggerClick(tabId, x, y) {
                    hash(document.body ? String(document.body.innerText) : '') + '|' +
                    location.href + '|' +
                    document.querySelectorAll('[aria-expanded="true"],[aria-selected="true"],[open],.open,.active').length + '|' +
-                   // Astra, anden runde: en afkrydsning eller en feltvaerdi aendrer hverken noder, tekst eller
+                   // anden testrunde: en afkrydsning eller en feltvaerdi aendrer hverken noder, tekst eller
                    // adresse - saa et klik der VIRKEDE blev meldt som fejl, og et nyt klik ville fortryde det.
                    document.querySelectorAll('input:checked,option:checked').length + '|' +
                    hash(Array.from(document.querySelectorAll('input,textarea,select')).map((e) => String(e.value || '')).join('\0'));
@@ -1436,7 +1436,7 @@ async function debuggerClick(tabId, x, y) {
         if (!el || !el.isConnected) { ryd(); return { landed: false, fallbackFired: false, detached: true }; }   // already navigated/handled — don't double-fire
         const foerAftryk = aftryk();
         const opts = { bubbles: true, cancelable: true, composed: true, view: window, clientX: ${x}, clientY: ${y} };
-        // Samme moenster som script-klikket (Astra 11/9): en PointerEvent uden pointerType er ikke en mus.
+        // Samme moenster som script-klikket (test 11/9): en PointerEvent uden pointerType er ikke en mus.
         const mus = { ...opts, pointerType: 'mouse', isPrimary: true, pointerId: 1, button: 0 };
         try { el.dispatchEvent(new PointerEvent('pointerdown', { ...mus, buttons: 1 })); } catch (e) {}
         el.dispatchEvent(new MouseEvent('mousedown', opts));
@@ -1451,14 +1451,14 @@ async function debuggerClick(tabId, x, y) {
         //   to klik:  aftryk 11|53|…|0 -> 11|53|…|0   (tilbage ved start)
         // el.click() foretraekkes, fordi den ogsaa udloeser elementets aktiverings-adfaerd
         // (foelg link, skift afkrydsning) — det goer en syntetisk MouseEvent ikke paalideligt.
-        // MAALT 11/9 af Astra (R5 F5): aftrykket til afgoerelsen herunder var foerAftryk fra FOER mousedown.
+        // MAALT 11/9 i test (R5 F5): aftrykket til afgoerelsen herunder var foerAftryk fra FOER mousedown.
         // En ripple-node fra mousedown lignede derfor en virkning af el.click(), React blev sprunget over,
         // og svaret blev landed:true med nul handling. Afgoerelsen maaler nu kun hvad el.click() gjorde.
         const foerKlik = aftryk();
         if (typeof el.click === 'function') el.click();
         else el.dispatchEvent(new MouseEvent('click', opts));
 
-        // MAALT 10/9 af Astra (anden runde): React-fiberens onClick blev kaldt UBETINGET efter el.click() -
+        // MAALT 10/9 i test (anden runde): React-fiberens onClick blev kaldt UBETINGET efter el.click() -
         // men el.click() udloeser allerede Reacts handler. To koersler, og en toggle endte hvor den startede.
         // Framework-vejene er til elementer hvor det native klik INGEN virkning gav.
         if (aftryk() === foerKlik) {
@@ -1486,7 +1486,7 @@ async function debuggerClick(tabId, x, y) {
         // nogen handler: foer=false, efter=true.
         // Derfor maales sidens REAKTION i stedet, med samme aftryks-greb som select_option
         // allerede bruger: aendrede noget sig af det et klik plejer at aendre?
-        // MAALT 12/9 af Fable (e2e runde 3): her sammenlignedes med aftrykket fra FOER mousedown.
+        // MAALT 12/9 i test (e2e runde 3): her sammenlignedes med aftrykket fra FOER mousedown.
         // Rettelsen af R5 F5 ovenfor gjaldt kun HVILKEN vej der blev proevet, ikke hvad vi SVAREDE. Uden en framework-vej
         // at falde tilbage paa gav en ripple derfor stadig landed:true med nul handling.
         // Tre udfald, ikke to: aendrede klikket (eller framework-vejen) noget, er det landet. Aendrede kun mousedown
@@ -1554,7 +1554,7 @@ async function evalAttached(tabId, expression) {
   return result.result?.value;
 }
 
-// En tast ned og op igen - og op igen UANSET hvad. MAALT 10/9 af Astra (anden runde): press_key fik
+// En tast ned og op igen - og op igen UANSET hvad. MAALT 10/9 i test (anden runde): press_key fik
 // keyUp-altid i foerste runde, men de tre hjaelpere der ogsaa sender taster gjorde ikke. Timede et
 // keyDown ud efter at det VAR landet, forlod hjaelperen funktionen foer sit keyUp, og tasten sad fast
 // for siden. Et fastsiddende Cmd goer det naeste tastetryk til en genvej.
@@ -1574,7 +1574,7 @@ async function clearFieldAttached(tabId) {
 /**
  * Tre-vejs dom paa hvad der FAKTISK staar i feltet. Delt af fill's to grene.
  *
- * FUNDET 13/9 af Astra: tekst-grenen fik den her dom om formiddagen, CSS-grenen ikke - og
+ * FUNDET 13/9 i test: tekst-grenen fik den her dom om formiddagen, CSS-grenen ikke - og
  * CSS-grenen er den mest brugte. Én funktion, saa de ikke kan drive fra hinanden igen.
  */
 // `faktisk` staar ved siden af `vaerdi` fordi serverens instruktion til agenten siger
@@ -1737,7 +1737,7 @@ async function debuggerFill(tabId, selector, value) {
     if (!landed) {
       await clearFieldAttached(tabId);
       await typeCharsAttached(tabId, value);
-      // FUNDET 13/9 af Astra: her stoppede vi. `typeCharsAttached` sender
+      // FUNDET 13/9 i test: her stoppede vi. `typeCharsAttached` sender
       // Input.dispatchKeyEvent-par - praecis den kommando der blev maalt i at lyve samme dag.
       // Leveres tasterne heller ikke, kastes intet, og kalderen fik ok:true paa et tomt felt.
       laesning = await evalAttached(tabId, `
@@ -1835,7 +1835,7 @@ async function armerHaendelsesBevis(tabId, type) {
   // daekket af et overlay, eller en side der sluger haendelsen, giver samme falske ja som
   // press_key gav paa Enter.
   const id = 'h' + Math.random().toString(36).slice(2, 10);
-  // FUNDET 13/9 af Astra: her stod `await ...; return id;`. Resultatet blev kasseret, saa
+  // FUNDET 13/9 i test: her stod `await ...; return id;`. Resultatet blev kasseret, saa
   // antallet af armerede rammer kunne aldrig sammenlignes med antallet der svarede. En
   // hovedramme der ikke kunne armeres, mens én iframe svarede "ingen haendelse", blev doemt
   // `landed:false` - og et falsk NEJ er dyrere end det falske ja vi lige fjernede: agenten
@@ -1876,7 +1876,7 @@ async function laesHaendelsesBevis(tabId, bevis) {
       args: [id],
     });
   } catch { return { landed: null }; }
-  // FUNDET 13/9 af Fable, bevist mod den aegte kode: `udskiftet` betyder kun "maerket er vaek".
+  // FUNDET 13/9 i test, bevist mod den aegte kode: `udskiftet` betyder kun "maerket er vaek".
   // En ramme der ALDRIG havde maerket svarer det samme - og der kommer rammer til hele tiden
   // (annoncer, GTM, reCAPTCHA, indlejret video; hover holder 500 ms, rigeligt). Hovedrammen
   // sagde `antal:0`, annonce-rammen sagde `udskiftet`, og fire vaerktoejer svarede landed:true.
@@ -1923,7 +1923,7 @@ async function armerTastBevis(tabId, forventet) {
   // den, og sidens CSP rammer den ikke. Capture paa window er foerste led i kaeden, saa et
   // stopPropagation i siden kan ikke skjule at tasten blev leveret.
   const id = 'k' + Math.random().toString(36).slice(2, 10);
-  // FUNDET 13/9 af Astra: her stod `p.sidst = e.key`, og dommen var `p.sidst === forventet`.
+  // FUNDET 13/9 i test: her stod `p.sidst = e.key`, og dommen var `p.sidst === forventet`.
   // Lytteren sidder paa window i capture for hele fanen, saa skriver brugeren selv mens
   // agenten trykker, overskrives `sidst` og en tast der LANDEDE meldes som ikke-leveret.
   // Nu saettes et flag naar den ventede tast ses, og det kan ikke overskrives igen.
@@ -2013,7 +2013,7 @@ async function scriptingClick(tabId, selector) {
           }
         } catch {}
         el.scrollIntoView({ block: 'center', behavior: 'instant' });
-        // Sign-off 11/9 (Astra og Fable, begge reproduceret): paa en baggrundsfane blev et klik der krævede isTrusted,
+        // Sign-off 11/9 (i test, begge reproduceret): paa en baggrundsfane blev et klik der krævede isTrusted,
         // eller kun lyttede paa pointerdown, meldt ok:true uden nogen virkning. Klikket maaler nu sidens reaktion med
         // samme aftryk og samme regel som debuggerens reserve (debuggerClick) - ingen backticks herinde.
         const hash = (s) => {
@@ -2033,18 +2033,18 @@ async function scriptingClick(tabId, selector) {
         };
         const opts = { bubbles: true, cancelable: true, composed: true, view: window };
         // Et rigtigt klik sender pointerdown foer mousedown; Radix/shadcn aabner paa pointerdown.
-        // MAALT 11/9 af Astra (efterproevning af 9814636): uden pointerType ("") handlede en side der reagerer paa ikke-mus-
+        // MAALT 11/9 i test (efterproevning af 9814636): uden pointerType ("") handlede en side der reagerer paa ikke-mus-
         // pointere OG paa click to gange. En rigtig mus sender pointerType "mouse".
         const mus = { ...opts, pointerType: 'mouse', isPrimary: true, pointerId: 1, button: 0 };
         try { el.dispatchEvent(new PointerEvent('pointerdown', { ...mus, buttons: 1 })); } catch (e) {}
         el.dispatchEvent(new MouseEvent('mousedown', opts));
         try { el.dispatchEvent(new PointerEvent('pointerup', { ...mus, buttons: 0 })); } catch (e) {}
         el.dispatchEvent(new MouseEvent('mouseup', opts));
-        // Aftrykket tages lige foer el.click(). MAALT 11/9 af Astra (e2e-review): taget foer mousedown blev en ripple klikbevis
+        // Aftrykket tages lige foer el.click(). MAALT 11/9 i test (e2e-review): taget foer mousedown blev en ripple klikbevis
         // (ok:true, nul handlinger; 1.29.0: fejl). En side der reagerer paa pointerdown, bliver derfor aerligt unknown.
         const foer = aftryk();
         el.click();
-        // Maales i samme oejeblik som klikket. Astra (efterproevning af c1496d4): en anden maaling 200 ms senere gjorde et
+        // Maales i samme oejeblik som klikket. Efterproevning af c1496d4: en anden maaling 200 ms senere gjorde et
         // uafhaengigt ur til klikbevis og et klik der navigerede i ventetiden til en fejl. En sen React-opdatering giver
         // derfor landed:false og maaske_landet - aerligt, aldrig en falsk succes.
         return { ok: true, tag: el.tagName, landed: aftryk() !== foer, detached: el.isConnected === false };
@@ -2390,7 +2390,7 @@ async function profilFraLager() {
   } catch { return null; }
 }
 
-// ⛔ MAALT 24/9 - fundet af Astra, bekraeftet her: broen kunne bygges af TRE kaldere paa
+// ⛔ MAALT 24/9 - fundet i test, bekraeftet her: broen kunne bygges af TRE kaldere paa
 // samme tid - linjen oeverst i «Start», installations-haendelsen og hjerteslaget. Ingen af
 // dem ventede paa de andre. Ved en ny installation fyrer de to foerste naesten samtidig, og
 // installations-haendelsen LUKKER broen mens den anden er ved at bygge den. Luk-og-genbyg
@@ -2405,13 +2405,13 @@ async function profilFraLager() {
 //     igangvaerende opbygning. Var hjerteslaget midt i sit ping, fejlede pinget (dokumentet var
 //     vaek), lukningen kastede, og hjerteslaget returnerede UDEN at bygge: ingen bro i op til 60 s.
 //     Nu gaar «luk og byg igen» gennem SAMME koe (genbygOffscreen) og venter paa det der er i gang.
-//  2. ⛔ INGEN FRIST (26/9, Astra maalte det): en foerste udgave gav hvert led en frist paa 20 s. Men
+//  2. ⛔ INGEN FRIST (26/9, maalt i test): en foerste udgave gav hvert led en frist paa 20 s. Men
 //     en frist stopper ikke arbejdet - den frigiver kun koeen. Et udloebet led kunne vaagne efter et
 //     await og lukke den NYE, levende bro; og fristen talte mens leddet stod i koe, saa en
 //     genopbygning fik ned til ét sekunds arbejdstid. Et haengende led blokerer derfor baade
 //     hjerteslag og «Reconnect», og genopretning er IKKE garanteret: en tilkoblet debugger holder
 //     servicearbejderen i live (Chrome 118+), saa den genstarter ikke af sig selv. Udvejen er at
-//     genindlaese udvidelsen - det staar i CHANGELOG som kendt begraensning (Astra 26/9).
+//     genindlaese udvidelsen - det staar i CHANGELOG som kendt begraensning (test 26/9).
 let offscreenIGang = null;
 
 function iOffscreenKoe(arbejde) {
@@ -2504,11 +2504,11 @@ async function ensureOffscreenIndre() {
   // baerer den aeldre version, hvilket er praecis den skelnen tjekket skal bruge.
   let minVersion = '';
   try { minVersion = chrome.runtime.getManifest().version; } catch {}
-  // Portomraadet foelger samme vej som versionen. MAALT 12/9 af Astra: serveren sender kun til den NYESTE forbundne
+  // Portomraadet foelger samme vej som versionen. MAALT 12/9 i test: serveren sender kun til den NYESTE forbundne
   // udvidelse, saa en testbrowser paa de samme porte bliver "nyeste" for hver eneste koerende chats server. Et
   // omraade i chrome.storage.local lader én profil koere isoleret - og fordi det er en VAERDI og ikke en kodeaendring,
   // er repoets filer byte-identiske, og udgivelsens kode-aftryk er uroert. (Mit foerste forslag, at flytte portene
-  // til manifestet, ville have fjernet dem fra aftrykket - Astra maalte at de ligger i offscreen.js, som hashes.)
+  // til manifestet, ville have fjernet dem fra aftrykket - maalt at de ligger i offscreen.js, som hashes.)
   const porteParam = await portOmraadeFraLager();
   const profilParam = typeof profilFraLager === 'function' ? await profilFraLager() : null;
   const harQuery = Boolean(minVersion || porteParam);
@@ -2526,7 +2526,7 @@ async function ensureOffscreenIndre() {
 
 const SENSITIVE = new Set(['get_cookies', 'get_local_storage', 'execute_script', 'extract_token']);
 
-// MAALT 11/9 (Astra, efterproevet): her stod `params: JSON.stringify(params).slice(0, 200)`.
+// MAALT 11/9 (test, efterproevet): her stod `params: JSON.stringify(params).slice(0, 200)`.
 // De foerste 200 tegn af ALLE parametre — ogsaa vaerdien til fill (adgangskoder), cookie-
 // vaerdier og adresser med login-tokens — laa i klartekst i chrome.storage.local. Popuppen
 // viser kun tid, vaerktoej og session, saa parametrene tjente intet. De gemmes ikke laengere,
@@ -2543,7 +2543,7 @@ async function logAction(port, method) {
   };
   try {
     const { actionLog = [] } = await chrome.storage.local.get({ actionLog: [] });
-    // MAALT 11/9 af Astra (e2e-review): et logAction der koerte samtidig med rensHandlingslog i onInstalled, havde laest den
+    // MAALT 11/9 i test (e2e-review): et logAction der koerte samtidig med rensHandlingslog i onInstalled, havde laest den
     // gamle log foer oprydningen skrev - og skrev saa den gamle adgangskode tilbage. Hver skrivning renser derfor selv.
     const renset = (Array.isArray(actionLog) ? actionLog : []).filter(Boolean).map(({ params, ...resten }) => resten);
     renset.unshift(entry);
@@ -2661,10 +2661,10 @@ const OAUTH_DOMAINS = ['accounts.google.com', 'login.microsoftonline.com', 'gith
 // link med target=_blank, en OAuth-popup). Det staar i openerTabId. Er der ingen opener,
 // var det brugeren, og saa er den ikke vores.
 let lastCreatedTabId = null;
-// Aabneren huskes PR. FANE. En global "seneste aabner" blev 10/9 (Astra, reproduceret) laant af
+// Aabneren huskes PR. FANE. En global "seneste aabner" blev 10/9 (test, reproduceret) laant af
 // den forkerte fane, naar to faner blev aabnet mens get_new_tab ventede paa tabs.get.
 const openerForFane = new Map();
-// MAALT 11/9 af Astra (R5 F9), reproduceret: fane 1 aabner en popup og lukkes derefter (typisk
+// MAALT 11/9 i test (R5 F9), reproduceret: fane 1 aabner en popup og lukkes derefter (typisk
 // "log ind i nyt vindue"). get_new_tab slog aabneren op i sessionens faner NU, hvor 1 var vaek,
 // og svarede not-ours paa sessionens egen popup. Ejeren huskes derfor i det oejeblik fanen
 // oprettes, hvor aabneren stadig staar i sin session.
@@ -2777,7 +2777,7 @@ function valueLooksLikeIso(raaVaerdi, iso, fmt) {
   // Fjerde runde: en aflaesning der BEGYNDER med den oenskede ISO-dato (fx "2026-01-02T12:00:00") er den dato,
   // uanset hvilket format placeholderen lover - ellers blev en korrekt dato afvist og kalenderen proevet oveni.
   if (raaVaerdi.trim().startsWith(iso) && !/\d/.test(raaVaerdi.trim().charAt(iso.length))) return true;
-  // MAALT 11/9 af Astra (R5): klokkeslaet og tidszone er ikke en del af datoen. F2: "02/01 20:26" gav timen 20
+  // MAALT 11/9 i test (R5): klokkeslaet og tidszone er ikke en del af datoen. F2: "02/01 20:26" gav timen 20
   // som aaret 2020 og ok:true. F3: "02/01/2026 12:00 GMT" blev afvist af bogstavkontrollen paa "GMT", og
   // kalenderen blev proevet oveni. Begge fjernes foer datoen laeses.
   const value = raaVaerdi
@@ -2786,7 +2786,7 @@ function valueLooksLikeIso(raaVaerdi, iso, fmt) {
     .replace(/\s+/g, ' ')
     .trim();
   if (!value) return false;
-  // Astra, anden runde: tre `value.includes(...)` hver for sig godkendte "20/12/2026" som 2026-01-02.
+  // anden testrunde: tre `value.includes(...)` hver for sig godkendte "20/12/2026" som 2026-01-02.
   // Tredje runde: tre `digits.includes(...)` koerte stadig FOER kontrollen af hele tal, saa
   // "2026-1-1 02:00" blev 2026-11-02. Nu sammenlignes cifre som én streng KUN naar vaerdien udelukkende
   // ER otte cifre - og med kendt format kun i formatets raekkefoelge ("01/12/2026" under DD/MM/YYYY er
@@ -3425,7 +3425,7 @@ async function setCombobox(tabId, selector, values, opts = {}) {
         results.push({ value: val, ok: false, error: 'input-not-found' });
         continue;
       }
-      // FUNDET 13/9 af BAADE Astra og Fable, uafhaengigt: her stod `await debuggerClick(...)`
+      // FUNDET 13/9 af flere uafhaengige testkoersler: her stod `await debuggerClick(...)`
       // og svaret blev kastet vaek. `klikLandede()` er den faelles regel som click, click_xy
       // og select_option allerede bruger - set_combobox var det ene sted der ikke spurgte.
       // Landede klikket ikke, gik soegeteksten i det felt der HAVDE fokus, og vi ventede
@@ -3462,7 +3462,7 @@ async function setCombobox(tabId, selector, values, opts = {}) {
       await debuggerAttach(tabId);
       await cdpSend(tabId, 'Input.insertText', { text: query });
 
-      // FUNDET 13/9 af Astra: naar listen ikke kom, svarede vi 'no-options-rendered' - som
+      // FUNDET 13/9 i test: naar listen ikke kom, svarede vi 'no-options-rendered' - som
       // peger paa siden. Men vejen hertil gaar gennem to CDP-kommandoer der KVITTERER uden
       // at love levering (klikket der aabner feltet, og selve skrivningen). Landede de ikke,
       // er det ikke siden der mangler muligheder.
@@ -4395,18 +4395,18 @@ function generateAriaSnapshot(rootSel, interactiveOnly, maxDepth, viewportOnly) 
       if (tab.url.startsWith('chrome://') || tab.url.startsWith('about:')) {
         throw new Error(`Cannot screenshot ${tab.url.split(':')[0]}: pages — navigate to a real page first`);
       }
-      // MAALT 10/9, anden runde (Astra, reproduceret): reserveloesningen captureVisibleTab
+      // MAALT 10/9, anden runde (test, reproduceret): reserveloesningen captureVisibleTab
       // fotograferer den fane der er SYNLIG i vinduet, ikke agentens. Et tjek foer og et efter
       // kunne ikke udelukke at brugeren skiftede A->B->A imens - og saa blev brugerens side
       // leveret. To tidspunkter beviser ikke hvad der skete imellem. Reserveloesningen er derfor
       // fjernet: CDP optager netop `tab.id`, eller der er intet billede.
       // Samme runde: en frist paa optagelsen startede alligevel en ny runde (haev vinduet, optag
       // igen), og kaeden kom over serverens 30 s. En frist markeres nu, og saa proeves der ikke igen.
-      // Sign-off 11/9 (Astra, R5 F8): hele kaeden har ét budget (skaermbilledeFrister). Fristen gaelder ogsaa mens
+      // Sign-off 11/9 (test, R5 F8): hele kaeden har ét budget (skaermbilledeFrister). Fristen gaelder ogsaa mens
       // cdpSend gentager et kald efter en afkobling - det var den gentagelse der bar kaeden over 30 s.
       const { foersteMs, samletMs, haevMs = 0 } = skaermbilledeFrister();
       const budgetSlut = Date.now() + samletMs;
-      // MAALT 11/9 af Astra (e2e runde 2), tre fejl i den haevede runde: reservationen blev trukket fra IGEN (reserven fik
+      // MAALT 11/9 i test (e2e runde 2), tre fejl i den haevede runde: reservationen blev trukket fra IGEN (reserven fik
       // 0 ms), `debuggerAttach` laa uden for fristloebet (en gentilslutning paa 12,5 s bar kaeden over 30 s), og haevningen
       // startede nye optagelser og smed de igangvaerende vaek - 1.29.0 fik netop svar fra dem der allerede loeb.
       const igangvaerende = [];   // alle optagelser der stadig kan svare, paa tvaers af runder
@@ -4446,14 +4446,14 @@ function generateAriaSnapshot(rootSel, interactiveOnly, maxDepth, viewportOnly) 
         } catch (foersteFejl) {
           // fromSurface:false proeves ogsaa efter en frist: i 1.29.0 var det netop fristen der naaede hertil, og den
           // leverede billedet. Men efter en frist startes ingen runde mere, uanset hvordan reserven fejler.
-          // MAALT 11/9 af Astra (efterproevning af f084d1b): standardoptagelsen lykkedes efter 11 s, reserven fejlede, og
+          // MAALT 11/9 i test (efterproevning af f084d1b): standardoptagelsen lykkedes efter 11 s, reserven fejlede, og
           // fristen paa 10 s havde kasseret standardbilledet. Standardoptagelsen loeber derfor videre efter sin frist, og
           // den af de to der lykkes foerst inden for budgettet, vinder.
           optag({ format: 'png', fromSurface: false, captureBeyondViewport: false });
           try {
             // Den haevede runde er sidste udvej paa en tildaekket skaerm og skal have tid tilbage (haevMs) - ellers naar
-            // 1.29.0's eneste virkende vej aldrig frem (Fable, e2e 11/9).
-            // MAALT 12/9 af Astra: alle igangvaerende optagelser laa i den SAMME Promise.any, saa et gammelt billede fra
+            // 1.29.0's eneste virkende vej aldrig frem (test, e2e 11/9).
+            // MAALT 12/9 i test: alle igangvaerende optagelser laa i den SAMME Promise.any, saa et gammelt billede fra
             // foer haevningen kunne svare foerst og vinde - selv om siden havde aendret sig imens. Rundens EGNE optagelser
             // afgoer nu svaret; de aeldre taeller stadig med, men kun hvis rundens egne ikke naar frem.
             let shot;
@@ -4478,8 +4478,8 @@ function generateAriaSnapshot(rootSel, interactiveOnly, maxDepth, viewportOnly) 
       try {
         return await tryCapture();
       } catch (firstErr) {
-        // 10/9 (Astra, R2) stod her: en frist betyder at kompositoren ikke svarede, saa en ny runde fordobler kun
-        // ventetiden. MAALT 11/9 af Fable: paa en TILDAEKKET skaerm haenger begge optagelser netop indtil vinduet haeves -
+        // 10/9 (test, R2) stod her: en frist betyder at kompositoren ikke svarede, saa en ny runde fordobler kun
+        // ventetiden. MAALT 11/9 i test: paa en TILDAEKKET skaerm haenger begge optagelser netop indtil vinduet haeves -
         // 1.29.0 leverede dér et billede efter 16,7 s, hvor HEAD gav op. Budgettet (haevMs) holder kaeden under serverens
         // 30 s, saa den sidste udvej maa proeves uanset om fejlen var en frist.
         // Er budgettet brugt, er der ikke tid til en runde med haevet vindue foer serverens 30 s. (haevMs ovenfor er netop
@@ -4535,7 +4535,7 @@ function generateAriaSnapshot(rootSel, interactiveOnly, maxDepth, viewportOnly) 
 
       const diag = { tried: [] };
 
-      // MAALT 10/9 af Astra (anden runde), reproduceret med en taeller: kode der udfoerte en
+      // MAALT 10/9 i test (anden runde), reproduceret med en taeller: kode der udfoerte en
       // effekt og SAA kastede, blev koert igen via debuggeren - to effekter. `sendt` beskyttede
       // kun debugger-loekken. Er koden koert, er dens fejl svaret; den koeres ikke igen.
       // Samme runde: scripting-stierne afventede ikke et Promise ("Promise.resolve(42)" gav {}).
@@ -4546,7 +4546,7 @@ function generateAriaSnapshot(rootSel, interactiveOnly, maxDepth, viewportOnly) 
         note: 'The code RAN and threw an error. It is not run again through the debugger, because what it ' +
               'did manage before the error would then happen twice.',
       });
-      // MAALT 11/9 af Astra (R5 F4), reproduceret: scriptet sendte en POST og returnerede et
+      // MAALT 11/9 i test (R5 F4), reproduceret: scriptet sendte en POST og returnerede et
       // Promise; mens scripting-stien ventede, forsvandt dokumentet, og Chrome afviste med
       // "Frame with ID 0 was removed." Handleren gik saa videre til debuggeren, som koerte koden
       // igen - to POST'er. Forsvinder siden EFTER at koden er startet, kan den have koert, og
@@ -4585,7 +4585,7 @@ function generateAriaSnapshot(rootSel, interactiveOnly, maxDepth, viewportOnly) 
         }
       } catch (e) {
         // Ingen maybe_ran her. MAALT 11/9 i Chrome for Testing 153: `new Function` i ISOLATED afvises af udvidelsens
-        // CSP ('unsafe-eval'), saa brugerens kode kan aldrig have koert i denne verden. Sign-off (Astra): en afvisning
+        // CSP ('unsafe-eval'), saa brugerens kode kan aldrig have koert i denne verden. Sign-off: en afvisning
         // med "Frame with ID 0 was removed." foer start gav maybe_ran og nul koersler, hvor 1.29.0 koerte koden via MAIN.
         diag.isolated_throw = String(e?.message || e);
       }
@@ -4634,7 +4634,7 @@ function generateAriaSnapshot(rootSel, interactiveOnly, maxDepth, viewportOnly) 
       for (let attempt = 0; attempt < 4; attempt++) {
         try {
           await debuggerAttach(tab.id);
-          // MAALT 10/9 af Astra: faldt debuggeren af EFTER at scriptet var sendt, loeb loekken
+          // MAALT 10/9 i test: faldt debuggeren af EFTER at scriptet var sendt, loeb loekken
           // videre og koerte BRUGERENS kode igen — op til fire gange. Vi kan ikke se om et
           // vilkaarligt script muterer. Samme regel som for Runtime.evaluate i cdpSend: er det
           // sendt, gentages det ikke automatisk. Kun en fejl FOER afsendelse proeves igen.
@@ -4712,7 +4712,7 @@ function generateAriaSnapshot(rootSel, interactiveOnly, maxDepth, viewportOnly) 
           // `ok: true` stod hardkodet, og `landed` blev spredt ind bagefter. Klikket svarede
           // altsaa ja og nej i samme aandedrag, og en agent laeser `ok`.
           // Et element der forsvandt ER en virkning — derfor tæller `detached` som landet.
-          // MAALT 12/9 af Astra (N1): `ok` stod FOER settle-vaerdien her og i click_xy, hvor select_option var immun -
+          // MAALT 12/9 i test (N1): `ok` stod FOER settle-vaerdien her og i click_xy, hvor select_option var immun -
           // saa et svar fra siden kunne bestemme vaerktoejets egen dom. Ikke naabart i dag, men det er samme klasse som
           // lige blev lukket for noten, og de tre steder var indbyrdes uens. Vaerktoejets vurdering staar nu sidst.
           ok: klikLandede(clickResult),
@@ -4736,7 +4736,7 @@ function generateAriaSnapshot(rootSel, interactiveOnly, maxDepth, viewportOnly) 
         //
         // Prisen ved fallbacken er at klikket mister isTrusted=true. Det tjekker de færreste
         // sider, og et klik der virker på 95% af nettet slår et klik der aldrig virker.
-        // MAALT 10/9 af Astra (anden runde), reproduceret: museknappen var sendt ned og op, CDP meldte
+        // MAALT 10/9 i test (anden runde), reproduceret: museknappen var sendt ned og op, CDP meldte
         // derefter afkobling - og reserveloesningen klikkede EN GANG TIL. To effekter, ok:true. Er
         // trykket sendt, kan klikket vaere landet; saa klikkes der ikke igen.
         if (e?.trykSendt) {
@@ -4750,7 +4750,7 @@ function generateAriaSnapshot(rootSel, interactiveOnly, maxDepth, viewportOnly) 
         // trykket er sendt. Intet klik kan vaere landet (trykSendt er falsk, se ovenfor), saa script-klikket er sikkert.
         const inputFristFoerTryk = erCdpFrist(e) && /: Input\./.test(e?.message || '');
         if (inputFristFoerTryk || /Debugger detached|Debugger attach failed|not attached/i.test(e?.message || '')) {
-          // Ingen "ny adresse = klikket navigerede"-regel her. Astra (efterproevning af c1496d4): en UAFHAENGIG navigation
+          // Ingen "ny adresse = klikket navigerede"-regel her. Efterproevning af c1496d4: en UAFHAENGIG navigation
           // fjernede rammen foer scriptet koerte, og reglen svarede ok:true med nul handlinger. En afvisning beviser ikke at
           // scriptet koerte, og en ny adresse beviser ikke at det var klikket.
           const r = await scriptingClick(tab.id, params.selector);
@@ -4761,7 +4761,7 @@ function generateAriaSnapshot(rootSel, interactiveOnly, maxDepth, viewportOnly) 
             // vaerktoejet {ok:true, tag:'DIV'} paa «Create key» - knappen blev aldrig trykket, siden stod uaendret.
             // Nabogrenen nedenfor kraevede allerede bevis; denne var bare aldrig blevet rettet.
             //
-            // ⛔ Svaret er IKKE ok:false. Astra maalte 12/9 at en menu der aabner paa mousedown ellers meldes
+            // ⛔ Svaret er IKKE ok:false. maalt 12/9 at en menu der aabner paa mousedown ellers meldes
             // mislykket, og saa klikker agenten igen og lukker den. Det er det TREDJE udfald, som resten af
             // klassen bruger: sendt, virkning unknown.
             const unknown = uvisVurdering(r);
@@ -4774,7 +4774,7 @@ function generateAriaSnapshot(rootSel, interactiveOnly, maxDepth, viewportOnly) 
             };
           }
           if (r.ok) {
-            // Sign-off 11/9 (Astra og Fable): paa en baggrundsfane svarede reserven ok:true, ogsaa naar siden intet gjorde
+            // Sign-off 11/9 (i test): paa en baggrundsfane svarede reserven ok:true, ogsaa naar siden intet gjorde
             // (handler der kraever isTrusted). 1.29.0 svarede med en fejl. Nu kraever ok samme bevis som de andre klikveje.
             // Viste siden ingen reaktion, er klikket alligevel sendt - saa det meldes som "kan vaere landet", ikke gentag blindt.
             if (klikLandede(r)) {
@@ -4962,7 +4962,7 @@ async function fillSingleField(tabId, selectorStr, valStr) {
             tried.push({ path: 'masked', format: fmt.order.join(fmt.sep), value: v });
             if (valueLooksLikeIso(v, iso, fmt)) return { ok: true, method: 'masked', value: v, format: fmt.order.join(fmt.sep) };
           } catch (e) {
-            // MAALT 10/9 af Astra: en frist her betyder ikke at intet skete. Tastetrykkene kan
+            // MAALT 10/9 i test: en frist her betyder ikke at intet skete. Tastetrykkene kan
             // allerede staa i feltet, og saa ville kalender-vejen nedenfor saette datoen EN GANG
             // TIL. Laes feltet foer vi proever noget andet.
             const v = await readBackValue(tab.id, params.selector).catch(() => null);
@@ -4990,7 +4990,7 @@ async function fillSingleField(tabId, selectorStr, valStr) {
 
       // Path C: calendar-picker navigation
       if (!params.skip_picker) {
-        // Fjerde runde (Astra): kalender-grenen glemte feltets format, saa 01/12/2026 blev godkendt som 12. januar.
+        // Fjerde testrunde: kalender-grenen glemte feltets format, saa 01/12/2026 blev godkendt som 12. januar.
         const kendtFormat = parsePlaceholderFormat(info.placeholder) || parsePlaceholderFormat(info.ariaLabel);
         const r = await setDatePicker(tab.id, params.selector, iso);
         await new Promise(r2 => setTimeout(r2, 200));
@@ -5024,7 +5024,7 @@ async function fillSingleField(tabId, selectorStr, valStr) {
       const tab = await getSessionTab(port);
       if (tab.url.startsWith('chrome://')) throw new Error('Cannot interact with chrome:// pages');
       if (!params.selector) return { ok: false, error: 'selector required' };
-      // FUNDET 13/9 af Astra: vagten var `!params.values && !params.value`, og `![]` er falsk.
+      // FUNDET 13/9 i test: vagten var `!params.values && !params.value`, og `![]` er falsk.
       // En tom liste slap igennem, loekken koerte nul gange, og `[].every(...)` er sandt - saa
       // vaerktoejet svarede ok:true uden at have roert siden overhovedet.
       const values = Array.isArray(params.values) ? params.values
@@ -5100,7 +5100,7 @@ async function fillSingleField(tabId, selectorStr, valStr) {
       const vkCode = VK_CODES[key];
       const vkParams = vkCode ? { windowsVirtualKeyCode: vkCode, nativeVirtualKeyCode: vkCode } : {};
 
-      // MAALT 10/9 af Astra: keyDown og keyUp stod i samme try. Timede keyDown ud — og det
+      // MAALT 10/9 i test: keyDown og keyUp stod i samme try. Timede keyDown ud — og det
       // kan det, selv naar tasten LANDEDE (Enter der sender en formular) — blev keyUp aldrig
       // sendt. En tast der kun er trykket ned, er en tast der haenger. Nu sendes keyUp altid,
       // og svaret siger om nedtrykket fejlede i stedet for at kaste raat.
@@ -5227,11 +5227,11 @@ async function fillSingleField(tabId, selectorStr, valStr) {
         // kvittere, fallbacken lagde 600 oveni = 900 faktisk, 600 rapporteret.
         // scrollTo mod en beregnet MAAL-position er idempotent: har hjulet allerede rullet
         // halvdelen, ruller vi kun resten.
-        // MAALT 10/9 af Astra, i MIN egen rettelse fra fire timer foer: her stod
+        // MAALT 10/9 i test, i MIN egen rettelse fra fire timer foer: her stod
         // `.catch(() => null)` og derefter `ok: true` ubetinget. Fejlede ogsaa
         // reserveloesningen, svarede vaerktoejet succes med nul rullede pixels.
         // Femte gang samme fejlklasse paa én dag — og den her var min.
-        // MAALT 10/9 af Astra (anden runde), reproduceret: kunne starten ikke laeses, blev der
+        // MAALT 10/9 i test (anden runde), reproduceret: kunne starten ikke laeses, blev der
         // rullet RELATIVT - og hjultrin der allerede var landet blev lagt oveni (500 -> 1400 ved
         // y:600). Flaget start_ukendt dokumenterede risikoen uden at forhindre den. Uden kendt
         // start findes ingen rulning der kan gentages uden at rulle dobbelt, saa der rulles ikke.
@@ -5255,10 +5255,10 @@ async function fillSingleField(tabId, selectorStr, valStr) {
             fallback_fejl: landede?.fejl || 'the fallback did not answer',
           };
         }
-        // MAALT 11/9 af Astra (e2e-review): med blød rulning (scroll-behavior: smooth) naar siden foerst maalet over de naeste
+        // MAALT 11/9 i test (e2e-review): med blød rulning (scroll-behavior: smooth) naar siden foerst maalet over de naeste
         // billeder. Laest i samme oejeblik blev en rulning der lykkedes meldt som "bunden er maaske naaet" (1.29.0: ok).
         // Positionen laeses igen hvert 100 ms, til maalet er naaet eller siden staar stille - hoejst ca. 1 s.
-        // Astra (efterproevning af c826f63): bundet af et ANTAL forsoeg kom en side med langsomme opslag over serverens 30 s
+        // Efterproevning af c826f63: bundet af et ANTAL forsoeg kom en side med langsomme opslag over serverens 30 s
         // (1.29.0: svar efter 3 s). Genlaesningen er bundet af tid.
         const roSlut = Date.now() + 1000;
         while (Date.now() < roSlut && !(landede.efter.x === startX + dx && landede.efter.y === startY + dy)) {
@@ -5272,7 +5272,7 @@ async function fillSingleField(tabId, selectorStr, valStr) {
         const flyttede = landede.efter.x !== landede.foer.x || landede.efter.y !== landede.foer.y;
         const alleredeFremme = !flyttede && startKendt &&
           landede.efter.x === startX + dx && landede.efter.y === startY + dy;
-        // Astra (efterproevning af cf5b98a): en animation der gik frem, tilbage og foerst naaede maalet efter 1,6 s, fik
+        // Efterproevning af cf5b98a: en animation der gik frem, tilbage og foerst naaede maalet efter 1,6 s, fik
         // svaret ok:false "siden flyttede sig ikke" (1.29.0: ok:true). En rulning der ER sendt, meldes aldrig som fiasko.
         // Kan bevaegelsen ikke ses inden for ventetiden, er svaret unknown - samme aerlighed som maaske_landet paa klik.
         return {
@@ -5286,7 +5286,7 @@ async function fillSingleField(tabId, selectorStr, valStr) {
           }),
         };
       }
-      // MAALT 13/9 (Astras hul-audit): her stod `ok:true, scrolled:{x:dx,y:dy}` - altsaa det
+      // MAALT 13/9 (i test): her stod `ok:true, scrolled:{x:dx,y:dy}` - altsaa det
       // vaerktoejet BAD om, ikke det siden endte paa. Kvitteringen fra hjulet er ikke et bevis;
       // et element der sluger hjulet, en side der allerede er i bunden, eller en baggrundsfane
       // giver samme falske ja. Reservevejen laeser allerede positionen; den gode sti gjorde ikke.
@@ -5369,7 +5369,7 @@ async function fillSingleField(tabId, selectorStr, valStr) {
       try {
         klik = await debuggerClick(tab.id, params.x, params.y);
       } catch (e) {
-        // Samme regel som click (Astra, tredje runde): er museknappen sendt, kan klikket vaere landet -
+        // Samme regel som click (test, tredje runde): er museknappen sendt, kan klikket vaere landet -
         // og en kastet fejl mister markeringen over forbindelsen.
         if (e?.trykSendt) {
           return {
@@ -5404,7 +5404,7 @@ async function fillSingleField(tabId, selectorStr, valStr) {
       const el = await resolveElement(tab.id, params.selector);
       if (!el) return { ok: false, error: 'Element not found: ' + params.selector };
       await debuggerAttach(tab.id);
-      // ANTAGET 13/9 af Fable, MAALT 18/9 i flow-spaerren: Blink fyrer `mouseover` KUN naar
+      // ANTAGET 13/9 i test, MAALT 18/9 i flow-spaerren: Blink fyrer `mouseover` KUN naar
       // elementet under markoeren SKIFTER. Hover to gange paa det samme, eller klik og hover
       // saa det samme, og anden gang giver kun `mousemove`. Beviset lyttede kun paa mouseover,
       // saa en helt almindelig raekkefoelge svarede "ikke leveret" - et falsk NEJ, som faar
@@ -5573,7 +5573,7 @@ async function fillSingleField(tabId, selectorStr, valStr) {
         ok: klikLandede(valgKlik),
         type: 'custom_dropdown',
         selected: oensket,
-        // MAALT 12/9 af Astra: her stod fejlteksten paa ALT der ikke var bevist landet - ogsaa naar koden lige havde
+        // MAALT 12/9 i test: her stod fejlteksten paa ALT der ikke var bevist landet - ogsaa naar koden lige havde
         // regnet ud at den IKKE ved det. En skarp benaegtelse oven paa en uvished er mindre aerlig end ingen tekst.
         ...(uvisVurdering(valgKlik)
           || (!klikLandede(valgKlik)
@@ -5832,14 +5832,14 @@ async function fillSingleField(tabId, selectorStr, valStr) {
         };
       }
       // MAALT 10/9, to runder. Foerste udgave gaettede domaeneslaegtskab ud fra fanernes
-      // vaertsnavne ("a.example.com ligger under com"). Astra omgik det tre veje: en fane paa
+      // vaertsnavne ("a.example.com ligger under com"). omgaaet i test paa tre maader: en fane paa
       // https://com/ aabnede hele .com, en file://bank.example/-fane gav bankens cookies uden at
       // nogen side var aabnet, og et tomt vaertsnavn (about:blank) lod "bank.example." slippe
       // igennem. Et domaene kan man ikke raesonnere sig til uden public suffix-listen. Saa nu
       // spoerges Chrome i stedet: hvilke cookies ville du SENDE til de http(s)-sider sessionen har
       // aabne? Kun dem - og kun dem der passer paa det domaene der blev bedt om.
       const session = getSession(port);
-      // Astra, tredje runde: en inkognito-fane har sit EGET cookie-lager. Uden storeId blev den
+      // tredje testrunde: en inkognito-fane har sit EGET cookie-lager. Uden storeId blev den
       // almindelige profils cookies laest for en inkognito-fane.
       let lagre = null;
       try { lagre = await chrome.cookies.getAllCookieStores(); } catch {}
@@ -5852,11 +5852,11 @@ async function fillSingleField(tabId, selectorStr, valStr) {
           const u = new URL(t?.url || '');
           if ((u.protocol === 'https:' || u.protocol === 'http:') && u.hostname) {
             const storeId = lagerFor(id);
-            // Astra (sign-off 11/9): fejlede getAllCookieStores for en inkognitofane, blev storeId udeladt, og Chrome
+            // Sign-off 11/9: fejlede getAllCookieStores for en inkognitofane, blev storeId udeladt, og Chrome
             // laeste den almindelige profils lager. Kan en inkognitofanes lager ikke findes, laeses intet for den.
             if (t.incognito && !storeId) { ukendtLager = true; continue; }
             // Fanens vaertsnavn er altid ASCII (punycode). Et afsluttende punktum er en ANDEN cookie-vaert i
-            // Chromium (Astra, fjerde runde: x.example. fik cookies fra x.example) - saa det bevares.
+            // Chromium (fjerde testrunde: x.example. fik cookies fra x.example) - saa det bevares.
             sider.push({ u, vaert: u.hostname.toLowerCase(), storeId });
           }
         } catch {}
@@ -5888,9 +5888,9 @@ async function fillSingleField(tabId, selectorStr, valStr) {
       };
       for (const side of sider) {
         const lager = side.storeId ? { storeId: side.storeId } : {};
-        // Fable (sign-off 11/9): en session paa http:// fik en Secure-cookie fra overdomaenet. {url} udelader dem selv,
+        // Sign-off 11/9: en session paa http:// fik en Secure-cookie fra overdomaenet. {url} udelader dem selv,
         // men opslagene paa {domain} kender ikke sidens protokol. Chrome sender aldrig en Secure-cookie til http.
-        // Astra (efterproevning af c1496d4): Chromium regner localhost for sikker og sender Secure-cookies dertil over http.
+        // Efterproevning af c1496d4: Chromium regner localhost for sikker og sender Secure-cookies dertil over http.
         const sikkerVaert = side.u.protocol === 'https:' || side.vaert === 'localhost' || side.vaert.endsWith('.localhost') ||
           /^127(\.\d{1,3}){3}$/.test(side.vaert) || side.vaert === '[::1]';
         const sendesOverProtokollen = (c) => !c.secure || sikkerVaert;
@@ -5902,7 +5902,7 @@ async function fillSingleField(tabId, selectorStr, valStr) {
         for (const c of await chrome.cookies.getAll({ domain: side.vaert, ...lager })) {
           if (String(c.domain || '').toLowerCase().replace(/^\./, '') === side.vaert && sendesOverProtokollen(c)) med(c, side.storeId);
         }
-        // MAALT 11/9 af Astra (R5 F7): overdomaenets cookie paa en anden sti (Domain=.example.com; Path=/api) kom
+        // MAALT 11/9 i test (R5 F7): overdomaenets cookie paa en anden sti (Domain=.example.com; Path=/api) kom
         // med i 1.29.0, men ikke her: {url} giver kun sidens egen sti, og {domain: vaert} holdt kun cookies hvis
         // domaene ER vaertsnavnet. Chrome spoerges nu ogsaa om det domaene der blev bedt om, og kun cookies som
         // DENNE vaert ville faa tilsendt paa en eller anden sti beholdes. En host-only-cookie sendes kun til sin
@@ -5931,12 +5931,12 @@ async function fillSingleField(tabId, selectorStr, valStr) {
     }
 
     case 'set_cookies': {
-      // MAALT 11/9 af Opus og Fable (e2e-review): laesningen er begraenset til sessionens egne sider, men skrivningen satte
+      // MAALT 11/9 af i test (e2e-review): laesningen er begraenset til sessionens egne sider, men skrivningen satte
       // cookies paa ETHVERT domaene - ogsaa sider sessionen aldrig har aabnet (og butikkens begrundelse lovede det modsatte).
       // Samme regel begge veje: kun de http(s)-vaerter sessionen har aabne.
       // MAALT 11/9 (e2e runde 2): slaegtskabet blev laest BEGGE veje, saa en cookie til et uaabnet UNDERdomaene slap
-      // igennem (Astra), adressen kom fra kalderen i stedet for sessionens side (Opus), og en inkognitofane skrev i den
-      // almindelige profils lager (Opus). Reglen er nu laesningens: cookiens domaene skal vaere vaerten selv eller et
+      // igennem (test), adressen kom fra kalderen i stedet for sessionens side (test), og en inkognitofane skrev i den
+      // almindelige profils lager (test). Reglen er nu laesningens: cookiens domaene skal vaere vaerten selv eller et
       // overdomaene vaerten faar cookies fra, adressen bygges af sidens egen oprindelse (saa Chrome haandhaever bl.a.
       // public suffix), og lageret foelger fanen.
       const saetSession = getSession(port);
@@ -5962,7 +5962,7 @@ async function fillSingleField(tabId, selectorStr, valStr) {
         };
       }
       // Sidens vaert faar cookies fra sig selv og fra sine overdomaener - ikke fra et underdomaene den ikke har aabnet.
-      // MAALT 12/9 af Astra: `find` tog den FOERSTE fane der endte paa domaenet, saa en aaben a.example.com vandt over en
+      // MAALT 12/9 i test: `find` tog den FOERSTE fane der endte paa domaenet, saa en aaben a.example.com vandt over en
       // lige saa aaben example.com - og adressen blev derefter bygget af den forkerte vaert. Den noejagtige vaert vinder nu.
       // Slaegtskabs-stien (sidens vaert faar cookies fra sit overdomaene) kraever at kalderen SELV har sagt `domain`:
       // uden `domain` er cookien host-only, og saa kan oensket ikke opfyldes fra et underdomaene.
@@ -6478,6 +6478,109 @@ async function fillSingleField(tabId, selectorStr, valStr) {
         try { await debuggerDetach(tab.id); } catch {}
         return { ok: false, error: e.message };
       }
+    }
+
+    case 'extract_token': {
+      const PROVIDER_SHORTCUTS = {
+        stripe: 'https://dashboard.stripe.com/apikeys',
+        hubspot: 'https://app.hubspot.com/private-apps',
+        slack: 'https://api.slack.com/apps',
+        shopify: 'https://admin.shopify.com/settings/apps/development',
+        mailchimp: 'https://admin.mailchimp.com/account/api/',
+        pipedrive: 'https://app.pipedrive.com/settings/api',
+        calendly: 'https://calendly.com/integrations/api_webhooks',
+        google: 'https://console.cloud.google.com/apis/credentials',
+        'google-cloud': 'https://console.cloud.google.com/apis/credentials',
+        gcp: 'https://console.cloud.google.com/apis/credentials',
+        linkedin: 'https://www.linkedin.com/developers/apps',
+      };
+
+      const rawInput = params?.provider ?? params?.name ?? params?.service ?? '';
+      const rawProvider = typeof rawInput === 'string' ? rawInput.trim() : String(rawInput).trim();
+      const key = rawProvider.toLowerCase();
+      let targetUrl = PROVIDER_SHORTCUTS[key];
+
+      if (!targetUrl) {
+        if (/^https?:\/\//i.test(rawProvider)) {
+          targetUrl = rawProvider;
+        } else if (/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(:\d+)?(\/.*)?$/.test(rawProvider)) {
+          targetUrl = `https://${rawProvider}`;
+        } else {
+          return {
+            ok: false,
+            error: `Unknown provider "${rawProvider}". Supported zero-config shortcuts: stripe, hubspot, slack, shopify, mailchimp, pipedrive, calendly, google, linkedin, or provide a direct https:// URL.`,
+          };
+        }
+      }
+
+      const session = getSession(port);
+      const tab = await getSessionTab(port, false, explicitTabId, agentId);
+      if (!tab) {
+        return { ok: false, error: 'No active tab available for session' };
+      }
+
+      await chrome.tabs.update(tab.id, { url: targetUrl });
+
+      // Wait for navigation / load with robust listener teardown
+      await new Promise(resolve => {
+        let timer = null;
+        let cleaned = false;
+        const cleanup = () => {
+          if (cleaned) return;
+          cleaned = true;
+          if (timer) clearTimeout(timer);
+          chrome.tabs.onUpdated.removeListener(updateListener);
+          chrome.tabs.onRemoved.removeListener(removeListener);
+          resolve();
+        };
+        const updateListener = (tid, info) => {
+          if (tid === tab.id && info.status === 'complete') {
+            cleanup();
+          }
+        };
+        const removeListener = (tid) => {
+          if (tid === tab.id) {
+            cleanup();
+          }
+        };
+        chrome.tabs.onUpdated.addListener(updateListener);
+        chrome.tabs.onRemoved.addListener(removeListener);
+        timer = setTimeout(cleanup, 15000);
+      });
+
+      session.activeTabId = tab.id;
+      if (agentId) {
+        if (!session.agentTabs) session.agentTabs = new Map();
+        session.agentTabs.set(agentId, tab.id);
+      }
+      persistSessions();
+
+      let updated = tab;
+      try {
+        updated = await chrome.tabs.get(tab.id);
+      } catch {}
+
+      const captcha = await detectCaptcha(tab.id).catch(() => null);
+      const result = {
+        ok: true,
+        provider: key,
+        url: updated.url || targetUrl,
+        title: updated.title || '',
+        tab_id: tab.id,
+        session: session.label,
+        instructions: `Navigated to ${targetUrl}. Use browser_get_page_content or browser_search_elements to locate the API key or token on the page. If prompted for login or 2FA, use browser_ask_user.`,
+      };
+
+      if (agentId) {
+        result.agent_id = agentId;
+      }
+
+      if (captcha && captcha.found) {
+        result.captcha_detected = captcha.types.join(', ');
+        result.hint = `CAPTCHA detected: ${captcha.types.join(', ')}. Use browser_solve_captcha to handle it.`;
+      }
+
+      return result;
     }
 
     case 'reload_extension': {

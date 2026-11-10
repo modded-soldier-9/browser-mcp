@@ -12,6 +12,31 @@ use tokio::sync::{mpsc, oneshot, RwLock};
 use tokio_tungstenite::tungstenite::handshake::server::{Request, Response};
 use tokio_tungstenite::tungstenite::protocol::Message;
 use tokio_tungstenite::accept_hdr_async;
+use url::form_urlencoded;
+
+pub fn validate_auth_token(req: &Request, token_opt: Option<&str>) -> bool {
+    let required_token = match token_opt {
+        Some(t) => t,
+        None => return true,
+    };
+
+    if required_token.trim().is_empty() {
+        return false;
+    }
+
+    let uri_token_match = req
+        .uri()
+        .query()
+        .is_some_and(|q| form_urlencoded::parse(q.as_bytes()).any(|(k, v)| k == "token" && v == required_token));
+
+    let header_token_match = req
+        .headers()
+        .get("Sec-WebSocket-Protocol")
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|p| p.split(',').any(|part| part.trim() == required_token));
+
+    uri_token_match || header_token_match
+}
 
 pub const DEFAULT_BASE_PORT: u16 = 9876;
 pub const DEFAULT_MAX_PORT: u16 = 9895;
@@ -139,30 +164,21 @@ impl Bridge {
                     return;
                 }
 
+                #[allow(clippy::result_large_err)]
                 let callback = move |req: &Request, response: Response| {
-                    if let Some(ref required_token) = token_opt {
-                        let uri_str = req.uri().to_string();
-                        let has_valid_token = uri_str.contains(&format!("token={}", required_token))
-                            || req.headers()
-                                .get("Sec-WebSocket-Protocol")
-                                .and_then(|v| v.to_str().ok())
-                                .map(|p| p.contains(required_token))
-                                .unwrap_or(false);
-
-                        if !has_valid_token {
-                            return Err(Response::builder()
-                                .status(401)
-                                .body(Some("Invalid authentication token".to_string()))
-                                .unwrap());
-                        }
+                    if !validate_auth_token(req, token_opt.as_deref()) {
+                        return Err(Response::builder()
+                            .status(401)
+                            .body(Some("Invalid authentication token".to_string()))
+                            .unwrap());
                     }
 
-                    if let Some(origin) = req.headers().get("Origin") {
-                        if let Ok(o_str) = origin.to_str() {
-                            if origin_re.is_match(o_str) {
-                                return Ok(response);
-                            }
-                        }
+                    let origin_valid = req.headers().get("Origin")
+                        .and_then(|o| o.to_str().ok())
+                        .map(|s| origin_re.is_match(s))
+                        .unwrap_or(false);
+                    if origin_valid {
+                        return Ok(response);
                     }
                     Err(Response::builder()
                         .status(401)
@@ -207,7 +223,7 @@ impl Bridge {
         // Task to write outgoing frames to WebSocket
         let write_task = tokio::spawn(async move {
             while let Some(msg) = out_rx.recv().await {
-                if ws_sender.send(Message::Text(msg.into())).await.is_err() {
+                if ws_sender.send(Message::Text(msg)).await.is_err() {
                     break;
                 }
             }
@@ -345,5 +361,80 @@ impl Bridge {
                 Err(format!("Command timed out after {}ms: {}", timeout_ms, method))
             }
         }
+    }
+}
+
+impl Default for Bridge {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_auth_token_none_required() {
+        let req = Request::builder().uri("/").body(()).unwrap();
+        assert!(validate_auth_token(&req, None));
+    }
+
+    #[test]
+    fn test_auth_token_empty_string_rejected() {
+        // If BROWSER_MCP_TOKEN is set to empty or whitespace, cannot be bypassed
+        let req_empty_query = Request::builder().uri("/?token=").body(()).unwrap();
+        assert!(!validate_auth_token(&req_empty_query, Some("")));
+        assert!(!validate_auth_token(&req_empty_query, Some("   ")));
+
+        let req_valid_looking = Request::builder().uri("/?token=secret").body(()).unwrap();
+        assert!(!validate_auth_token(&req_valid_looking, Some("")));
+
+        let req_no_token = Request::builder().uri("/").body(()).unwrap();
+        assert!(!validate_auth_token(&req_no_token, Some("")));
+    }
+
+    #[test]
+    fn test_auth_token_exact_query_match() {
+        let req_exact = Request::builder().uri("/?token=secret_123").body(()).unwrap();
+        assert!(validate_auth_token(&req_exact, Some("secret_123")));
+
+        let req_with_other_params = Request::builder().uri("/?profile=default&token=secret_123&v=1").body(()).unwrap();
+        assert!(validate_auth_token(&req_with_other_params, Some("secret_123")));
+
+        // Substring / prefix / suffix must NOT match
+        let req_prefix = Request::builder().uri("/?token=secret_123_extra").body(()).unwrap();
+        assert!(!validate_auth_token(&req_prefix, Some("secret_123")));
+
+        let req_sub = Request::builder().uri("/?token=secret").body(()).unwrap();
+        assert!(!validate_auth_token(&req_sub, Some("secret_123")));
+
+        let req_wrong_key = Request::builder().uri("/?not_token=secret_123").body(()).unwrap();
+        assert!(!validate_auth_token(&req_wrong_key, Some("secret_123")));
+    }
+
+    #[test]
+    fn test_auth_token_header_protocol_exact_match() {
+        let req_single = Request::builder()
+            .uri("/")
+            .header("Sec-WebSocket-Protocol", "secret_123")
+            .body(())
+            .unwrap();
+        assert!(validate_auth_token(&req_single, Some("secret_123")));
+
+        let req_multi = Request::builder()
+            .uri("/")
+            .header("Sec-WebSocket-Protocol", "mcp, secret_123, v1")
+            .body(())
+            .unwrap();
+        assert!(validate_auth_token(&req_multi, Some("secret_123")));
+
+        // Substring in header must NOT match
+        let req_substring = Request::builder()
+            .uri("/")
+            .header("Sec-WebSocket-Protocol", "mcp, secret_1234, v1")
+            .body(())
+            .unwrap();
+        assert!(!validate_auth_token(&req_substring, Some("secret_123")));
     }
 }

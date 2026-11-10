@@ -27,7 +27,7 @@ impl ContextShield {
     /// Estimate token count using robust 4-chars-per-token heuristic
     pub fn estimate_tokens(text: &str) -> usize {
         // A standard average for English text/code/markup is ~4 characters per token
-        (text.len() + 3) / 4
+        text.len().div_ceil(4)
     }
 
     /// Process a string payload through Context Shield.
@@ -122,16 +122,17 @@ impl ContextShield {
 
         for entry in entries.flatten() {
             if let Ok(meta) = entry.metadata() {
-                if meta.is_file() {
-                    let len = meta.len();
-                    total_size += len;
-                    let modified = meta.modified().unwrap_or(UNIX_EPOCH);
-                    files.push(FileMeta {
-                        path: entry.path(),
-                        len,
-                        modified,
-                    });
+                if !meta.is_file() {
+                    continue;
                 }
+                let len = meta.len();
+                total_size += len;
+                let modified = meta.modified().unwrap_or(UNIX_EPOCH);
+                files.push(FileMeta {
+                    path: entry.path(),
+                    len,
+                    modified,
+                });
             }
         }
 
@@ -150,6 +151,12 @@ impl ContextShield {
                 total_size = 0;
             }
         }
+    }
+}
+
+impl Default for ContextShield {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

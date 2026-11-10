@@ -102,10 +102,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let shield = shield_worker.clone();
             let delta = delta_worker.clone();
             let res = handle_request(req, bridge, shield, delta, strip_prefix).await;
-            if let Some(resp) = res {
-                if let Ok(serialized) = serde_json::to_string(&resp) {
-                    let _ = out_tx.send(serialized);
-                }
+            if let Some(serialized) = res.and_then(|resp| serde_json::to_string(&resp).ok()) {
+                let _ = out_tx.send(serialized);
             }
         }
     });
@@ -164,10 +162,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             let shield = shield.clone();
                             let delta = delta.clone();
                             let res = handle_request(req, bridge, shield, delta, strip_prefix).await;
-                            if let Some(resp) = res {
-                                if let Ok(serialized) = serde_json::to_string(&resp) {
-                                    let _ = stdout_tx.send(serialized);
-                                }
+                            if let Some(serialized) = res.and_then(|resp| serde_json::to_string(&resp).ok()) {
+                                let _ = stdout_tx.send(serialized);
                             }
                             continue;
                         }
@@ -402,28 +398,34 @@ async fn handle_request(
                         }
                     }
 
-                    if method == "screenshot" {
-                        if let Some(img_str) = val.get("image").and_then(|v| v.as_str()) {
-                            let (data, mime) = if img_str.starts_with("data:image/jpeg") {
-                                (img_str.trim_start_matches("data:image/jpeg;base64,"), "image/jpeg")
-                            } else {
-                                (img_str.trim_start_matches("data:image/png;base64,"), "image/png")
-                            };
+                    let screenshot_img = if method == "screenshot" {
+                        val.get("image").and_then(|v| v.as_str())
+                    } else {
+                        None
+                    };
 
-                            let mut contents = Vec::new();
-                            if let Some(target) = save_path {
-                                if let Some(parent) = target.parent() {
-                                    let _ = std::fs::create_dir_all(parent);
-                                }
-                                if let Some(bytes) = protocol::decode_base64(data) {
-                                    if std::fs::write(&target, bytes).is_ok() {
-                                        contents.push(ToolContent::Text(TextContent {
-                                            content_type: "text".to_string(),
-                                            text: format!("Screenshot successfully saved to: {}", target.display()),
-                                        }));
-                                    }
-                                }
+                    if let Some(img_str) = screenshot_img {
+                        let (data, mime) = if img_str.starts_with("data:image/jpeg") {
+                            (img_str.trim_start_matches("data:image/jpeg;base64,"), "image/jpeg")
+                        } else {
+                            (img_str.trim_start_matches("data:image/png;base64,"), "image/png")
+                        };
+
+                        let mut contents = Vec::new();
+                        if let Some(target) = save_path {
+                            if let Some(parent) = target.parent() {
+                                let _ = std::fs::create_dir_all(parent);
                             }
+                            let write_ok = protocol::decode_base64(data)
+                                .map(|bytes| std::fs::write(&target, bytes).is_ok())
+                                .unwrap_or(false);
+                            if write_ok {
+                                contents.push(ToolContent::Text(TextContent {
+                                    content_type: "text".to_string(),
+                                    text: format!("Screenshot successfully saved to: {}", target.display()),
+                                }));
+                            }
+                        }
 
                             contents.push(ToolContent::Image(ImageContent {
                                 content_type: "image".to_string(),
@@ -440,7 +442,6 @@ async fn handle_request(
                                 }).unwrap()),
                                 error: None,
                             });
-                        }
                     }
 
                     Some(JsonRpcResponse {
