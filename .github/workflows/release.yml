@@ -102,6 +102,17 @@ jobs:
           path: release-artifacts
       - name: Display Downloaded Artifacts
         run: ls -R release-artifacts
+      - name: Calculate SHA256 Checksums
+        run: |
+          rm -f SHA256SUMS.txt
+          for binary in \
+            browser-mcp-windows-x64.exe \
+            browser-mcp-linux-x64 \
+            browser-mcp-macos-arm64 \
+            browser-mcp-extension.zip; do
+            (cd "release-artifacts/$binary" && sha256sum "$binary") >> SHA256SUMS.txt
+          done
+          cat SHA256SUMS.txt
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -110,6 +121,7 @@ jobs:
             release-artifacts/browser-mcp-linux-x64/browser-mcp-linux-x64
             release-artifacts/browser-mcp-macos-arm64/browser-mcp-macos-arm64
             release-artifacts/browser-mcp-extension.zip/browser-mcp-extension.zip
+            SHA256SUMS.txt
           draft: false
           prerelease: false
           generate_release_notes: true

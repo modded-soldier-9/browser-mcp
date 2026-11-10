@@ -1,0 +1,82 @@
+name: "✨ Feature Request"
+description: "Suggest an idea or enhancement for Browser MCP"
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Browser MCP! Feature requests help guide our architectural and tool roadmap.
+        Please check [WISHLIST.md](https://github.com/modded-soldier-9/browser-mcp/blob/main/WISHLIST.md) and open issues first to see if your proposal is already being tracked.
+
+  - type: input
+    id: summary
+    attributes:
+      label: Feature Summary
+      description: A concise one-line summary of the proposed feature or capability.
+      placeholder: "e.g. Add browser_record_network HAR capture tool for automated traffic logging"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement / Motivation
+      description: What challenge or limitation are you facing that this feature would solve?
+      placeholder: "e.g. Currently, debugging API request failures requires inspecting elements manually..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution / API Design
+      description: How would you like this to work? If introducing a tool, outline its arguments and returned schema.
+      placeholder: |
+        ```typescript
+        browser_record_network({
+          filter: "fetch|xhr",
+          include_headers: true
+        })
+        ```
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives & Workarounds Considered
+      description: Any alternative implementations or existing workarounds you've explored.
+      placeholder: "e.g. Using browser_execute_script with a monkey-patched window.fetch..."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: clients
+    attributes:
+      label: Target Workflows / Clients
+      options:
+        - label: "Claude Code CLI"
+        - label: "Antigravity / Gemini Code"
+        - label: "Cursor IDE"
+        - label: "Headless / Automated Scripting"
+        - label: "General MCP Client compatibility"
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional Context
+      description: Any additional context, mockups, or references.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: "I have checked that this feature hasn't already been proposed or implemented."
+          required: true
+        - label: "I understand that Browser MCP emphasizes minimal overhead, zero dependencies, and security boundaries."
+          required: false

@@ -1,9 +1,17 @@
 {
   "name": "demo-video",
   "version": "1.0.0",
-  "description": "My Remotion video",
-  "repository": {},
-  "license": "UNLICENSED",
+  "description": "Remotion video generator for Browser MCP",
+  "author": {
+    "name": "Mohamed Elsheikh",
+    "email": "moddedsoldier@gmail.com",
+    "url": "https://github.com/modded-soldier-9"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/modded-soldier-9/browser-mcp.git"
+  },
+  "license": "MIT",
   "private": true,
   "dependencies": {
     "@remotion/cli": "4.0.442",

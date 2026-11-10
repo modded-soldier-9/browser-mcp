@@ -100,7 +100,7 @@ const server = createServer(async (req, res) => {
 
     console.log('✓ Saved CWS_REFRESH_TOKEN to .env');
     console.log('');
-    console.log('Setup complete. Now run: npm run publish:cws (from mcp-server/)');
+    console.log('Setup complete.');
     server.close();
     process.exit(0);
   } catch (e) {

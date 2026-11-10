@@ -1,9 +1,9 @@
 name: CI & Quality Gates
 
 on:
-  pull_request:
-    branches: [main, beta]
   push:
+    branches: [main, beta]
+  pull_request:
     branches: [main, beta]
   workflow_dispatch:
 
@@ -31,12 +31,20 @@ jobs:
           const m1 = JSON.parse(readFileSync('extension/manifest.json', 'utf8')).version;
           const cargo = readFileSync('crates/browser-mcp-server/Cargo.toml', 'utf8');
           const cMatch = cargo.match(/version\s*=\s*\"([^\"]+)\"/)?.[1];
-          console.log('Versions:', { rootPkg: p1, extManifest: m1, cargoVersion: cMatch });
-          if (p1 !== m1 || p1 !== cMatch) {
+          const mcpb = JSON.parse(readFileSync('mcpb-manifest.json', 'utf8')).version;
+          const plugin = JSON.parse(readFileSync('jeikcode-plugin/plugin.json', 'utf8')).version;
+          console.log('Versions:', {
+            packageJson: p1,
+            extensionManifest: m1,
+            cargoToml: cMatch,
+            mcpbManifest: mcpb,
+            jeikcodePlugin: plugin
+          });
+          if (!p1 || p1 !== m1 || p1 !== cMatch || p1 !== mcpb || p1 !== plugin) {
             console.error('Version mismatch detected across manifests!');
             process.exit(1);
           }
-          console.log('All manifests are in sync!');
+          console.log('All 5 manifests are in sync!');
           "
 
   docs-quality:
@@ -86,10 +94,17 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
-      - name: Check Rust Server Compilation
-        run: cargo check --manifest-path crates/browser-mcp-server/Cargo.toml --release
-      - name: Run Rust Server Integration Tests
-        run: cargo test --manifest-path crates/browser-mcp-server/Cargo.toml
+          components: clippy
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+      - name: Check Rust Compilation (Release)
+        run: cargo check --workspace --release
+      - name: Run Rust Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Run Rust Tests
+        run: cargo test --workspace
 
   pr-gate:
     name: Quality Gate (All Checks Passing)
