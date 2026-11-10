@@ -61,8 +61,7 @@ if schema_file.exists():
     import json
     TOOL_COUNT = len(json.loads(schema_file.read_text(encoding='utf-8')))
 else:
-    TOOL_COUNT = len(set(re.findall(r"name:\s*['\"](browser_[a-z0-9_]+)['\"]",
-        (pathlib.Path(__file__).resolve().parent.parent/'mcp-server'/'tools.js').read_text(encoding='utf-8'))))
+    raise FileNotFoundError(f"Schema file not found: {schema_file}")
 
 INSTALL=['/docs/install-claude-code','/docs/install-codex','/docs/install-cursor','/docs/install-vscode','/docs/install-zcode']
 CTX={'/docs/what-is-browser-mcp':'The concept, architecture, and how it works',
@@ -154,7 +153,7 @@ def clean_lines(md):
 def split_tabelrække(linje):
     """Deler en markdown-tabelrække paa | og respekterer escapet \\|.
 
-    MAALT 13/9 af Astra: raekken "Custom dropdown that opens on a plain click" i
+    MAALT 13/9: raekken "Custom dropdown that opens on a plain click" i
     capability-matrix indeholder en maaling skrevet som 11\\|53\\|...\\|0. Et bart split('|')
     hakkede den i ni celler i en tabel med tre kolonner, saa den laa i stykker paa den
     offentlige side - med synlige backslashes - fra 10/9. Docs-spaerren saa det ikke,
@@ -386,7 +385,7 @@ FASTE_URLS = [
 ]
 
 def _fast_dato(relsti):
-    # 26/9 (Astra, PR #31): samme fejl som git_datoer havde 21/9, bare paa de faste sider. --prepare
+    # 26/9: samme fejl som git_datoer havde 21/9, bare paa de faste sider. --prepare
     # aendrer docs/index.html (softwareVersion) og regenererer: uden denne kontrol fik forsiden sin
     # GAMLE commitdato, og efter commit'en regenererede docs-gaten med den nye - regen-diff roed paa
     # en kandidat prepare lige havde kaldt faerdig. En beskidt fil er aendret I DAG.

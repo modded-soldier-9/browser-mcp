@@ -4,7 +4,7 @@ Public roadmap and wishlist for Browser MCP, curated by [@modded-soldier-9](http
 
 ## How to add a wish
 
-- **Submit an issue:** [Open a Feature Wish](https://github.com/modded-soldier-9/browser-mcp/issues/new?template=wish.yml).
+- **Submit an issue:** [Open a Feature Request](https://github.com/modded-soldier-9/browser-mcp/issues/new?template=feature_request.yml).
 - **PR directly:** Open a pull request with your proposal under **Wanted**.
 
 When a feature lands, it moves to **Shipped** with its release version.
@@ -13,7 +13,7 @@ When a feature lands, it moves to **Shipped** with its release version.
 
 ## 🟡 Wanted
 
-- [Submit a wish](https://github.com/modded-soldier-9/browser-mcp/issues/new?template=wish.yml)
+- [Submit a feature request](https://github.com/modded-soldier-9/browser-mcp/issues/new?template=feature_request.yml)
 - Firefox support via WebExtensions API parity.
 - Linux headless virtual display test runner automation.
 - Native system tray status icon for active sessions.

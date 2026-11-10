@@ -144,4 +144,4 @@ No - that is Chrome's standard notice whenever the Debugger API is attached. It 
 No. None of the issues above send anything anywhere. The server and the extension bridge run locally, and what your agent reads goes only to your AI client, as always.
 
 **Where do I report something not listed here?**
-[Open a bug report](https://github.com/modded-soldier-9/browser-mcp/issues/new?template=bug.yml) - the template takes two minutes, and dogfooding plus user reports is exactly how the list above got built.
+[Open a bug report](https://github.com/modded-soldier-9/browser-mcp/issues/new?template=bug_report.yml) - the template takes two minutes, and dogfooding plus user reports is exactly how the list above got built.

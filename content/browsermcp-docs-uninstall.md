@@ -59,4 +59,4 @@ Because it drives *your* logged-in browser on whatever site you choose. Cookies 
 It's what lets the agent send trusted clicks and reads that work on strict sites. Chrome shows its standard "Browser MCP started debugging this browser" banner while a session is active; it clears when the session ends.
 
 **Can I verify the "nothing is sent to you" claim myself?**
-Yes - it's MIT-licensed open source. Read `extension/background.js` and `mcp-server/index.js`; there is no outbound analytics or telemetry endpoint.
+Yes - it's MIT-licensed open source. Read `extension/background.js` and `crates/browser-mcp-server/src/main.rs`; there is no outbound analytics or telemetry endpoint.

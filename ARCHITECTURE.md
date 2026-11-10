@@ -73,6 +73,14 @@ graph LR
   * **Monotonic Handles**: Element handles (`[e1]`, `[e2]`) are anchored via `WeakMap` (`__bmcpNodeMap`), ensuring element references remain stable across DOM re-renders and scrolling turns.
   * **Spatial Viewport Pruning (`viewport_only=true`)**: Prunes off-screen nodes (`rect.bottom >= 0 && rect.top <= window.innerHeight`) while keeping monotonic handles intact.
 
+### 6. 43-Tool Surface Integration & Method Routing
+* **Location**: `crates/browser-mcp-server/src/tools.rs` and `extension/background.js`
+* **Invariants**:
+  * **Fast-Path Local Routing**: Tools that do not require live browser DOM access (`browser_about` and `browser_provide_feedback`) execute locally in sub-millisecond native Rust code without loopback overhead.
+  * **Bridge Hardware Routing**: The remaining 41 tools dispatch across loopback WebSocket to `extension/background.js` as CDP-backed or Chrome WebExtension actions.
+  * **Domain Categorization**: The 43 tools span 7 functional domains: Navigation & Tab Management (7), DOM Inspection & Content Distillation (6), Hardware & Trusted Input (8), Forms, Dates & File Transfers (5), Storage, Cookies & Network State (7), Page Synchronization & Overlays (6), and Human-in-the-Loop & Advanced Automation (4).
+  * **Prefix Normalization**: Tool names invoked with or without the `browser_` prefix are automatically normalized against `METHOD_MAP`.
+
 ---
 
 ## Directory Organization
@@ -83,7 +91,7 @@ crates/browser-mcp-server/     # Rust standalone server binary & test harness
   src/bridge.rs                # WebSocket bridge & loopback origin verification
   src/shield.rs                # Context Shield token counter & spooler
   src/delta.rs                 # State mutation delta diff engine
-  src/tools.rs                 # 41 MCP tool definitions & METHOD_MAP
+  src/tools.rs                 # 43 MCP tool definitions & METHOD_MAP
   src/sandbox.rs               # Filesystem path containment
   src/installer.rs             # Embedded extension extractor
   src/watchdog.rs              # Stdin EOF & termination watchdog
@@ -96,6 +104,7 @@ extension/                     # Chrome / Brave browser extension (MV2)
   manifest.json                # Manifest V2 configuration
   popup.html / popup.js        # Extension connection status popup
 
+examples/                      # Turnkey client configurations (Claude Desktop, Cursor, VS Code, Windsurf, Antigravity)
 docs/                          # Static documentation website (browsermcp.dev)
 content/                       # Markdown source documents for public docs
 scripts/                       # Build, linting, and quality gate scripts

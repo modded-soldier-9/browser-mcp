@@ -2,7 +2,7 @@
 """Docs-site gate for browsermcp.dev - run locally or in CI (stdlib only).
 
 Checks the COMMITTED site files (docs/) against the sources of truth:
-  1. tool count   - every "N browser tools" claim equals the count in mcp-server/tools.js
+  1. tool count   - every "N browser tools" claim equals the count in crates/browser-mcp-server/tools_schema.json
   2. leak markers - editorial/drafting notes must never appear in rendered HTML
   3. links        - every internal href/src resolves to a file in docs/
   4. head meta    - canonical/og/twitter/description present + correct on generated pages
@@ -81,7 +81,7 @@ if os.path.exists(schema_file):
     with open(schema_file, encoding='utf-8') as sf:
         TOOLCOUNT = len(json.load(sf))
 else:
-    TOOLCOUNT = len(re.findall(r"""name: ['\"]browser_""", open(os.path.join(ROOT, 'mcp-server', 'tools.js'), encoding='utf-8').read()))
+    raise FileNotFoundError(f"Schema file not found: {schema_file}")
 claim_files = glob.glob(DOCS + '/**/*.html', recursive=True) + \
               glob.glob(os.path.join(ROOT, 'content', '*.md')) + [os.path.join(ROOT, 'README.md')]
 claim_files = [f for f in claim_files if os.path.isfile(f)]
@@ -161,12 +161,12 @@ if os.path.isfile(tools_page):
         with open(schema_file, encoding='utf-8') as sf:
             defined = set(t["name"] for t in json.load(sf))
     else:
-        defined = set(re.findall(r"""name: ['\"](browser_[a-z_]+)['\"]""", open(os.path.join(ROOT, 'mcp-server', 'tools.js'), encoding='utf-8').read()))
+        raise FileNotFoundError(f"Schema file not found: {schema_file}")
     documented = set(re.findall(r'\b(browser_[a-z_]+)\b', open(tools_page, encoding='utf-8').read()))
     for miss in sorted(defined - documented):
-        fail('tools page does not document %s (defined in tools.js)' % miss)
+        fail('tools page does not document %s (defined in tools_schema.json)' % miss)
     for ghost in sorted(documented - defined):
-        fail('tools page documents %s which tools.js does not define' % ghost)
+        fail('tools page documents %s which tools_schema.json does not define' % ghost)
 else:
     fail('tools reference page missing: docs/docs/tools/index.html')
 
@@ -241,7 +241,7 @@ for loc in locs:
         fail('sitemap URL does not resolve locally: %s' % loc)
 
 # ---- 6. tabelform -----------------------------------------------------------
-# MAALT 13/9 af Astra: generatoren delte tabelraekker paa | uden at forstaa escapet \|, saa raekken med
+# MAALT 13/9: generatoren delte tabelraekker paa | uden at forstaa escapet \|, saa raekken med
 # maalingen "11\|53\|...\|0" blev til ni celler i en tabel med tre kolonner. Den laa i stykker paa den
 # offentlige capability-matrix fra 10/9, med synlige backslashes. Spaerren saa det ikke: regen-diff
 # sammenligner output med sig selv, og en ensartet forkert tabel er stadig ensartet.
