@@ -3,233 +3,277 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Browser MCP - Native Rust Browser Automation for AI Coding Assistants</title>
+  <title>Browser Control - Native Rust Browser Automation for AI Coding Assistants</title>
   <link rel="canonical" href="https://browsermcp.dev/">
-  <meta name="description" content="Connect AI coding assistants directly to your live, authenticated Chrome and Brave browser sessions. Native Rust MCP server, 43 tools, and Token Shield.">
-  <meta property="og:title" content="Browser MCP - High-Performance Native AI Browser Automation">
-  <meta property="og:description" content="Connect AI coding assistants directly to your live, authenticated Chrome and Brave browser sessions. Native Rust MCP server, 43 tools, and Token Shield.">
+  <meta name="description" content="Connect AI coding assistants directly to your live, authenticated Chrome and Brave browser sessions. Native Rust engine, 43 tools, sub-4ms cold boot, and autonomous Token Shield.">
+  <meta property="og:title" content="Browser Control - High-Performance Native AI Browser Automation">
+  <meta property="og:description" content="Connect AI coding assistants directly to your live, authenticated Chrome and Brave browser sessions. Native Rust engine, 43 tools, and Token Shield.">
   <meta property="og:type" content="website">
-  <meta property="og:site_name" content="Browser MCP">
+  <meta property="og:site_name" content="Browser Control">
   <meta property="og:locale" content="en_US">
   <meta property="og:url" content="https://browsermcp.dev/">
   <meta property="og:image" content="https://browsermcp.dev/og-image.jpg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="Browser MCP - native Rust browser automation for AI coding assistants">
+  <meta property="og:image:alt" content="Browser Control - native Rust browser automation for AI coding assistants">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Browser MCP - High-Performance Native AI Browser Automation">
-  <meta name="twitter:description" content="Connect AI coding assistants directly to your live, authenticated Chrome and Brave browser sessions. Native Rust MCP server, 43 tools, and Token Shield.">
+  <meta name="twitter:title" content="Browser Control - High-Performance Native AI Browser Automation">
+  <meta name="twitter:description" content="Connect AI coding assistants directly to your live, authenticated Chrome and Brave browser sessions. Native Rust engine, 43 tools, and Token Shield.">
   <meta name="twitter:image" content="https://browsermcp.dev/og-image.jpg">
-  <meta name="twitter:image:alt" content="Browser MCP - native Rust browser automation for AI coding assistants">
+  <meta name="twitter:image:alt" content="Browser Control - native Rust browser automation for AI coding assistants">
   <link rel="icon" type="image/svg+xml" href="/logo.svg">
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Browser Control",
+    "alternateName": "Browser MCP",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Chrome, Brave",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "author": {
+      "@type": "Person",
+      "name": "Mohamed Elsheikh",
+      "url": "https://github.com/modded-soldier-9/browser-mcp"
+    },
+    "publisher": {
+      "@type": "Person",
+      "name": "Mohamed Elsheikh",
+      "url": "https://github.com/modded-soldier-9/browser-mcp"
+    },
+    "description": "High-performance native browser automation engine and MCP bridge for AI coding assistants. Sub-4ms startup, ~3.8MB RAM, 43 tools, live authenticated browser sessions, and autonomous Token Shield context protection."
+  }
+  </script>
+
   <style>
     :root {
-      --bg: #090d15;
-      --surface: #111724;
-      --surface-2: #162032;
-      --surface-3: #1f2a3d;
+      --bg: #070a12;
+      --bg-alt: #0b101d;
+      --surface: #0e1424;
+      --surface-2: #141d33;
+      --surface-3: #1a2642;
+      --card-bg: rgba(14, 20, 36, 0.78);
+      --line: rgba(255, 255, 255, 0.08);
+      --line-hover: rgba(56, 189, 248, 0.35);
       --text: #f8fafc;
+      --text-dim: #cbd5e1;
       --muted: #94a3b8;
       --accent: #38bdf8;
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-indigo: #818cf8;
+      --accent-amber: #f59e0b;
       --green: #34d399;
-      --radius-card: 22px;
+      --red: #f43f5e;
+      --glow: rgba(56, 189, 248, 0.15);
+      --radius-card: 20px;
       --radius-pill: 9999px;
+      --mono: 'JetBrains Mono', 'SF Mono', Consolas, Menlo, monospace;
+      --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, Helvetica, Arial, sans-serif;
     }
 
-    html { scroll-behavior: smooth; }
-
+    html { scroll-behavior: smooth; color-scheme: dark; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      font-family: var(--sans);
       font-size: 16px;
       line-height: 1.65;
       -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.08) 0%, transparent 60%),
+        radial-gradient(circle at 10% 30%, rgba(129, 140, 248, 0.04) 0%, transparent 40%),
+        radial-gradient(circle at 90% 70%, rgba(16, 185, 129, 0.04) 0%, transparent 40%);
+      background-attachment: fixed;
     }
 
-    a { color: var(--accent); text-decoration: none; transition: color 0.15s ease; }
-    a:hover { text-decoration: underline; }
+    a { color: var(--accent); text-decoration: none; transition: color 0.15s ease, border-color 0.15s ease; }
+    a:hover { color: #7dd3fc; text-decoration: underline; }
     img, video { max-width: 100%; display: block; }
 
-    p, .hero-sub, .sub, .answer, .why {
-      max-width: 58ch;
-      margin-left: auto;
-      margin-right: auto;
-      color: var(--muted);
-      font-size: 16px;
-      line-height: 1.65;
-    }
-
     /* Motion Entrance */
-    @keyframes heroSoftEntrance {
-      from {
-        opacity: 0.75;
-        transform: translateY(12px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-    @keyframes gentleCardIn {
-      from {
-        opacity: 0.8;
-        transform: translateY(14px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .hero-logo { animation: heroSoftEntrance 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both; }
-    .hero h1 { animation: heroSoftEntrance 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both; }
-    .hero .hero-sub { animation: heroSoftEntrance 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both; }
-    .hero-actions { animation: heroSoftEntrance 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both; }
-    .hero-video-card { animation: gentleCardIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both; }
-
     .reveal {
-      opacity: 0.88;
-      transform: translateY(14px);
-      transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1), transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .reveal.is-in {
       opacity: 1;
       transform: translateY(0);
     }
 
-    /* Centered Floating Pill Navigation */
+    @media (prefers-reduced-motion: reduce) {
+      .reveal { opacity: 1; transform: none; transition: none; }
+    }
+
+    /* Floating Pill Navigation */
     .nav-wrap {
-      padding: 16px 20px 0;
       position: sticky;
-      top: 0;
-      z-index: 100;
+      top: 14px;
+      z-index: 1000;
+      padding: 0 16px;
     }
     .nav {
-      max-width: 920px;
+      max-width: 1060px;
       margin: 0 auto;
-      padding: 10px 22px;
+      padding: 10px 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: rgba(17, 23, 36, 0.94);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      background: rgba(11, 16, 29, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--line);
       border-radius: var(--radius-pill);
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      transition: border-color 0.2s ease;
+    }
+    .nav:hover {
+      border-color: rgba(56, 189, 248, 0.25);
     }
     .nav-brand {
       display: flex;
       align-items: center;
       gap: 10px;
-      font-weight: 700;
-      font-size: 15px;
+      font-weight: 750;
+      font-size: 15.5px;
       color: var(--text);
+      text-decoration: none !important;
+      letter-spacing: -0.015em;
     }
     .nav-brand img {
       width: 26px;
       height: 26px;
       border-radius: var(--radius-pill);
+      box-shadow: 0 0 10px var(--glow);
+    }
+    .nav-brand .brand-chip {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      background: rgba(56, 189, 248, 0.1);
+      color: var(--accent);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: var(--radius-pill);
     }
     .nav-links {
       display: flex;
-      gap: 6px;
+      gap: 4px;
       align-items: center;
       font-size: 14px;
     }
     .nav-links a {
       color: var(--muted);
-      padding: 6px 12px;
+      padding: 6px 13px;
       border-radius: var(--radius-pill);
       transition: color 0.15s, background 0.15s;
     }
     .nav-links a:hover {
       color: var(--text);
-      background: var(--surface-2);
+      background: rgba(255, 255, 255, 0.06);
       text-decoration: none;
     }
-    .nav-badges {
+    .nav-actions {
       display: flex;
-      gap: 8px;
+      gap: 10px;
       align-items: center;
     }
     .gh-star {
       display: inline-flex;
-      align-items: stretch;
-      height: 28px;
-      font-size: 13.5px;
+      align-items: center;
+      height: 32px;
+      font-size: 13px;
       font-weight: 600;
-      line-height: 1;
-    }
-    .gh-star:hover { text-decoration: none; }
-    .gh-star svg { width: 14px; height: 14px; fill: currentColor; }
-    .gh-star-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-pill);
       padding: 0 12px;
-      background: var(--surface-2);
-      border-radius: var(--radius-pill);
       color: var(--text);
-      transition: background 0.15s;
+      transition: all 0.15s ease;
+      text-decoration: none !important;
+      gap: 6px;
     }
-    .gh-star-btn:hover { background: var(--surface-3); }
+    .gh-star:hover {
+      background: var(--surface-3);
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+    .gh-star svg { width: 14px; height: 14px; fill: currentColor; }
     .gh-star-count {
-      display: inline-flex;
-      align-items: center;
-      margin-left: 6px;
-      padding: 0 10px;
-      background: var(--surface-2);
-      border-radius: var(--radius-pill);
-      color: var(--text);
+      padding-left: 6px;
+      margin-left: 4px;
+      border-left: 1px solid var(--line);
+      color: var(--accent);
+      font-size: 12px;
     }
 
-    /* Page Canvas Frame */
+    /* Page Container */
     .page-frame {
-      max-width: 920px;
+      max-width: 1060px;
       margin: 0 auto;
       padding: 0 24px;
     }
 
-    /* Centered Hero Section */
+    /* Hero Section */
     .hero {
-      padding: 64px 0 44px;
+      padding: 72px 0 48px;
       text-align: center;
+      position: relative;
     }
-    .hero-logo {
-      width: 88px;
-      height: 88px;
-      margin: 0 auto 24px;
-      border-radius: 26px;
-      background: var(--surface);
+    .hero-badge-wrap {
+      display: inline-flex;
+      margin-bottom: 24px;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: var(--radius-pill);
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.1);
     }
     .hero h1 {
-      font-size: clamp(34px, 5vw, 54px);
-      font-weight: 800;
-      letter-spacing: -0.03em;
+      font-weight: 850;
+      font-size: clamp(34px, 5.5vw, 56px);
+      letter-spacing: -0.035em;
+      line-height: 1.1;
       margin-bottom: 20px;
-      line-height: 1.15;
-      color: var(--text);
+      color: #ffffff;
     }
     .hero h1 span {
-      color: var(--muted);
-      font-weight: 700;
+      background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #34d399 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
-    .hero .hero-sub {
+    .hero-sub {
+      max-width: 68ch;
+      margin: 0 auto 32px;
+      color: var(--text-dim);
       font-size: 18px;
-      color: var(--muted);
-      margin-bottom: 32px;
       line-height: 1.6;
     }
     .hero-actions {
       display: flex;
       gap: 14px;
       justify-content: center;
+      align-items: center;
       flex-wrap: wrap;
-      margin-bottom: 36px;
+      margin-bottom: 48px;
     }
     .btn {
       display: inline-flex;
@@ -239,743 +283,1357 @@
       padding: 12px 26px;
       border-radius: var(--radius-pill);
       font-size: 15px;
-      font-weight: 600;
+      font-weight: 650;
+      letter-spacing: -0.01em;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
       cursor: pointer;
-      border: none;
-      transition: background 0.15s ease, transform 0.1s ease;
+      text-decoration: none !important;
     }
-    .btn:active { transform: scale(0.98); }
     .btn-primary {
-      background: #f8fafc;
-      color: #090d15;
+      background: var(--accent);
+      color: #040812;
+      box-shadow: 0 0 25px rgba(56, 189, 248, 0.35);
     }
     .btn-primary:hover {
-      background: #e2e8f0;
-      text-decoration: none;
-      color: #090d15;
+      background: #7dd3fc;
+      transform: translateY(-2px);
+      box-shadow: 0 0 35px rgba(56, 189, 248, 0.5);
     }
     .btn-secondary {
       background: var(--surface-2);
       color: var(--text);
+      border: 1px solid var(--line);
     }
     .btn-secondary:hover {
       background: var(--surface-3);
-      text-decoration: none;
+      border-color: var(--line-hover);
+      transform: translateY(-2px);
     }
 
-    /* Hero Video Showcase */
-    .hero-video-card {
-      background: var(--surface);
+    /* Telemetry Chips Strip */
+    .telemetry-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      max-width: 960px;
+      margin: 0 auto 40px;
+    }
+    .stat-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--line);
       border-radius: var(--radius-card);
+      padding: 16px 18px;
+      text-align: left;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .stat-card:hover {
+      border-color: var(--line-hover);
+      transform: translateY(-2px);
+    }
+    .stat-val {
+      font-family: var(--mono);
+      font-size: 22px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .stat-val .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+    }
+    .stat-label {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    /* Hero Video Card */
+    .hero-video-card {
+      border-radius: 22px;
       overflow: hidden;
+      border: 1px solid var(--line);
+      background: #04070e;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 40px rgba(56, 189, 248, 0.08);
       margin-bottom: 72px;
+      position: relative;
     }
     .hero-video {
       width: 100%;
-      height: auto;
-      max-height: 520px;
+      aspect-ratio: 16/9;
       object-fit: cover;
-      background: #000;
+      display: block;
     }
     .hero-video-caption {
-      padding: 16px 24px;
-      font-size: 14px;
+      padding: 14px 20px;
+      font-size: 13.5px;
       color: var(--muted);
-      text-align: center;
-      background: var(--surface-2);
+      background: rgba(14, 20, 36, 0.95);
+      border-top: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .hero-video-caption span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--green);
+      font-weight: 600;
+      font-size: 12.5px;
     }
 
     /* Section Headings */
     .section-head {
-      margin-bottom: 32px;
       text-align: center;
+      margin-bottom: 44px;
+    }
+    .section-tag {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 10px;
+      display: block;
     }
     .section-head h2 {
-      font-size: 28px;
       font-weight: 800;
-      letter-spacing: -0.02em;
-      margin-bottom: 8px;
-      color: var(--text);
+      font-size: clamp(26px, 3.5vw, 38px);
+      letter-spacing: -0.025em;
+      margin-bottom: 12px;
+      color: #ffffff;
     }
     .section-head p {
+      max-width: 60ch;
+      margin: 0 auto;
+      color: var(--text-dim);
+      font-size: 16.5px;
+    }
+
+    /* Client Setup Section */
+    .setup-section {
+      margin-bottom: 96px;
+    }
+    .setup-box {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-card);
+      overflow: hidden;
+      box-shadow: 0 15px 40px -10px rgba(0, 0, 0, 0.5);
+    }
+    .setup-tabs {
+      display: flex;
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .setup-tabs::-webkit-scrollbar { display: none; }
+    .setup-tab-btn {
+      padding: 14px 20px;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+      border-bottom: 2px solid transparent;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .setup-tab-btn:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .setup-tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      background: rgba(56, 189, 248, 0.04);
+    }
+    .setup-body {
+      padding: 28px;
+    }
+    .setup-os-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .setup-os-pills {
+      display: inline-flex;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-pill);
+      padding: 3px;
+    }
+    .os-pill {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 12.5px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: var(--radius-pill);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .os-pill.active {
+      background: var(--accent);
+      color: #040812;
+    }
+    .setup-path {
+      font-family: var(--mono);
+      font-size: 12.5px;
+      color: var(--muted);
+      background: var(--surface-2);
+      padding: 4px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      max-width: 100%;
+      overflow-x: auto;
+    }
+    .code-container {
+      background: #04070e;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .code-container pre {
+      margin: 0;
+      padding: 20px 22px;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 13.5px;
+      line-height: 1.6;
+      color: #e2e8f0;
+    }
+    .copy-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      font-family: var(--sans);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      padding: 6px 14px;
+      border-radius: var(--radius-pill);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .copy-btn:hover {
+      color: var(--text);
+      background: var(--surface-3);
+      border-color: var(--accent);
+    }
+    .copy-btn.done {
+      color: var(--green);
+      border-color: var(--green);
+      background: rgba(52, 211, 153, 0.1);
+    }
+    .setup-instruction {
+      font-size: 14px;
+      color: var(--text-dim);
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .setup-instruction svg {
+      width: 18px;
+      height: 18px;
+      color: var(--accent);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    /* Architecture Diagram Section */
+    .arch-section {
+      margin-bottom: 96px;
+    }
+    .arch-diagram-wrap {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-card);
+      padding: 32px 24px;
+      box-shadow: 0 15px 40px -10px rgba(0, 0, 0, 0.5);
+    }
+    .arch-pipeline {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      position: relative;
+      margin-bottom: 32px;
+    }
+    .arch-node {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+    }
+    .arch-node:hover, .arch-node.active {
+      background: var(--surface-2);
+      border-color: var(--accent);
+      transform: translateY(-4px);
+      box-shadow: 0 8px 25px -4px rgba(56, 189, 248, 0.2);
+    }
+    .arch-node-step {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+    .arch-node h3 {
       font-size: 16px;
+      font-weight: 750;
+      color: #ffffff;
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
     }
-
-    /* Section Container */
-    section {
-      margin-bottom: 80px;
+    .arch-node p {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
     }
-
-    /* Centered Install Steps (Clean Timeline, Unboxed) */
-    .steps {
-      list-style: none;
-      counter-reset: step;
+    .arch-node-pill {
+      display: inline-block;
+      margin-top: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius-pill);
+      color: var(--text-dim);
+    }
+    .arch-inspector {
+      background: #04070e;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 20px 24px;
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 24px;
+      align-items: center;
+    }
+    .inspector-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 6px;
+    }
+    .inspector-desc {
+      font-size: 13.5px;
+      color: var(--text-dim);
+      line-height: 1.55;
+    }
+    .inspector-metrics {
       display: flex;
       flex-direction: column;
-      gap: 20px;
-      margin-top: 24px;
+      gap: 8px;
     }
-    .steps > li {
-      counter-increment: step;
+    .inspector-metric-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .inspector-metric-row:last-child { border-bottom: none; }
+    .inspector-metric-label { color: var(--muted); }
+    .inspector-metric-value { font-family: var(--mono); color: var(--accent); font-weight: 600; }
+
+    /* Interactive Live Workflow Demos */
+    .demos-section {
+      margin-bottom: 96px;
+    }
+    .demo-simulator {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-card);
+      overflow: hidden;
+      box-shadow: 0 20px 50px -15px rgba(0, 0, 0, 0.6);
+    }
+    .demo-nav {
+      display: flex;
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .demo-nav::-webkit-scrollbar { display: none; }
+    .demo-nav-btn {
+      padding: 14px 20px;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+      border-bottom: 2px solid transparent;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .demo-nav-btn:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .demo-nav-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      background: rgba(56, 189, 248, 0.04);
+    }
+    .demo-nav-btn .category-badge {
+      font-size: 10.5px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .badge-everyday { background: rgba(52, 211, 153, 0.15); color: var(--green); }
+    .badge-developer { background: rgba(129, 140, 248, 0.15); color: var(--accent-indigo); }
+
+    .demo-content-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 400px;
+    }
+    .demo-terminal {
+      background: #04070e;
+      border-right: 1px solid var(--line);
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .terminal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+    .terminal-dots {
+      display: flex;
+      gap: 6px;
+    }
+    .terminal-dots span {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+    }
+    .terminal-title {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .terminal-log {
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.65;
+      color: #e2e8f0;
+      white-space: pre-wrap;
+      overflow-y: auto;
+      max-height: 320px;
+    }
+    .terminal-log .prompt { color: var(--accent); font-weight: 600; }
+    .terminal-log .call { color: #f59e0b; }
+    .terminal-log .res { color: var(--green); }
+    .terminal-log .telemetry { color: var(--muted); font-size: 12px; }
+
+    .demo-viewport-mock {
+      background: var(--surface);
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+    }
+    .viewport-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 12px;
+      margin-bottom: 18px;
+    }
+    .viewport-url {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .viewport-body {
+      background: #090e1a;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 20px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
       position: relative;
-      padding: 8px 12px 8px 56px;
+      overflow: hidden;
     }
-    .steps > li::before {
-      content: counter(step);
+    .viewport-card-mock {
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .viewport-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      margin-bottom: 10px;
+    }
+
+    /* Interactive Tool Directory */
+    .tools-directory-section {
+      margin-bottom: 96px;
+    }
+    .tools-search-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .search-input-wrap {
+      flex: 1;
+      min-width: 280px;
+      position: relative;
+    }
+    .search-input-wrap svg {
       position: absolute;
-      left: 12px;
-      top: 10px;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      color: var(--muted);
+    }
+    .search-input {
+      width: 100%;
+      background: var(--card-bg);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-pill);
+      padding: 12px 18px 12px 46px;
+      color: #ffffff;
+      font-size: 15px;
+      font-family: var(--sans);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .search-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+    }
+    .tool-filter-pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .filter-pill {
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: var(--radius-pill);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .filter-pill:hover {
+      color: var(--text);
+      background: var(--surface-3);
+    }
+    .filter-pill.active {
+      background: var(--accent);
+      color: #040812;
+      border-color: var(--accent);
+    }
+
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .tool-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 20px;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: pointer;
+    }
+    .tool-card:hover {
+      border-color: var(--line-hover);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px -10px rgba(56, 189, 248, 0.15);
+      background: var(--surface-2);
+    }
+    .tool-card-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .tool-name {
+      font-family: var(--mono);
+      font-size: 14.5px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+    .tool-category {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 3px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .tool-desc {
+      font-size: 13.5px;
+      color: var(--text-dim);
+      line-height: 1.55;
+      margin-bottom: 14px;
+      flex: 1;
+    }
+    .tool-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--line);
+      padding-top: 12px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .tool-tag {
+      font-family: var(--mono);
+      background: rgba(255, 255, 255, 0.05);
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+
+    /* Modal / Inspector Drawer */
+    .tool-modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .tool-modal-backdrop.open { display: flex; }
+    .tool-modal {
+      background: #090e1a;
+      border: 1px solid var(--line-hover);
+      border-radius: 20px;
+      max-width: 680px;
+      width: 100%;
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 28px;
+      position: relative;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(56, 189, 248, 0.15);
+    }
+    .modal-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      color: var(--text);
       width: 32px;
       height: 32px;
       border-radius: 50%;
-      background: #f8fafc;
-      color: #090d15;
-      font-weight: 800;
-      font-size: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .steps .what {
-      display: block;
-      font-size: 17px;
-      font-weight: 700;
-      color: var(--text);
-      margin-bottom: 4px;
-    }
-    .steps .sub {
-      display: block;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
       font-size: 16px;
-      color: var(--muted);
-      margin-bottom: 12px;
-      line-height: 1.55;
-    }
-    .steps .done {
-      color: var(--green);
-      font-weight: 600;
-    }
-    .install-box {
-      background: var(--surface);
-      border-radius: var(--radius-pill);
-      padding: 8px 16px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 6px;
-      max-width: 640px;
-    }
-    .install-box code {
-      color: var(--accent);
-      font-size: 14px;
-      min-width: 0;
-      overflow-wrap: anywhere;
-      line-height: 1.4;
-      font-weight: 500;
-    }
-    .copy-btn {
-      flex: 0 0 auto;
-      background: #f8fafc;
-      color: #090d15;
-      border: none;
-      border-radius: var(--radius-pill);
-      padding: 6px 14px;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 600;
-      transition: background 0.15s ease, transform 0.1s ease;
-    }
-    .copy-btn:hover { background: #e2e8f0; }
-    .copy-btn:active { transform: scale(0.97); }
-    .install-cws {
-      background: var(--surface-2);
-      padding: 10px 20px;
-      border-radius: var(--radius-pill);
-      color: #f8fafc;
-      font-weight: 600;
-      font-size: 14px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
       transition: background 0.15s;
-      margin-top: 4px;
     }
-    .install-cws:hover {
-      background: var(--surface-3);
-      text-decoration: none;
-      color: #ffffff;
-    }
+    .modal-close:hover { background: var(--surface-3); }
 
-    /* Live Interactive Terminal Panel */
-    .interactive-wrap {
-      background: var(--surface);
-      border-radius: var(--radius-card);
-      padding: 24px;
-      margin-top: 24px;
+    /* Features Grid */
+    .features-section {
+      margin-bottom: 96px;
     }
-    .scenario-nav {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin-bottom: 20px;
-    }
-    .scenario-btn {
-      background: var(--surface-2);
-      color: var(--muted);
-      border: none;
-      padding: 8px 16px;
-      border-radius: var(--radius-pill);
-      font-size: 13.5px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.15s, color 0.15s;
-    }
-    .scenario-btn.active, .scenario-btn:hover {
-      background: #f8fafc;
-      color: #090d15;
-    }
-    .interactive-display {
-      background: var(--bg);
-      border-radius: 18px;
-      padding: 20px;
-    }
-    .telemetry-row {
+    .feature-cards {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 14px;
-      margin-bottom: 18px;
-    }
-    .telemetry-card {
-      background: var(--surface-2);
-      border-radius: 14px;
-      padding: 12px 16px;
-      text-align: center;
-    }
-    .telemetry-val {
-      font-size: 18px;
-      font-weight: 800;
-      color: var(--accent);
-      margin-bottom: 2px;
-    }
-    .telemetry-lbl {
-      font-size: 13px;
-      color: var(--muted);
-    }
-    .terminal-code {
-      background: var(--surface-2);
-      border-radius: 14px;
-      padding: 14px 18px;
-      overflow-x: auto;
-    }
-    .terminal-code pre {
-      margin: 0;
-      font-size: 13.5px;
-      line-height: 1.5;
-      color: #f8fafc;
-    }
-
-    /* Architecture Grid (Composed Split) */
-    .arch-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      grid-template-columns: repeat(2, 1fr);
       gap: 20px;
-      margin-top: 24px;
     }
-    .arch-card {
-      background: var(--surface);
+    .feature-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--line);
       border-radius: var(--radius-card);
-      padding: 28px 24px;
+      padding: 28px;
+      transition: border-color 0.2s, transform 0.2s;
     }
-    .arch-card h3 {
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--text);
+    .feature-card:hover {
+      border-color: var(--line-hover);
+      transform: translateY(-2px);
+    }
+    .feature-card h3 {
+      font-size: 19px;
+      font-weight: 750;
+      color: #ffffff;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .feature-card h3 svg {
+      width: 22px;
+      height: 22px;
+      color: var(--accent);
+    }
+    .feature-card p {
+      font-size: 15px;
+      color: var(--text-dim);
+      line-height: 1.6;
       margin-bottom: 16px;
     }
-    .metric-list {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
+    .feature-list {
+      list-style: none;
+      padding: 0;
     }
-    .metric-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      gap: 12px;
-    }
-    .metric-label {
-      font-size: 15px;
+    .feature-list li {
+      font-size: 13.5px;
       color: var(--muted);
+      padding: 6px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
     }
-    .metric-val {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--text);
-      text-align: right;
-    }
+    .feature-list li strong { color: var(--text); font-weight: 600; }
+    .feature-list li svg { width: 14px; height: 14px; color: var(--green); flex-shrink: 0; }
 
     /* Production Screenshots */
-    .shots {
+    .shots-section {
+      margin-bottom: 96px;
+    }
+    .shots-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      grid-template-columns: repeat(3, 1fr);
       gap: 20px;
-      margin-top: 24px;
     }
-    .shot {
-      background: var(--surface);
-      border-radius: var(--radius-card);
+    .shot-card {
+      background: var(--card-bg);
+      border: 1px solid var(--line);
+      border-radius: 18px;
       overflow: hidden;
-      transition: background 0.15s ease;
+      transition: border-color 0.2s, transform 0.2s;
     }
-    .shot:hover {
-      background: var(--surface-2);
+    .shot-card:hover {
+      border-color: var(--line-hover);
+      transform: translateY(-3px);
     }
-    .shot img {
+    .shot-card img {
       width: 100%;
-      height: 210px;
+      height: 190px;
       object-fit: cover;
-      object-position: top;
-      background: #000;
+      display: block;
+      border-bottom: 1px solid var(--line);
     }
-    .shot-meta {
-      padding: 18px 20px;
+    .shot-body {
+      padding: 18px;
     }
-    .shot-meta h3 {
+    .shot-body h3 {
       font-size: 16px;
       font-weight: 700;
-      margin-bottom: 4px;
-      color: var(--text);
+      color: #ffffff;
+      margin-bottom: 6px;
     }
-    .shot-meta p {
-      font-size: 14.5px;
-      line-height: 1.55;
-    }
-
-    /* Try prompts list (Unboxed with accent border) */
-    .try-list {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      margin-top: 24px;
-    }
-    .try-item {
-      padding: 14px 20px;
-      border-left: 3px solid var(--accent);
-      background: rgba(56, 189, 248, 0.04);
-      border-radius: 0 16px 16px 0;
-    }
-    .try-item .tag {
-      display: inline-block;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--green);
-      background: rgba(52, 211, 153, 0.12);
-      padding: 3px 10px;
-      border-radius: var(--radius-pill);
-      margin-bottom: 8px;
-    }
-    .try-item .say {
-      display: block;
-      font-size: 16px;
-      color: var(--text);
-      font-weight: 600;
-      line-height: 1.5;
-    }
-    .try-item .say::before { content: '"'; }
-    .try-item .say::after { content: '"'; }
-    .try-item .why {
-      display: block;
-      margin-top: 6px;
-      font-size: 15px;
+    .shot-body p {
+      font-size: 13.5px;
       color: var(--muted);
+      line-height: 1.5;
     }
 
     /* Comparison Table */
-    .comparison-wrap {
-      overflow-x: auto;
-      border-radius: var(--radius-card);
-      background: var(--surface);
-      margin-top: 24px;
+    .compare-section {
+      margin-bottom: 96px;
     }
-    .comparison table {
+    .table-wrap {
+      overflow-x: auto;
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-card);
+      box-shadow: 0 15px 40px -10px rgba(0, 0, 0, 0.5);
+    }
+    table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 13.5px;
+      font-size: 14px;
       text-align: left;
     }
-    .comparison caption {
-      color: var(--muted);
-      font-size: 13.5px;
-      padding: 14px 18px;
+    caption {
       text-align: left;
-      caption-side: bottom;
-    }
-    .comparison th {
-      padding: 14px 18px;
-      color: var(--muted);
-      font-weight: 700;
+      padding: 16px 20px;
       font-size: 13px;
-      letter-spacing: 0.3px;
-      background: var(--surface-2);
+      color: var(--muted);
+      border-bottom: 1px solid var(--line);
     }
-    .comparison th.highlight {
-      color: #ffffff;
-      background: var(--surface-3);
+    th, td {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: middle;
     }
-    .comparison td {
-      padding: 13px 18px;
-      vertical-align: top;
+    th {
+      font-size: 12.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      background: var(--surface);
     }
-    .comparison td.highlight {
+    th.highlight, td.highlight {
       background: rgba(56, 189, 248, 0.05);
+      color: var(--text);
       font-weight: 600;
-      color: #ffffff;
+      border-left: 1px solid rgba(56, 189, 248, 0.2);
+      border-right: 1px solid rgba(56, 189, 248, 0.2);
     }
-    .comparison tr:hover td { background: var(--surface-2); }
-    .comparison tr:hover td.highlight { background: rgba(56, 189, 248, 0.09); }
-    .check { color: var(--green); font-weight: 700; }
-    .cross { color: #f87171; }
+    tr:last-child td { border-bottom: none; }
+    .check { color: var(--green); font-weight: 600; }
+    .cross { color: #64748b; }
 
-    /* FAQ */
+    /* FAQ Section */
+    .faq-section {
+      margin-bottom: 96px;
+    }
     .faq-list {
+      max-width: 840px;
+      margin: 0 auto;
       display: flex;
       flex-direction: column;
       gap: 12px;
-      margin-top: 24px;
     }
-    .faq details {
-      background: var(--surface);
-      border-radius: var(--radius-card);
+    details {
+      background: var(--card-bg);
+      border: 1px solid var(--line);
+      border-radius: 14px;
       overflow: hidden;
+      transition: border-color 0.15s, background 0.15s;
     }
-    .faq summary {
-      padding: 18px 24px;
+    details[open] {
+      border-color: rgba(56, 189, 248, 0.3);
+      background: var(--surface-2);
+    }
+    summary {
+      padding: 18px 22px;
+      font-size: 16px;
+      font-weight: 650;
+      color: #ffffff;
       cursor: pointer;
-      font-weight: 600;
-      font-size: 16px;
-      list-style: none;
+      user-select: none;
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      color: var(--text);
+      justify-content: space-between;
     }
-    .faq summary::-webkit-details-marker { display: none; }
-    .faq summary::after {
-      content: '+';
-      font-size: 20px;
-      color: var(--muted);
-      transition: transform 0.2s;
-      line-height: 1;
-    }
-    .faq details[open] summary::after {
-      transform: rotate(45deg);
-      color: var(--accent);
-    }
-    .faq .answer {
-      padding: 6px 24px 22px;
-      color: var(--muted);
-      font-size: 16px;
+    summary::-webkit-details-marker { display: none; }
+    .faq-answer {
+      padding: 0 22px 20px;
+      font-size: 15px;
+      color: var(--text-dim);
       line-height: 1.65;
     }
-    .faq .answer code {
-      background: var(--surface-2);
-      padding: 2px 7px;
-      border-radius: 6px;
-      font-size: 13.5px;
-      color: var(--accent);
-    }
 
-    /* Centered CTA Section */
-    .cta {
+    /* CTA Section */
+    .cta-section {
       text-align: center;
-      padding: 72px 0;
+      padding: 64px 32px;
+      background: radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.12) 0%, rgba(14, 20, 36, 0.6) 100%);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 24px;
+      margin-bottom: 96px;
+      box-shadow: 0 20px 50px -10px rgba(56, 189, 248, 0.15);
     }
-    .cta h2 {
-      font-size: 30px;
-      font-weight: 800;
-      margin-bottom: 12px;
-      letter-spacing: -0.02em;
+    .cta-section h2 {
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 850;
+      letter-spacing: -0.025em;
+      margin-bottom: 14px;
+      color: #ffffff;
     }
-    .cta p {
-      margin-bottom: 28px;
-    }
-    .cta .buttons {
-      display: flex;
-      gap: 14px;
-      justify-content: center;
-      flex-wrap: wrap;
+    .cta-section p {
+      max-width: 54ch;
+      margin: 0 auto 32px;
+      color: var(--text-dim);
+      font-size: 17px;
     }
 
-    /* Centered Footer */
+    /* Footer */
     footer {
+      border-top: 1px solid var(--line);
+      padding: 48px 24px 64px;
       text-align: center;
-      padding: 56px 24px 48px;
-      max-width: 920px;
-      margin: 0 auto;
-      color: var(--muted);
-      font-size: 14px;
     }
-    .footer-links {
-      margin: 0 auto 20px;
-      line-height: 2.2;
-      color: var(--muted);
-    }
-    .footer-links a { color: var(--muted); }
-    .footer-links a:hover { color: var(--text); }
-    footer .footer-brand {
+    .footer-brand {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      margin-bottom: 16px;
+      gap: 10px;
+      font-weight: 750;
+      font-size: 16px;
       color: var(--text);
-      font-weight: 700;
+      margin-bottom: 20px;
     }
-    footer .footer-brand img {
-      width: 24px;
-      height: 24px;
-      border-radius: var(--radius-pill);
+    .footer-brand img {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+    }
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+    .footer-links a { color: var(--muted); }
+    .footer-links a:hover { color: var(--accent); }
+    .footer-copy {
+      font-size: 13.5px;
+      color: #64748b;
     }
 
-    @media (max-width: 768px) {
-      .nav-wrap { padding: 10px 12px 0; }
-      .nav { padding: 8px 16px; }
-      .nav-links { display: none; }
-      .hero { padding: 40px 0 24px; }
-      .hero h1 { font-size: 34px; }
-      .steps > li { padding: 8px 12px 8px 52px; }
-      .steps > li::before { left: 10px; top: 8px; width: 28px; height: 28px; font-size: 13px; }
-      .arch-grid { grid-template-columns: 1fr; }
-      .comparison table { font-size: 12.5px; }
-      .comparison th, .comparison td { padding: 10px 12px; }
-      .footer-links { padding: 0 16px; }
+    /* Responsive */
+    @media (max-width: 992px) {
+      .telemetry-strip { grid-template-columns: repeat(2, 1fr); }
+      .arch-pipeline { grid-template-columns: repeat(2, 1fr); }
+      .demo-content-grid { grid-template-columns: 1fr; }
+      .demo-terminal { border-right: none; border-bottom: 1px solid var(--line); }
+      .feature-cards { grid-template-columns: 1fr; }
+      .shots-grid { grid-template-columns: 1fr; }
     }
-    @media (max-width: 480px) {
-      .hero h1 { font-size: 26px; }
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .telemetry-strip { grid-template-columns: 1fr; }
+      .arch-pipeline { grid-template-columns: 1fr; }
+      .arch-inspector { grid-template-columns: 1fr; }
+      .hero { padding: 48px 0 36px; }
     }
   </style>
-  <script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Browser MCP", "alternateName": ["Browser MCP", "browser-mcp"], "description": "High-performance native Rust Model Context Protocol (MCP) server that gives your AI agent direct control of your live, authenticated Chrome and Brave browser sessions. 43 tools, MIT-licensed, runs entirely on your local machine.", "applicationCategory": "DeveloperApplication", "operatingSystem": "Cross-platform (Windows, macOS, Linux)", "softwareVersion": "1.0.0", "url": "https://browsermcp.dev/", "downloadUrl": "https://github.com/modded-soldier-9/browser-mcp/releases", "license": "https://opensource.org/licenses/MIT", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "author": {"@type": "Person", "name": "Mohamed Elsheikh", "url": "https://github.com/modded-soldier-9/browser-mcp"}, "publisher": {"@type": "Person", "name": "Mohamed Elsheikh", "url": "https://github.com/modded-soldier-9/browser-mcp"}, "sameAs": ["https://github.com/modded-soldier-9/browser-mcp"]}</script>
-  <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Person", "name": "Mohamed Elsheikh", "url": "https://github.com/modded-soldier-9/browser-mcp", "sameAs": ["https://github.com/modded-soldier-9"]}</script>
-  <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "What is Browser MCP?", "acceptedAnswer": {"@type": "Answer", "text": "Browser MCP is a high-performance native Rust Model Context Protocol (MCP) server and WebExtension that connects AI coding assistants directly to your live, authenticated Chrome and Brave browser sessions. It boots in under 4ms and provides 43 automation tools without requiring Node.js."}}, {"@type": "Question", "name": "How does Browser MCP compare to Agent360 and Playwright MCP?", "acceptedAnswer": {"@type": "Answer", "text": "Browser MCP replaces legacy Node.js runtimes with a single compiled native Rust executable. It reduces startup latency from ~450ms to sub-4ms and memory footprint from ~85MB to ~3.8MB, while featuring autonomous Token Shield compression and 43 browser automation tools."}}, {"@type": "Question", "name": "Is my data safe? Does Browser MCP send telemetry?", "acceptedAnswer": {"@type": "Answer", "text": "Zero telemetry. Browser MCP communicates strictly over local loopback on 127.0.0.1 with Chrome extension origin verification. No remote servers, no analytics, no external accounts."}}]}</script>
 </head>
 <body>
 
+<!-- Floating Navigation Bar -->
 <div class="nav-wrap">
-  <nav class="nav">
+  <nav class="nav" aria-label="Main Navigation">
     <a href="/" class="nav-brand">
-      <img src="/logo.svg" alt="Browser MCP logo" width="26" height="26">
-      Browser MCP
+      <img src="/logo.svg" alt="Browser Control" width="26" height="26">
+      <span>Browser Control</span>
+      <span class="brand-chip">v1.30</span>
     </a>
+
     <div class="nav-links">
-      <a href="#features">Features</a>
-      <a href="#demo">Demo</a>
+      <a href="#install">Setup</a>
+      <a href="#tools">Tools (43)</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#demos">Workflows</a>
       <a href="#compare">Compare</a>
-      <a href="#faq">FAQ</a>
-      <a href="/learn/what-is-an-mcp-server/">Guides</a>
-      <a href="/docs/install-claude-code/">Docs</a>
-      <a href="https://github.com/modded-soldier-9/browser-mcp">GitHub</a>
+      <a href="/docs/what-is-browser-mcp/">Docs</a>
     </div>
-    <div class="nav-badges">
-      <a href="https://github.com/modded-soldier-9/browser-mcp" class="gh-star" id="starBadge" hidden aria-label="Star Browser MCP on GitHub">
-        <span class="gh-star-btn">
-          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/></svg>
-          Star
-        </span>
-        <span class="gh-star-count" id="starCount"></span>
+
+    <div class="nav-actions">
+      <a href="https://github.com/modded-soldier-9/browser-mcp" class="gh-star" id="starBadge" aria-label="Star on GitHub">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/></svg>
+        <span>Star</span>
+        <span class="gh-star-count" id="starCount">...</span>
       </a>
     </div>
   </nav>
 </div>
 
 <main class="page-frame">
-  <section class="hero">
-    <img src="/logo.svg" alt="Browser MCP" class="hero-logo" width="88" height="88">
-    <h1>Native Browser Control<br><span>for AI Assistants</span></h1>
-    <p class="hero-sub">Connect Claude Code, Cursor, and Codex directly to your live, authenticated Chrome and Brave browser sessions. 43 tools, sub-4ms startup, ~3.8MB RAM, and autonomous Token Shield context protection.</p>
+
+  <!-- Hero Section -->
+  <section class="hero reveal">
+    <div class="hero-badge-wrap">
+      <div class="hero-badge">
+        <span>⚡ Standalone Native Rust Engine</span>
+        <span>·</span>
+        <span>43 Tools</span>
+        <span>·</span>
+        <span>Zero Headless Lag</span>
+      </div>
+    </div>
+
+    <h1>Next-Generation <span>Browser Control</span><br>for AI Assistants</h1>
+
+    <p class="hero-sub">
+      Give Claude Code, Cursor, Gemini/Antigravity, Windsurf, and VS Code direct control of your live, authenticated Chrome and Brave browser sessions. 43 tools, sub-4ms cold startup, ~3.8MB RAM, and zero headless login barriers.
+    </p>
+
     <div class="hero-actions">
-      <a href="#install" class="btn btn-primary">Install Browser MCP</a>
-      <a href="https://github.com/modded-soldier-9/browser-mcp" class="btn btn-secondary">View on GitHub</a>
+      <a href="#install" class="btn btn-primary">Quick Setup (60s)</a>
+      <a href="#tools" class="btn btn-secondary">Explore 43 Tools</a>
+      <a href="#architecture" class="btn btn-secondary">Architecture</a>
+    </div>
+
+    <!-- Telemetry Strip -->
+    <div class="telemetry-strip">
+      <div class="stat-card">
+        <div class="stat-val"><span class="dot"></span> &lt; 3.8 ms</div>
+        <div class="stat-label">Cold Boot Latency (Native Rust)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val"><span class="dot"></span> ~3.8 MB</div>
+        <div class="stat-label">RAM Footprint (95% cut vs Node)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val"><span class="dot"></span> 43 Tools</div>
+        <div class="stat-label">Full CDP &amp; Everyday Tool Surface</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val"><span class="dot"></span> 20 Sessions</div>
+        <div class="stat-label">Color-Coded Tab Group Isolation</div>
+      </div>
     </div>
   </section>
 
-  <div class="hero-video-card" id="demo">
-    <video src="/demo.mp4" autoplay muted loop playsinline poster="/screenshots/tools.png" class="hero-video" aria-label="Browser MCP live automation demonstration"></video>
-    <div class="hero-video-caption">Live execution: Claude Code driving an authenticated browser session in real time with sub-4ms CDP event dispatch.</div>
+  <!-- Hero Video Card -->
+  <div class="hero-video-card reveal" id="demo">
+    <video src="/demo.mp4" autoplay muted loop playsinline poster="/screenshots/tools.png" class="hero-video" aria-label="Browser Control live automation demonstration"></video>
+    <div class="hero-video-caption">
+      <div>Live execution: Claude Code driving an authenticated browser session in real time with sub-4ms CDP event dispatch.</div>
+      <span><svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg> Active Tab Bridge</span>
+    </div>
   </div>
 
-  <section class="install-section reveal" id="install">
+  <!-- Instant Client Setup Section -->
+  <section class="setup-section reveal" id="install">
     <div class="section-head">
-      <h2>Quick Setup</h2>
-      <p>Connect your assistant directly to your daily browser in 60 seconds.</p>
+      <span class="section-tag">Zero-Config Deployment</span>
+      <h2>Instant Client Setup</h2>
+      <p>Connect your assistant directly to your daily browser in 60 seconds with copy-paste configs.</p>
     </div>
 
-    <ol class="steps">
-      <li class="reveal">
-        <span class="what">Extract Extension Assets</span>
-        <span class="sub">Run the standalone installer to unpack the extension into <code>~/.browser-mcp/extension</code> (or download the pre-built binary from <a href="https://github.com/modded-soldier-9/browser-mcp/releases">GitHub Releases</a>).</span>
-        <div class="install-box">
-          <code>browser-mcp install</code>
-          <button class="copy-btn" data-copy="browser-mcp install">Copy</button>
+    <div class="setup-box">
+      <div class="setup-tabs" role="tablist" aria-label="AI Client Configuration Tabs">
+        <button class="setup-tab-btn active" data-client="claude-desktop" role="tab" aria-selected="true">Claude Desktop</button>
+        <button class="setup-tab-btn" data-client="cursor" role="tab" aria-selected="false">Cursor</button>
+        <button class="setup-tab-btn" data-client="gemini" role="tab" aria-selected="false">Gemini / Antigravity</button>
+        <button class="setup-tab-btn" data-client="windsurf" role="tab" aria-selected="false">Windsurf</button>
+        <button class="setup-tab-btn" data-client="vscode" role="tab" aria-selected="false">VS Code / Cline</button>
+        <button class="setup-tab-btn" data-client="claude-code" role="tab" aria-selected="false">Claude Code CLI</button>
+      </div>
+
+      <div class="setup-body">
+        <div class="setup-os-bar">
+          <div class="setup-os-pills" role="tablist" aria-label="Operating System Selector">
+            <button class="os-pill active" data-os="macos">macOS</button>
+            <button class="os-pill" data-os="windows">Windows</button>
+            <button class="os-pill" data-os="linux">Linux</button>
+          </div>
+          <div class="setup-path" id="setupPath">Config: ~/Library/Application Support/Claude/claude_desktop_config.json</div>
         </div>
-      </li>
-      <li class="reveal">
-        <span class="what">Load Unpacked Extension</span>
-        <span class="sub">Open <code>brave://extensions</code> or <code>chrome://extensions</code>, toggle <b>Developer mode</b> ON, click <b>Load unpacked</b>, and select <code>~/.browser-mcp/extension</code> (or <code>%USERPROFILE%\.browser-mcp\extension</code> on Windows).</span>
-      </li>
-      <li class="reveal">
-        <span class="what">Register Native MCP Server</span>
-        <span class="sub">Connect Browser MCP directly to your AI assistant. Standalone native binary with zero Node.js runtime needed:</span>
-        <div class="install-box">
-          <code>claude mcp add browser-mcp -- browser-mcp</code>
-          <button class="copy-btn" data-copy="claude mcp add browser-mcp -- browser-mcp">Copy</button>
-        </div>
-        <span class="sub" style="margin-top: 10px; margin-bottom: 6px;">For Cursor (<code>~/.cursor/mcp.json</code>), Antigravity (<code>~/.gemini/config/mcp_config.json</code>), or Claude Desktop (macOS: <code>~/Library/Application Support/Claude/claude_desktop_config.json</code>, Windows: <code>%APPDATA%\Claude\claude_desktop_config.json</code>):</span>
-        <div class="terminal-code" style="max-width: 640px; margin-bottom: 10px;">
-          <pre><code>{
+
+        <div class="code-container">
+          <pre id="setupCode"><code>{
   "mcpServers": {
-    "browser-mcp": {
+    "browser-control": {
       "command": "browser-mcp"
     }
   }
 }</code></pre>
+          <button class="copy-btn" id="setupCopyBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            <span>Copy Config</span>
+          </button>
         </div>
-      </li>
-      <li class="reveal">
-        <span class="what">Verify Automation</span>
-        <span class="sub">Ask your assistant in Claude Code, Cursor, Codex, or Antigravity:</span>
-        <div class="install-box">
-          <code>Take a screenshot of my current Chrome tab.</code>
-          <button class="copy-btn" data-copy="Take a screenshot of my current Chrome tab.">Copy</button>
+
+        <div class="setup-instruction">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+          <div id="setupNote">Load the unpacked extension in Chrome/Brave Developer Mode from <code>~/.browser-mcp/extension</code> (or run <code>browser-mcp install</code> to unpack automatically).</div>
         </div>
-        <span class="sub">Your agent captures your active tab in real time with sub-4ms CDP event dispatch. <span class="done">Installation verified.</span> <a href="#try">View examples &rarr;</a></span>
-      </li>
-    </ol>
+      </div>
+    </div>
   </section>
 
-  <section class="interactive-section reveal" data-ui id="explorer">
+  <!-- Interactive Architecture Diagram Section -->
+  <section class="arch-section reveal" id="architecture">
     <div class="section-head">
-      <h2>Autonomous Token Shield</h2>
-      <p>Interactive DOM pruning, handle generation, and local disk spooling.</p>
+      <span class="section-tag">System Blueprint</span>
+      <h2>Interactive Architecture</h2>
+      <p>Click any layer to inspect protocol guarantees, security boundaries, and telemetry specifications.</p>
     </div>
 
-    <div class="interactive-wrap">
-      <div class="scenario-nav" role="tablist" aria-label="Token Shield Scenarios">
-        <button class="scenario-btn active" data-scenario="2fa" role="tab" aria-selected="true">2FA Verification</button>
-        <button class="scenario-btn" data-scenario="pruning" role="tab" aria-selected="false">Viewport Pruning</button>
-        <button class="scenario-btn" data-scenario="batch" role="tab" aria-selected="false">Form Batching</button>
-        <button class="scenario-btn" data-scenario="multisession" role="tab" aria-selected="false">Multi-Session Tabs</button>
-      </div>
-
-      <div class="interactive-display">
-        <div class="telemetry-row">
-          <div class="telemetry-card">
-            <div class="telemetry-val" id="rawTokens">142,500</div>
-            <div class="telemetry-lbl">Raw DOM Tokens</div>
-          </div>
-          <div class="telemetry-card">
-            <div class="telemetry-val" id="prunedTokens">1,640</div>
-            <div class="telemetry-lbl">Pruned Tokens (98.8% cut)</div>
-          </div>
-          <div class="telemetry-card">
-            <div class="telemetry-val" id="latencyVal">&lt; 2.5 ms</div>
-            <div class="telemetry-lbl">Native Dispatch Latency</div>
-          </div>
-          <div class="telemetry-card">
-            <div class="telemetry-val" id="handlesVal">43 Handles</div>
-            <div class="telemetry-lbl">Monotonic IDs ([e1]-[e43])</div>
-          </div>
+    <div class="arch-diagram-wrap">
+      <div class="arch-pipeline">
+        <div class="arch-node active" data-tier="assistant">
+          <div class="arch-node-step">Layer 1</div>
+          <h3>AI Coding Assistant</h3>
+          <p>Claude Code, Cursor, Gemini, Windsurf, or VS Code client.</p>
+          <span class="arch-node-pill">stdio JSON-RPC 2.0</span>
         </div>
 
-        <div class="terminal-code">
-          <pre id="transcriptCode"><code>// Scenario: 2FA Human-in-the-loop verification
-→ browser_ask_user {
-    "prompt": "Please complete the Google Authenticator 2FA challenge on screen",
-    "timeout_ms": 60000
-  }
-← [Overlay active on Tab #142] User approved in 4.8s. Automation resumed.</code></pre>
+        <div class="arch-node" data-tier="server">
+          <div class="arch-node-step">Layer 2</div>
+          <h3>Native Rust Core</h3>
+          <p>Standalone binary engine with sub-4ms boot and ~3.8MB RAM.</p>
+          <span class="arch-node-pill">Port 9876-9895</span>
+        </div>
+
+        <div class="arch-node" data-tier="shield">
+          <div class="arch-node-step">Layer 3</div>
+          <h3>Autonomous Token Shield</h3>
+          <p>Semantic DOM pruning, monotonic [e1] handles, and local spooling.</p>
+          <span class="arch-node-pill">Origin Verified</span>
+        </div>
+
+        <div class="arch-node" data-tier="browser">
+          <div class="arch-node-step">Layer 4</div>
+          <h3>Live Chrome &amp; Brave</h3>
+          <p>Authenticated user tabs, CDP compositor overlays, and multi-session isolation.</p>
+          <span class="arch-node-pill">Persistent MV2</span>
+        </div>
+      </div>
+
+      <div class="arch-inspector" id="archInspector">
+        <div>
+          <div class="inspector-title" id="inspectorTitle">Layer 1: AI Coding Assistant &amp; stdio Interface</div>
+          <div class="inspector-desc" id="inspectorDesc">Your coding assistant (Claude Code, Cursor, Gemini, Windsurf, or custom agent) invokes standard Model Context Protocol methods over standard input/output. Asynchronous reader and writer tasks process requests with zero external daemons.</div>
+        </div>
+        <div class="inspector-metrics" id="inspectorMetrics">
+          <div class="inspector-metric-row">
+            <span class="inspector-metric-label">Protocol Interface</span>
+            <span class="inspector-metric-value">JSON-RPC 2.0 (stdio)</span>
+          </div>
+          <div class="inspector-metric-row">
+            <span class="inspector-metric-label">Client Dispatch</span>
+            <span class="inspector-metric-value">&lt; 0.5 ms event-loop</span>
+          </div>
+          <div class="inspector-metric-row">
+            <span class="inspector-metric-label">Process Model</span>
+            <span class="inspector-metric-value">Zero persistent daemon</span>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
+  <!-- Interactive Live Workflow Demos Section -->
+  <section class="demos-section reveal" id="demos">
+    <div class="section-head">
+      <span class="section-tag">Live Workflows</span>
+      <h2>Real-World Automation Scenarios</h2>
+      <p>Inspect how Browser Control handles both everyday user tasks and advanced developer workflows.</p>
+    </div>
+
+    <div class="demo-simulator">
+      <div class="demo-nav" role="tablist" aria-label="Workflow Demonstration Tabs">
+        <button class="demo-nav-btn active" data-scenario="everyday-checkout" role="tab" aria-selected="true">
+          <span class="category-badge badge-everyday">Everyday</span>
+          <span>2FA Checkout &amp; Form Fill</span>
+        </button>
+        <button class="demo-nav-btn" data-scenario="everyday-list" role="tab" aria-selected="false">
+          <span class="category-badge badge-everyday">Everyday</span>
+          <span>Virtualized List Extraction</span>
+        </button>
+        <button class="demo-nav-btn" data-scenario="dev-network" role="tab" aria-selected="false">
+          <span class="category-badge badge-developer">Developer</span>
+          <span>HTTP 500 Network Debugging</span>
+        </button>
+        <button class="demo-nav-btn" data-scenario="dev-iframe" role="tab" aria-selected="false">
+          <span class="category-badge badge-developer">Developer</span>
+          <span>Iframe &amp; Top-Level Await</span>
+        </button>
+      </div>
+
+      <div class="demo-content-grid">
+        <div class="demo-terminal">
+          <div>
+            <div class="terminal-head">
+              <div class="terminal-dots"><span></span><span></span><span></span></div>
+              <div class="terminal-title">browser-control-session.log</div>
+            </div>
+            <div class="terminal-log" id="demoLog"></div>
+          </div>
+          <div style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
+            <div class="telemetry" id="demoTelemetry">Tokens: 1,420 (98.6% pruned) · Latency: 2.4ms</div>
+            <button class="btn btn-secondary" id="demoRerunBtn" style="padding: 6px 14px; font-size: 12px;">Replay Demo</button>
+          </div>
+        </div>
+
+        <div class="demo-viewport-mock">
+          <div class="viewport-header">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+            <div class="viewport-url" id="viewportUrl">https://store.enterprise.com/checkout</div>
+          </div>
+
+          <div class="viewport-body" id="viewportBody">
+            <div class="viewport-status-badge" id="viewportBadge" style="background: rgba(52, 211, 153, 0.15); color: var(--green);">
+              ● Session Isolated Tab #142 (Tab Group: Blue)
+            </div>
+            <div class="viewport-card-mock">
+              <div style="font-weight: 700; font-size: 14px; margin-bottom: 6px;" id="viewportCardTitle">Shipping Address &amp; Billing</div>
+              <div style="font-size: 12.5px; color: var(--muted); line-height: 1.5;" id="viewportCardDesc">12 fields batched synchronously via <code>browser_fill</code>. Human-in-the-loop modal active for SMS OTP confirmation.</div>
+            </div>
+            <div style="font-family: var(--mono); font-size: 11.5px; color: var(--accent); background: #04070e; padding: 10px; border-radius: 6px; border: 1px solid var(--line);" id="viewportOverlay">
+              [CDP Compositor Overlay] Highlight Quad active on #btn-verify-otp
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Tool Directory Section -->
+  <section class="tools-directory-section reveal" id="tools">
+    <div class="section-head">
+      <span class="section-tag">API Reference</span>
+      <h2>Interactive Tool Directory</h2>
+      <p>Explore all 43 native browser tools covering both everyday user automation and high-intensity developer workflows.</p>
+    </div>
+
+    <div class="tools-search-bar">
+      <div class="search-input-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="text" id="toolSearch" class="search-input" placeholder="Search 43 tools by name, parameter, or capability (e.g. 'fill', 'network', 'cookie', '2fa')...">
+      </div>
+
+      <div class="tool-filter-pills" role="tablist">
+        <button class="filter-pill active" data-filter="all">All 43 Tools</button>
+        <button class="filter-pill" data-filter="everyday">Everyday Automation (25)</button>
+        <button class="filter-pill" data-filter="developer">Developer Workflows (18)</button>
+        <button class="filter-pill" data-filter="forms">Forms &amp; Input</button>
+        <button class="filter-pill" data-filter="network">Network &amp; Logs</button>
+      </div>
+    </div>
+
+    <div class="tools-grid" id="toolsGrid">
+      <!-- Injected by JavaScript -->
+    </div>
+
+    <div style="text-align: center; margin-top: 16px;">
+      <a href="/docs/tools/" class="btn btn-secondary">Open Full Tools Documentation &rarr;</a>
+    </div>
+  </section>
+
+  <!-- Autonomous Token Shield Deep-Dive Section -->
   <section class="features-section reveal" id="features">
     <div class="section-head">
-      <h2>Engineered for Native Speed</h2>
-      <p>Single compiled static binary with zero external dependencies.</p>
+      <span class="section-tag">Context Optimization</span>
+      <h2>Autonomous Token Shield</h2>
+      <p>Eliminate LLM context bloat and rate-limit penalties with intelligent local pruning.</p>
     </div>
 
-    <div class="arch-grid">
-      <div class="arch-card reveal">
-        <h3>Native Rust Engine</h3>
-        <div class="metric-list">
-          <div class="metric-item">
-            <span class="metric-label">Cold Boot Latency</span>
-            <span class="metric-val">&lt; 4 ms (instant native binary)</span>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">Memory Footprint</span>
-            <span class="metric-val">~3.8 MB RAM (95% reduction vs Node)</span>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">Concurrent Agent Sessions</span>
-            <span class="metric-val">20 sessions (dedicated Tab Groups)</span>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">Automation Tools Available</span>
-            <span class="metric-val">43 tools (full CDP coverage)</span>
-          </div>
-        </div>
+    <div class="feature-cards">
+      <div class="feature-card">
+        <h3>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          Semantic &amp; Viewport DOM Pruning
+        </h3>
+        <p>Raw webpage DOMs routinely surpass 300,000 tokens. Token Shield condenses pages into an accessible semantic tree, pruning off-screen nodes and mapping elements to monotonic handles ([e1]-[e43]).</p>
+        <ul class="feature-list">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> <strong>98.8% Token Savings</strong>: 142k tokens distilled to 1.6k</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> <strong>Spatial Viewport Pruning</strong>: <code>viewport_only=true</code> saves 50–70%</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> <strong>Handle Generation</strong>: Instant targeting with <code>[e1]</code> refs</li>
+        </ul>
       </div>
 
-      <div class="arch-card reveal">
-        <h3>Autonomous Context Shield</h3>
-        <div class="metric-list">
-          <div class="metric-item">
-            <span class="metric-label">Semantic DOM Pruning</span>
-            <span class="metric-val">Accessibility tree with [e1] handles</span>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">Spatial Viewport Pruning</span>
-            <span class="metric-val">50–70% token savings on infinite scrolls</span>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">Atomic Form Batching</span>
-            <span class="metric-val">Single-turn multi-field fills (35ms pacing)</span>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">Large Payload Spooling</span>
-            <span class="metric-val">&gt;2,500 tokens spool to local disk</span>
-          </div>
-        </div>
+      <div class="feature-card">
+        <h3>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polyline></svg>
+          Atomic Form Batching &amp; Spooling
+        </h3>
+        <p>Rather than burning one LLM turn per input field, Browser Control dispatches entire forms atomically with event-loop pacing, with automatic disk spooling for massive payloads.</p>
+        <ul class="feature-list">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> <strong>Single-Turn Batching</strong>: Fill 20+ fields in one request</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> <strong>Event-Loop Pacing</strong>: 35ms debounced React/Vue events</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> <strong>Disk Spooling</strong>: Payloads &gt;2,500 tokens stored locally</li>
+        </ul>
       </div>
     </div>
   </section>
 
+  <!-- Production Screenshots Section -->
   <section class="shots-section reveal" id="screenshots">
     <div class="section-head">
-      <h2>Production Proven</h2>
-      <p>Real browser sessions, live human assistance, and multi-session isolation.</p>
+      <span class="section-tag">Battle Tested</span>
+      <h2>Production Proven in Real Browsers</h2>
+      <p>No dummy simulations. See how Browser Control operates inside live browser tabs.</p>
     </div>
 
-    <div class="shots">
-      <div class="shot reveal">
-        <img src="/screenshots/multi-session.png" alt="Multi-session tab groups" width="400" height="210">
-        <div class="shot-meta">
+    <div class="shots-grid">
+      <div class="shot-card">
+        <img src="/screenshots/multi-session.png" alt="Multi-session tab groups" width="400" height="190">
+        <div class="shot-body">
           <h3>Multi-Session Tab Groups</h3>
-          <p>Each AI conversation lives in its own color-coded Chrome tab group without profile locking.</p>
+          <p>Color-coded tab groups isolate independent AI agent conversations without profile locks.</p>
         </div>
       </div>
-      <div class="shot reveal">
-        <img src="/screenshots/human-in-the-loop.png" alt="Human-in-the-loop overlay" width="400" height="210">
-        <div class="shot-meta">
+
+      <div class="shot-card">
+        <img src="/screenshots/human-in-the-loop.png" alt="Human-in-the-loop overlay" width="400" height="190">
+        <div class="shot-body">
           <h3>Human-in-the-Loop Safeguards</h3>
-          <p>2FA, OTPs, and complex challenges pause automation cleanly with in-page user dialogs.</p>
+          <p>Sensitive 2FA prompts, SMS OTPs, and CAPTCHAs pause cleanly for human completion.</p>
         </div>
       </div>
-      <div class="shot reveal">
-        <img src="/screenshots/tools.png" alt="43 tools available" width="400" height="210">
-        <div class="shot-meta">
+
+      <div class="shot-card">
+        <img src="/screenshots/tools.png" alt="43 tools available" width="400" height="190">
+        <div class="shot-body">
           <h3>43 Automation Tools</h3>
           <p>Hardware clicks, atomic form batching, cookie extraction, and failed network telemetry.</p>
         </div>
@@ -983,46 +1641,21 @@
     </div>
   </section>
 
-  <section class="try-section reveal" id="try">
+  <!-- Comparison Table Section -->
+  <section class="compare-section reveal" id="compare">
     <div class="section-head">
-      <h2>What Can You Build?</h2>
-      <p>Copy and paste any of these prompts directly into your AI coding assistant.</p>
+      <span class="section-tag">Benchmarked Specifications</span>
+      <h2>Engineered Without Compromise</h2>
+      <p>How Browser Control compares to legacy Node.js bridges and headless runners.</p>
     </div>
 
-    <div class="try-list">
-      <div class="try-item reveal">
-        <span class="tag">Quick smoke test</span>
-        <span class="say">Take a screenshot of my current Chrome tab.</span>
-        <span class="why">Instantly verifies communication between your AI assistant, the native Rust server, and the browser extension.</span>
-      </div>
-      <div class="try-item reveal">
-        <span class="say">Open my billing dashboard, find the August invoice, and extract the summary numbers.</span>
-        <span class="why">Works immediately because your browser is already authenticated. No API tokens or headless session logins needed.</span>
-      </div>
-      <div class="try-item reveal">
-        <span class="say">Log into this staging site. If it requests a 2FA code, prompt me with an overlay and proceed.</span>
-        <span class="why">Direct human-in-the-loop handoff via <code>browser_ask_user</code> for sensitive OTPs and authentication challenges.</span>
-      </div>
-      <div class="try-item reveal">
-        <span class="say">Walk through our web app's signup checkout flow and report all failed network requests.</span>
-        <span class="why">Captures 4xx/5xx errors, failed fetches, and blocked requests via <code>browser_get_failed_requests</code> with secret redaction.</span>
-      </div>
-    </div>
-  </section>
-
-  <section class="comparison reveal" id="compare">
-    <div class="section-head">
-      <h2>Automation Architectures</h2>
-      <p>How Browser MCP compares to legacy Node.js bridges and headless runners.</p>
-    </div>
-
-    <div class="comparison-wrap" data-ui>
+    <div class="table-wrap">
       <table>
-        <caption>Verified architectural specifications across active browser MCP servers.</caption>
+        <caption>Architectural comparison across active browser MCP implementations.</caption>
         <thead>
           <tr>
             <th>Capability</th>
-            <th class="highlight">Browser MCP (Native Rust)</th>
+            <th class="highlight">Browser Control (Native Rust)</th>
             <th>Agent360 (Legacy Node)</th>
             <th><a href="https://github.com/microsoft/playwright-mcp">Playwright MCP</a></th>
             <th><a href="https://browsermcp.io">BrowserMCP.io</a></th>
@@ -1038,7 +1671,7 @@
           </tr>
           <tr>
             <td>Startup Latency</td>
-            <td class="highlight">&lt; 4 ms (instant native binary)</td>
+            <td class="highlight">&lt; 3.8 ms (instant native binary)</td>
             <td>~450 ms (Node cold start)</td>
             <td>~2,500 ms (Chromium boot)</td>
             <td>~500 ms</td>
@@ -1111,78 +1744,109 @@
     </div>
   </section>
 
-  <section class="faq reveal" id="faq">
+  <!-- Frequently Asked Questions Section -->
+  <section class="faq-section reveal" id="faq">
     <div class="section-head">
+      <span class="section-tag">Got Questions?</span>
       <h2>Frequently Asked Questions</h2>
-      <p>Everything you need to know about setup, security, and architecture.</p>
+      <p>Everything you need to know about architecture, privacy, and client support.</p>
     </div>
 
     <div class="faq-list">
-      <details open class="reveal">
-        <summary>What is Browser MCP and why was it rewritten in Rust?</summary>
-        <div class="answer">Browser MCP is an open-source Model Context Protocol server that bridges AI assistants to your daily browser. It was rewritten from scratch as a standalone native Rust binary to eliminate Node.js dependencies, achieve sub-4ms cold startup, reduce idle memory to ~3.8MB, and introduce an autonomous Token Shield that protects LLM context windows from token exhaustion.</div>
+      <details open>
+        <summary>What is Browser Control and why was it rewritten in Rust?</summary>
+        <div class="faq-answer">Browser Control (formerly Browser MCP) is an open-source Model Context Protocol server that bridges AI assistants to your daily browser. It was rewritten from scratch as a standalone native Rust binary to eliminate Node.js dependencies, achieve sub-4ms cold startup, reduce idle memory to ~3.8MB, and introduce an autonomous Token Shield that protects LLM context windows from token exhaustion.</div>
       </details>
-      <details class="reveal">
-        <summary>How does Browser MCP differ from Playwright MCP and legacy Agent360?</summary>
-        <div class="answer">Unlike Playwright MCP, which spins up isolated headless profiles that hit bot verification and login walls, Browser MCP connects directly to the Brave and Chrome tabs you are already signed into. Compared to the legacy Agent360 Node.js implementation, Browser MCP is 100x faster to boot, consumes ~95% less RAM, batches multi-field forms atomically with <code>browser_fill</code>, and provides 43 automation tools including CDP compositor highlights and failed network telemetry.</div>
+
+      <details>
+        <summary>How does Browser Control differ from Playwright MCP and headless runners?</summary>
+        <div class="faq-answer">Unlike Playwright MCP, which spins up isolated headless profiles that hit bot verification and login walls, Browser Control connects directly to the Brave and Chrome tabs you are already signed into. It inherits your cookies, active logins, and 2FA authentication, allowing your AI assistant to act on private dashboards and SaaS tools without mock credentials.</div>
       </details>
-      <details class="reveal">
+
+      <details>
         <summary>Is my browsing data and token security protected?</summary>
-        <div class="answer">Yes. Browser MCP contains zero telemetry, zero analytics, and connects strictly over local loopback (<code>127.0.0.1:9876-9895</code>). It enforces strict <code>Origin: chrome-extension://[a-p]{32}</code> verification on incoming WebSockets to prevent unauthorized local process connections. Source code is completely open and auditable on GitHub.</div>
+        <div class="faq-answer">Yes. Browser Control contains zero telemetry, zero analytics, and connects strictly over local loopback (<code>127.0.0.1:9876-9895</code>). It enforces strict <code>Origin: chrome-extension://[a-p]{32}</code> verification on incoming WebSockets to prevent unauthorized local process connections. Source code is completely open and auditable on GitHub.</div>
       </details>
-      <details class="reveal">
-        <summary>How does CAPTCHA assistance and 2FA work?</summary>
-        <div class="answer">When an automated turn encounters a CAPTCHA or 2FA verification challenge, Browser MCP invokes <code>browser_ask_user</code> to render an interactive in-browser dialog. The automation pauses cleanly until you approve or complete the step on your own screen, after which the agent resumes in the exact same tab.</div>
+
+      <details>
+        <summary>How does 2FA assistance and CAPTCHA solving work?</summary>
+        <div class="faq-answer">When an automated task encounters a CAPTCHA or 2FA verification challenge, Browser Control invokes <code>browser_ask_user</code> to render an interactive in-browser dialog. The automation pauses cleanly until you approve or complete the step on your own screen, after which the agent resumes in the exact same tab.</div>
       </details>
-      <details class="reveal">
+
+      <details>
         <summary>Which AI coding assistants are supported?</summary>
-        <div class="answer">Any assistant supporting standard MCP JSON-RPC over stdio works out of the box, including Claude Code, Cursor, Codex, Antigravity, OpenCode, VS Code, and Zed. Run <code>browser-mcp install</code> to automatically configure all detected client configuration files.</div>
+        <div class="faq-answer">Any assistant supporting standard MCP JSON-RPC over stdio works out of the box, including Claude Desktop, Cursor, Gemini/Antigravity, Windsurf, VS Code (Cline/Roo), Claude Code, OpenCode, and Zed. Run <code>browser-mcp install</code> to automatically configure all detected client configuration files.</div>
       </details>
-      <details class="reveal">
+
+      <details>
         <summary>Who authors and maintains this project?</summary>
-        <div class="answer">Browser MCP is engineered and maintained by Mohamed Elsheikh (<a href="https://github.com/modded-soldier-9">@modded-soldier-9</a>) under the permissive MIT License. Contributions and issues are welcome on GitHub.</div>
+        <div class="faq-answer">Browser Control is engineered and maintained by Mohamed Elsheikh (<a href="https://github.com/modded-soldier-9">@modded-soldier-9</a>) under the permissive MIT License. Contributions and issues are welcome on GitHub.</div>
       </details>
     </div>
   </section>
 
-  <section class="cta reveal">
-    <h2>Control Your Real Browser</h2>
-    <p>Clone the repository, build the native binary, and connect your assistant.</p>
-    <div class="buttons">
-      <a href="#install" class="btn btn-primary">
-        Install Browser MCP
-      </a>
-      <a href="https://github.com/modded-soldier-9/browser-mcp" class="btn btn-secondary">
-        <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-        View on GitHub
-      </a>
+  <!-- CTA Banner Section -->
+  <section class="cta-section reveal">
+    <h2>Take Full Control of Your Real Browser</h2>
+    <p>Install Browser Control in 60 seconds and give your AI assistant access to authenticated web sessions.</p>
+    <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;">
+      <a href="#install" class="btn btn-primary">Install Browser Control</a>
+      <a href="https://github.com/modded-soldier-9/browser-mcp" class="btn btn-secondary">View on GitHub</a>
     </div>
   </section>
+
 </main>
 
+<!-- Tool Detail Modal Backdrop -->
+<div class="tool-modal-backdrop" id="toolModalBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalToolName">
+  <div class="tool-modal">
+    <button class="modal-close" id="modalCloseBtn" aria-label="Close modal">&times;</button>
+    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+      <span class="tool-category" id="modalCategory" style="background: rgba(56, 189, 248, 0.15); color: var(--accent);">Everyday</span>
+      <span class="tool-tag" id="modalTier">Core CDP</span>
+    </div>
+    <h3 id="modalToolName" style="font-family: var(--mono); font-size: 20px; color: #ffffff; margin-bottom: 12px;">browser_navigate</h3>
+    <p id="modalToolDesc" style="font-size: 14.5px; color: var(--text-dim); line-height: 1.6; margin-bottom: 20px;"></p>
+
+    <div style="font-size: 13px; font-weight: 700; color: #ffffff; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px;">Parameters Schema</div>
+    <div class="code-container" style="margin-bottom: 20px;">
+      <pre id="modalParams"><code>// Loading schema...</code></pre>
+    </div>
+
+    <div style="font-size: 13px; font-weight: 700; color: #ffffff; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px;">Example Assistant Invocation</div>
+    <div class="code-container">
+      <pre id="modalExample"><code>// Loading invocation...</code></pre>
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
 <footer>
   <div class="footer-brand">
-    <img src="/logo.svg" alt="Browser MCP" width="24" height="24">
-    <strong>Browser MCP</strong>
+    <img src="/logo.svg" alt="Browser Control" width="26" height="26">
+    <span>Browser Control</span>
   </div>
-  <nav class="footer-links" aria-label="Guides and docs">
-    <a href="/docs/install-claude-code/">Install</a> &middot;
-    <a href="/docs/tools/">Tools</a> &middot;
-    <a href="/learn/what-is-an-mcp-server/">What is an MCP server</a> &middot;
-    <a href="/learn/model-context-protocol/">Model Context Protocol</a> &middot;
-    <a href="/compare/browser-automation-mcp-servers/">Compare servers</a> &middot;
-    <a href="/learn/browser-automation-react-forms/">Automating React forms</a> &middot;
-    <a href="/learn/check-if-ai-mentions-your-brand/">Check AI mentions</a> &middot;
-    <a href="/use-cases/read-2fa-from-gmail/">Read a 2FA code</a>
+  <nav class="footer-links" aria-label="Footer Documentation Links">
+    <a href="/docs/install-claude-code/">Install</a>
+    <a href="/docs/tools/">Tools (43)</a>
+    <a href="/learn/what-is-an-mcp-server/">What is an MCP server</a>
+    <a href="/learn/model-context-protocol/">Model Context Protocol</a>
+    <a href="/compare/browser-automation-mcp-servers/">Compare servers</a>
+    <a href="/learn/browser-automation-react-forms/">Automating React forms</a>
+    <a href="/learn/check-if-ai-mentions-your-brand/">Check AI mentions</a>
+    <a href="/use-cases/read-2fa-from-gmail/">Read 2FA code</a>
+    <a href="/privacy.html">Privacy</a>
   </nav>
-  <p>Engineered by <a href="https://github.com/modded-soldier-9">Mohamed Elsheikh</a> (@modded-soldier-9) &middot; MIT License &middot; <a href="https://github.com/modded-soldier-9/browser-mcp">GitHub</a> &middot; <a href="/privacy.html">Privacy</a></p>
+  <p class="footer-copy">
+    Engineered by <a href="https://github.com/modded-soldier-9">Mohamed Elsheikh</a> (@modded-soldier-9) &middot; MIT License &middot; <a href="https://github.com/modded-soldier-9/browser-mcp">GitHub Repository</a> &middot; <a href="/privacy.html">Privacy Policy</a>
+  </p>
 </footer>
 
 <script>
+// 1. Reveal Animations Observer
 (function() {
   var items = Array.prototype.slice.call(document.querySelectorAll('.reveal'));
   if (!items.length) return;
-
   if ('IntersectionObserver' in window) {
     var observer = new IntersectionObserver(function(entries) {
       entries.forEach(function(entry) {
@@ -1191,117 +1855,395 @@
           observer.unobserve(entry.target);
         }
       });
-    }, {
-      rootMargin: '0px 0px -20px 0px',
-      threshold: 0.05
-    });
-
-    items.forEach(function(el) {
-      observer.observe(el);
-    });
+    }, { rootMargin: '0px 0px -20px 0px', threshold: 0.05 });
+    items.forEach(function(el) { observer.observe(el); });
   } else {
     items.forEach(function(el) { el.classList.add('is-in'); });
   }
-
-  function checkFallback() {
-    var winH = window.innerHeight || 800;
-    items.forEach(function(el) {
-      if (!el.classList.contains('is-in')) {
-        var rect = el.getBoundingClientRect();
-        if (rect.top < winH) {
-          el.classList.add('is-in');
-        }
-      }
-    });
-  }
-  window.addEventListener('scroll', checkFallback, { passive: true });
-  setTimeout(checkFallback, 150);
 })();
-</script>
 
-<script>
+// 2. GitHub Star Counter
+(function() {
   fetch('https://api.github.com/repos/modded-soldier-9/browser-mcp')
-    .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
-    .then(function (d) {
+    .then(function(r) { return r.ok ? r.json() : Promise.reject(); })
+    .then(function(d) {
       if (d && typeof d.stargazers_count === 'number') {
-        document.getElementById('starCount').textContent = d.stargazers_count;
-        document.getElementById('starBadge').hidden = false;
+        document.getElementById('starCount').textContent = d.stargazers_count.toLocaleString();
       }
     })
-    .catch(function () {});
-</script>
-
-<script>
-document.querySelectorAll('.copy-btn').forEach(function (b) {
-  b.addEventListener('click', function () {
-    var reset = function () { setTimeout(function () { b.textContent = 'Copy'; }, 1800); };
-    navigator.clipboard.writeText(b.dataset.copy).then(function () {
-      b.textContent = 'Copied!'; reset();
-    }, function () {
-      b.textContent = 'Select & copy';
-      var code = b.parentElement.querySelector('code');
-      if (code) {
-        var r = document.createRange(); r.selectNodeContents(code);
-        var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
-      }
-      reset();
+    .catch(function() {
+      document.getElementById('starCount').textContent = 'MIT';
     });
-  });
-});
-</script>
+})();
 
-<script>
+// 3. Instant Copy-Paste Client Setup Tabs
 (function() {
-  var scenarios = {
-    '2fa': {
-      raw: '142,500',
-      pruned: '1,640',
-      latency: '< 2.5 ms',
-      handles: '43 Handles',
-      code: '// Scenario: 2FA Human-in-the-loop verification\n→ browser_ask_user {\n    "prompt": "Please complete the Google Authenticator 2FA challenge on screen",\n    "timeout_ms": 60000\n  }\n← [Overlay active on Tab #142] User approved in 4.8s. Automation resumed.'
+  var clientConfigs = {
+    'claude-desktop': {
+      macos: '~/Library/Application Support/Claude/claude_desktop_config.json',
+      windows: '%APPDATA%\\Claude\\claude_desktop_config.json',
+      linux: '~/.config/Claude/claude_desktop_config.json',
+      code: '{\n  "mcpServers": {\n    "browser-control": {\n      "command": "browser-mcp"\n    }\n  }\n}',
+      note: 'Save this JSON snippet to your Claude Desktop config and restart Claude.'
     },
-    'pruning': {
-      raw: '385,000',
-      pruned: '2,150',
-      latency: '< 3.2 ms',
-      handles: '62 Handles',
-      code: '// Scenario: Infinite-scroll DOM viewport pruning\n→ browser_snapshot {\n    "viewport_only": true,\n    "prune_metrics": true\n  }\n← [Token Shield] Discarded 382,850 off-screen tokens. Monotonic handles [e1]-[e62] mapped.'
+    'cursor': {
+      macos: '~/.cursor/mcp.json (or Cursor Settings > Features > MCP)',
+      windows: '%USERPROFILE%\\.cursor\\mcp.json',
+      linux: '~/.cursor/mcp.json',
+      code: '{\n  "mcpServers": {\n    "browser-control": {\n      "command": "browser-mcp"\n    }\n  }\n}',
+      note: 'Add this server to Cursor Settings > MCP Servers or save to ~/.cursor/mcp.json.'
     },
-    'batch': {
-      raw: '89,200',
-      pruned: '1,120',
-      latency: '< 1.8 ms',
-      handles: '12 Handles',
-      code: '// Scenario: Atomic 12-field form batch fill\n→ browser_fill {\n    "fields": [\n      {"handle": "[e4]", "value": "Billing Lead"},\n      {"handle": "[e7]", "value": "admin@enterprise.com"},\n      {"handle": "[e9]", "value": "Suite 400"}\n    ]\n  }\n← [1 turn, 35ms event-loop pacing] 12 input/change events dispatched synchronously.'
+    'gemini': {
+      macos: '~/.gemini/config/mcp_config.json',
+      windows: '%USERPROFILE%\\.gemini\\config\\mcp_config.json',
+      linux: '~/.gemini/config/mcp_config.json',
+      code: '{\n  "mcpServers": {\n    "browser-control": {\n      "command": "browser-mcp"\n    }\n  }\n}',
+      note: 'Configure in Google Gemini CLI or Antigravity MCP settings.'
     },
-    'multisession': {
-      raw: '210,000',
-      pruned: '3,400',
-      latency: '< 2.1 ms',
-      handles: '20 Groups',
-      code: '// Scenario: Multi-session tab isolation\n→ browser_session_create {\n    "session_id": "agent-review-42",\n    "tab_group_color": "blue"\n  }\n← [Session Registered] Color-coded Tab Group created. Zero cookie or profile collisions.'
+    'windsurf': {
+      macos: '~/.codeium/windsurf/mcp_config.json',
+      windows: '%USERPROFILE%\\.codeium\\windsurf\\mcp_config.json',
+      linux: '~/.codeium/windsurf/mcp_config.json',
+      code: '{\n  "mcpServers": {\n    "browser-control": {\n      "command": "browser-mcp"\n    }\n  }\n}',
+      note: 'Add to Windsurf Cascade MCP configuration and restart Cascade.'
+    },
+    'vscode': {
+      macos: '~/.vscode/extensions / Roo / Cline Settings',
+      windows: '%USERPROFILE%\\.vscode / Cline Settings',
+      linux: '~/.vscode / Cline Settings',
+      code: '{\n  "mcpServers": {\n    "browser-control": {\n      "command": "browser-mcp"\n    }\n  }\n}',
+      note: 'Supported in VS Code Agent Mode, Roo Code, and Cline MCP profiles.'
+    },
+    'claude-code': {
+      macos: 'Terminal CLI command',
+      windows: 'Command Prompt / PowerShell',
+      linux: 'Terminal CLI command',
+      code: 'claude mcp add browser-control -- browser-mcp',
+      note: 'Run this single command in your terminal to register with Claude Code.'
     }
   };
 
-  document.querySelectorAll('.scenario-btn').forEach(function(btn) {
+  var curClient = 'claude-desktop';
+  var curOs = 'macos';
+
+  function updateSetupDisplay() {
+    var c = clientConfigs[curClient];
+    if (!c) return;
+    document.getElementById('setupPath').textContent = 'Config: ' + c[curOs];
+    document.getElementById('setupCode').querySelector('code').textContent = c.code;
+    document.getElementById('setupNote').textContent = c.note;
+  }
+
+  document.querySelectorAll('.setup-tab-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
-      document.querySelectorAll('.scenario-btn').forEach(function(b) {
+      document.querySelectorAll('.setup-tab-btn').forEach(function(b) {
         b.classList.remove('active');
         b.setAttribute('aria-selected', 'false');
       });
       btn.classList.add('active');
       btn.setAttribute('aria-selected', 'true');
-      var s = scenarios[btn.dataset.scenario];
-      if (s) {
-        document.getElementById('rawTokens').textContent = s.raw;
-        document.getElementById('prunedTokens').textContent = s.pruned;
-        document.getElementById('latencyVal').textContent = s.latency;
-        document.getElementById('handlesVal').textContent = s.handles;
-        document.getElementById('transcriptCode').textContent = s.code;
+      curClient = btn.dataset.client;
+      updateSetupDisplay();
+    });
+  });
+
+  document.querySelectorAll('.os-pill').forEach(function(pill) {
+    pill.addEventListener('click', function() {
+      document.querySelectorAll('.os-pill').forEach(function(p) { p.classList.remove('active'); });
+      pill.classList.add('active');
+      curOs = pill.dataset.os;
+      updateSetupDisplay();
+    });
+  });
+
+  document.getElementById('setupCopyBtn').addEventListener('click', function() {
+    var btn = this;
+    var text = document.getElementById('setupCode').querySelector('code').textContent;
+    navigator.clipboard.writeText(text).then(function() {
+      btn.classList.add('done');
+      btn.querySelector('span').textContent = 'Copied!';
+      setTimeout(function() {
+        btn.classList.remove('done');
+        btn.querySelector('span').textContent = 'Copy Config';
+      }, 1800);
+    });
+  });
+})();
+
+// 4. Interactive Architecture Inspector
+(function() {
+  var tiers = {
+    'assistant': {
+      title: 'Layer 1: AI Coding Assistant & stdio Interface',
+      desc: 'Your coding assistant (Claude Code, Cursor, Gemini, Windsurf, or custom agent) invokes standard Model Context Protocol methods over standard input/output. Asynchronous reader and writer tasks process requests with zero external daemons.',
+      metrics: [
+        ['Protocol Interface', 'JSON-RPC 2.0 (stdio)'],
+        ['Client Dispatch', '< 0.5 ms event-loop'],
+        ['Process Model', 'Zero persistent daemon']
+      ]
+    },
+    'server': {
+      title: 'Layer 2: Native Rust Engine Core',
+      desc: 'Compiled native Rust binary (browser-mcp). Embeds the WebExtension assets via include_dir!, binds loopback ports (9876-9895), dispatches immediately to WebSocket bridges, and enforces sub-4ms cold starts with ~3.8MB RSS footprint.',
+      metrics: [
+        ['Cold Startup', '< 3.8 ms native binary'],
+        ['Memory Footprint', '~3.8 MB RAM'],
+        ['Loopback Port Range', '127.0.0.1:9876-9895']
+      ]
+    },
+    'shield': {
+      title: 'Layer 3: Autonomous Token Shield & Security Gate',
+      desc: 'Verifies incoming connections strictly against Origin: chrome-extension://[a-p]{32}. Prunes massive DOM trees by 98.8%, generates monotonic [e1]-[e43] handles, and spools payloads exceeding 2,500 tokens directly to local disk.',
+      metrics: [
+        ['Origin Verification', 'chrome-extension://[a-p]{32}'],
+        ['Token Cut', '98.8% average reduction'],
+        ['Disk Spooling Limit', '> 2,500 tokens']
+      ]
+    },
+    'browser': {
+      title: 'Layer 4: Live Chrome & Brave Browser Sessions',
+      desc: 'Manifest V2 extension communicating with Chrome DevTools Protocol compositor layer. Reuses active user sessions, cookies, and logins. Isolates independent conversations into color-coded Tab Groups without profile locks.',
+      metrics: [
+        ['Active Tab Reuse', 'Zero headless login walls'],
+        ['Tab Isolation', '20 concurrent sessions'],
+        ['CDP Compositor', 'Hardware highlights & clicks']
+      ]
+    }
+  };
+
+  document.querySelectorAll('.arch-node').forEach(function(node) {
+    node.addEventListener('click', function() {
+      document.querySelectorAll('.arch-node').forEach(function(n) { n.classList.remove('active'); });
+      node.classList.add('active');
+      var t = tiers[node.dataset.tier];
+      if (t) {
+        document.getElementById('inspectorTitle').textContent = t.title;
+        document.getElementById('inspectorDesc').textContent = t.desc;
+        var mHtml = '';
+        t.metrics.forEach(function(m) {
+          mHtml += '<div class="inspector-metric-row"><span class="inspector-metric-label">' + m[0] + '</span><span class="inspector-metric-value">' + m[1] + '</span></div>';
+        });
+        document.getElementById('inspectorMetrics').innerHTML = mHtml;
       }
     });
   });
 })();
+
+// 5. Interactive Live Workflow Demos
+(function() {
+  var workflows = {
+    'everyday-checkout': {
+      url: 'https://store.enterprise.com/checkout',
+      badge: '● Session Isolated Tab #142 (Tab Group: Blue)',
+      badgeColor: 'rgba(52, 211, 153, 0.15)',
+      textColor: 'var(--green)',
+      cardTitle: 'Multi-Field Checkout & 2FA Handoff',
+      cardDesc: '12 shipping & billing fields batched in a single turn via browser_fill. Human-in-the-loop modal active for SMS OTP confirmation.',
+      overlayText: '[CDP Compositor Overlay] Highlight active on #input-otp',
+      telemetry: 'Tokens: 1,420 (98.6% pruned) · Latency: 2.4ms · Single Turn Fill',
+      log: 'User: "Complete checkout with my corporate credit card and prompt me for the SMS OTP."\n\n→ browser_navigate {\n    "url": "https://store.enterprise.com/checkout"\n  }\n← [Reused Active Tab #142] Title: "Secure Checkout - Enterprise Store"\n\n→ browser_fill {\n    "fields": [\n      {"handle": "[e4]", "value": "Billing Lead"},\n      {"handle": "[e7]", "value": "finance@enterprise.com"},\n      {"handle": "[e9]", "value": "742 Evergreen Terrace"},\n      {"handle": "[e12]", "value": "Springfield"},\n      {"handle": "[e15]", "value": "97477"}\n    ]\n  }\n← [1 turn, 35ms event-loop pacing] 12 input/change events dispatched synchronously.\n\n→ browser_ask_user {\n    "prompt": "Please enter the 6-digit SMS verification code sent to your phone",\n    "timeout_ms": 60000\n  }\n← [Overlay Dialog Rendered] User submitted code "849201" in 4.2s.\n\n→ browser_click { "handle": "[e22]" }\n← [CDP Hardware Click] Order #89214 Confirmed.'
+    },
+    'everyday-list': {
+      url: 'https://billing.stripe.com/p/invoices',
+      badge: '● Session Isolated Tab #148 (Tab Group: Green)',
+      badgeColor: 'rgba(56, 189, 248, 0.15)',
+      textColor: 'var(--accent)',
+      cardTitle: 'Virtualized List Row Extraction',
+      cardDesc: 'Infinite-scrolling virtual table keeping only 7 rows in DOM. Automatically scrolled and deduplicated to extract 418 records without memory limit.',
+      overlayText: '[Token Shield] 418 rows deduplicated · 0 memory leaks',
+      telemetry: 'Tokens: 2,150 · Latency: 3.1ms · 418 Records Extracted',
+      log: 'User: "Extract all past year invoices from my Stripe billing dashboard."\n\n→ browser_extract_list {\n    "selector": "[role=\\"row\\"]",\n    "max_rows": 500,\n    "stable_rounds": 3,\n    "wait_ms": 350\n  }\n← [Autonomous Virtual Scroll Engine]\n  Round 1: +14 rows captured\n  Round 2: +18 rows captured\n  Round 3: +22 rows captured\n  ...\n  Reached end of list after 24 scrolls.\n← Extracted 418 unique invoices (Total: $128,450.00). Deduplicated on client.'
+    },
+    'dev-network': {
+      url: 'https://staging.app.io/admin/invite-team',
+      badge: '● Developer Diagnostics Tab #152 (Tab Group: Purple)',
+      badgeColor: 'rgba(244, 63, 94, 0.15)',
+      textColor: 'var(--red)',
+      cardTitle: 'HTTP 500 Network Error Telemetry',
+      cardDesc: 'Autonomous capture of failed fetch requests, payload error inspection, secret redaction, and CDP visual highlight on failing UI trigger.',
+      overlayText: '[CDP Overlay] Highlight active on #btn-send-invitation (HTTP 500 Internal Error)',
+      telemetry: 'Tokens: 890 · Redacted 2 API Keys · Latency: 1.8ms',
+      log: 'User: "Test the team invitation form and verify the API response."\n\n→ browser_click { "selector": "#btn-send-invitation" }\n← [CDP Click Dispatched]\n\n→ browser_get_failed_requests {\n    "include_status_codes": [500, 502, 503, 504]\n  }\n← Captured 1 failed network request:\n  URL: POST https://api.staging.app.io/v1/invitations\n  Status: 500 Internal Server Error\n  Duration: 142ms\n  Headers: [Authorization: [REDACTED]]\n  Response: {"error": "organization_seat_limit_exceeded", "limit": 10}\n\n→ browser_highlight {\n    "selector": "#btn-send-invitation",\n    "color": "#f43f5e"\n  }\n← [CDP Compositor Badge Active] Element highlighted without DOM mutation.'
+    },
+    'dev-iframe': {
+      url: 'https://checkout.saas.com/pay',
+      badge: '● Cross-Origin Frame Tab #160 (Tab Group: Amber)',
+      badgeColor: 'rgba(245, 158, 11, 0.15)',
+      textColor: 'var(--accent-amber)',
+      cardTitle: 'Nested Cross-Origin Iframe Execution',
+      cardDesc: 'Enumerate nested iframe hierarchy and evaluate runtime JavaScript with top-level await directly inside the payment blade.',
+      overlayText: '[CDP Execution] Top-level await resolved inside frame #2 (stripe-elements)',
+      telemetry: 'Tokens: 920 · Execution: <1.2ms · Resolved Promise',
+      log: 'User: "Check the payment status inside the embedded Stripe iframe."\n\n→ browser_list_frames {}\n← Found 3 iframes on page:\n  [0] URL: https://checkout.saas.com (Root)\n  [1] URL: https://js.stripe.com/v3/fingerprinted.html\n  [2] URL: https://elements.stripe.com/v1/card-element\n\n→ browser_select_frame {\n    "frame_index": 2\n  }\n← Switched execution context to Frame #2 (elements.stripe.com).\n\n→ browser_execute_script {\n    "code": "const state = await window.StripeElement.getValidationState(); return state.ready;"\n  }\n← Evaluated script with top-level await. Result: { "ready": true, "brand": "visa", "complete": true }'
+    }
+  };
+
+  var curScenario = 'everyday-checkout';
+
+  function renderScenario(key) {
+    var s = workflows[key];
+    if (!s) return;
+    document.getElementById('viewportUrl').textContent = s.url;
+    var badge = document.getElementById('viewportBadge');
+    badge.textContent = s.badge;
+    badge.style.background = s.badgeColor;
+    badge.style.color = s.textColor;
+    document.getElementById('viewportCardTitle').textContent = s.cardTitle;
+    document.getElementById('viewportCardDesc').innerHTML = s.cardDesc;
+    document.getElementById('viewportOverlay').textContent = s.overlayText;
+    document.getElementById('demoTelemetry').textContent = s.telemetry;
+    document.getElementById('demoLog').textContent = s.log;
+  }
+
+  document.querySelectorAll('.demo-nav-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.demo-nav-btn').forEach(function(b) {
+        b.classList.remove('active');
+        b.setAttribute('aria-selected', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-selected', 'true');
+      curScenario = btn.dataset.scenario;
+      renderScenario(curScenario);
+    });
+  });
+
+  document.getElementById('demoRerunBtn').addEventListener('click', function() {
+    renderScenario(curScenario);
+  });
+
+  renderScenario('everyday-checkout');
+})();
+
+// 6. Interactive Tool Directory (All 43 Tools)
+(function() {
+  var allTools = [
+    // Everyday Automation category (25 actions)
+    { name: 'browser_navigate', category: 'everyday', catLabel: 'Everyday', tag: 'Navigation', desc: 'Navigate the active tab to a URL; reuses current tab by default with optional multi-display OS window focus.', params: 'url: string (required), new_tab?: boolean, new_window?: boolean, focus?: boolean', example: 'browser_navigate({"url": "https://github.com", "new_tab": false})' },
+    { name: 'browser_click', category: 'everyday', catLabel: 'Everyday', tag: 'Mouse', desc: 'Click an element via CSS or visible text selector with auto-scroll and hardware mouse event dispatch.', params: 'selector: string (required), button?: "left" | "right" | "middle", click_count?: number', example: 'browser_click({"selector": "button:text(Save Changes)"})' },
+    { name: 'browser_double_click', category: 'everyday', catLabel: 'Everyday', tag: 'Mouse', desc: 'Double-click an element for rich text editors, spreadsheet cells, and desktop-style grids.', params: 'selector: string (required)', example: 'browser_double_click({"selector": ".grid-cell-a1"})' },
+    { name: 'browser_right_click', category: 'everyday', catLabel: 'Everyday', tag: 'Mouse', desc: 'Right-click an element to invoke the native or web context menu.', params: 'selector: string (required)', example: 'browser_right_click({"selector": "#file-item-24"})' },
+    { name: 'browser_click_xy', category: 'everyday', catLabel: 'Everyday', tag: 'Coordinates', desc: 'Click at absolute viewport coordinates for canvas graphics, WebGL views, and interactive maps.', params: 'x: number (required), y: number (required)', example: 'browser_click_xy({"x": 450, "y": 320})' },
+    { name: 'browser_fill', category: 'everyday', catLabel: 'Everyday', tag: 'Forms', desc: 'Fill form inputs atomically with multi-field batching, single-turn dispatch, and 35ms event-loop pacing.', params: 'fields: Array<{selector?: string, handle?: string, value: string}>', example: 'browser_fill({"fields": [{"handle": "[e1]", "value": "John Doe"}]})' },
+    { name: 'browser_press_key', category: 'everyday', catLabel: 'Everyday', tag: 'Keyboard', desc: 'Send keyboard keystrokes (Enter, Tab, Escape, arrows) with optional ctrl/alt/shift/meta modifiers.', params: 'key: string (required), modifiers?: string[]', example: 'browser_press_key({"key": "Enter", "modifiers": ["ctrl"]})' },
+    { name: 'browser_scroll', category: 'everyday', catLabel: 'Everyday', tag: 'Navigation', desc: 'Scroll viewport or scrollable container to a matched element or specific pixel coordinate offset.', params: 'selector?: string, x?: number, y?: number', example: 'browser_scroll({"y": 800})' },
+    { name: 'browser_wait', category: 'everyday', catLabel: 'Everyday', tag: 'Utility', desc: 'Wait for an element matching a CSS or text selector to appear in the DOM with configurable timeout.', params: 'selector: string (required), timeout_ms?: number', example: 'browser_wait({"selector": ".payment-success", "timeout_ms": 10000})' },
+    { name: 'browser_hover', category: 'everyday', catLabel: 'Everyday', tag: 'Mouse', desc: 'Hover over an element to reveal dropdowns, cascading menus, or interactive tooltip overlays.', params: 'selector: string (required)', example: 'browser_hover({"selector": "#nav-dropdown-products"})' },
+    { name: 'browser_select_option', category: 'everyday', catLabel: 'Everyday', tag: 'Forms', desc: 'Select an option from native <select> elements or custom select dropdowns (React Select, MUI, AntD).', params: 'selector: string (required), value: string (required)', example: 'browser_select_option({"selector": "#country-select", "value": "US"})' },
+    { name: 'browser_set_combobox', category: 'everyday', catLabel: 'Everyday', tag: 'Forms', desc: 'Drive autocomplete comboboxes: type filter query, wait for listbox, and select option chips.', params: 'selector: string (required), value: string (required)', example: 'browser_set_combobox({"selector": "#tag-input", "value": "Rust"})' },
+    { name: 'browser_set_date', category: 'everyday', catLabel: 'Everyday', tag: 'Forms', desc: 'Set datepickers robustly via native value-set, masked text typing, or calendar picker navigation.', params: 'selector: string (required), date: string (required)', example: 'browser_set_date({"selector": "#flight-departure", "date": "2026-11-20"})' },
+    { name: 'browser_extract_list', category: 'everyday', catLabel: 'Everyday', tag: 'Scraping', desc: 'Read every row of virtualized or infinite-scroll lists by scrolling until no new rows appear.', params: 'selector: string (required), max_rows?: number, stable_rounds?: number', example: 'browser_extract_list({"selector": "[role=row]", "max_rows": 500})' },
+    { name: 'browser_dismiss_overlays', category: 'everyday', catLabel: 'Everyday', tag: 'Utility', desc: 'Bulk-dismiss cookie banners, GDPR notices, marketing popups, and dialog overlays.', params: 'max_dismissals?: number', example: 'browser_dismiss_overlays({"max_dismissals": 5})' },
+    { name: 'browser_ask_user', category: 'everyday', catLabel: 'Everyday', tag: 'Human-in-Loop', desc: 'Render an interactive in-browser dialog asking the user for 2FA, OTPs, credentials, or confirmation.', params: 'prompt: string (required), timeout_ms?: number', example: 'browser_ask_user({"prompt": "Enter Google Authenticator OTP"})' },
+    { name: 'browser_solve_captcha', category: 'everyday', catLabel: 'Everyday', tag: 'Security', desc: 'Detect and resolve Turnstile, hCaptcha, or reCAPTCHA v2/v3 with AI-vision guidance and human fallback.', params: 'timeout_ms?: number', example: 'browser_solve_captcha({"timeout_ms": 30000})' },
+    { name: 'browser_extract_token', category: 'everyday', catLabel: 'Everyday', tag: 'Auth', desc: 'Extract API tokens from account dashboards with built-in shortcuts for 9 common platforms.', params: 'provider?: string, store_in_vault?: boolean', example: 'browser_extract_token({"provider": "stripe"})' },
+    { name: 'browser_upload_file', category: 'everyday', catLabel: 'Everyday', tag: 'Files', desc: 'Upload files directly to <input type="file"> via Chrome Debugger API without OS dialog barriers.', params: 'selector: string (required), files: string[] (required)', example: 'browser_upload_file({"selector": "#avatar-upload", "files": ["/path/to/img.png"]})' },
+    { name: 'browser_drop_file', category: 'everyday', catLabel: 'Everyday', tag: 'Files', desc: 'Drop files into drag-and-drop zones by resolving hidden file inputs in ancestor or child subtrees.', params: 'selector: string (required), files: string[] (required)', example: 'browser_drop_file({"selector": ".dropzone", "files": ["/path/to/doc.pdf"]})' },
+    { name: 'browser_list_tabs', category: 'everyday', catLabel: 'Everyday', tag: 'Tabs', desc: 'List all open tabs owned by the current isolated AI session (title, URL, and ID).', params: 'none', example: 'browser_list_tabs({})' },
+    { name: 'browser_switch_tab', category: 'everyday', catLabel: 'Everyday', tag: 'Tabs', desc: 'Activate and bring a session-owned tab into active focus by tab ID.', params: 'tab_id: number (required)', example: 'browser_switch_tab({"tab_id": 142})' },
+    { name: 'browser_close_tab', category: 'everyday', catLabel: 'Everyday', tag: 'Tabs', desc: 'Close a session-owned tab cleanly without affecting other active user tabs.', params: 'tab_id: number (required)', example: 'browser_close_tab({"tab_id": 142})' },
+    { name: 'browser_get_new_tab', category: 'everyday', catLabel: 'Everyday', tag: 'Tabs', desc: 'Auto-adopt the most recently opened tab, popup window, or OAuth authentication dialog.', params: 'timeout_ms?: number', example: 'browser_get_new_tab({"timeout_ms": 5000})' },
+    { name: 'browser_handle_dialog', category: 'everyday', catLabel: 'Everyday', tag: 'Utility', desc: 'Accept or dismiss native JavaScript alert(), confirm(), or prompt() dialogs before trigger.', params: 'action: "accept" | "dismiss", prompt_text?: string', example: 'browser_handle_dialog({"action": "accept"})' },
+
+    // Developer Workflows category (18 actions)
+    { name: 'browser_get_failed_requests', category: 'developer', catLabel: 'Developer', tag: 'Network', desc: 'Inspect recent failed network requests (HTTP 4xx/5xx or network drops) with automatic auth redaction.', params: 'include_status_codes?: number[]', example: 'browser_get_failed_requests({"include_status_codes": [500, 502]})' },
+    { name: 'browser_wait_for_network', category: 'developer', catLabel: 'Developer', tag: 'Network', desc: 'Wait for specific network requests matching a URL substring to complete via Chrome DevTools Protocol.', params: 'url_pattern: string (required), timeout_ms?: number', example: 'browser_wait_for_network({"url_pattern": "/api/v1/checkout"})' },
+    { name: 'browser_fetch', category: 'developer', catLabel: 'Developer', tag: 'Network', desc: 'Execute an HTTP request from extension background context, bypassing page CORS and CSP restrictions.', params: 'url: string (required), method?: string, headers?: object, body?: string', example: 'browser_fetch({"url": "https://api.internal.io/health", "method": "GET"})' },
+    { name: 'browser_console_logs', category: 'developer', catLabel: 'Developer', tag: 'Debugging', desc: 'Capture recent console.log, console.warn, and console.error messages and stack traces.', params: 'clear?: boolean, min_level?: "log" | "warn" | "error"', example: 'browser_console_logs({"min_level": "error"})' },
+    { name: 'browser_execute_script', category: 'developer', catLabel: 'Developer', tag: 'Runtime', desc: 'Evaluate arbitrary JavaScript with top-level await, variable declarations, and statement resolution.', params: 'code: string (required)', example: 'browser_execute_script({"code": "await window.__AUTH_SESSION.getToken()"})' },
+    { name: 'browser_highlight', category: 'developer', catLabel: 'Developer', tag: 'Visual', desc: 'Render non-DOM visual highlight overlay on the viewport via Chrome DevTools Protocol compositor layer.', params: 'selector: string (required), color?: string', example: 'browser_highlight({"selector": "#btn-submit", "color": "#38bdf8"})' },
+    { name: 'browser_get_page_content', category: 'developer', catLabel: 'Developer', tag: 'DOM', desc: 'Get accessible semantic DOM tree with monotonic [e1] handles, 98.8% token pruning, and viewport pruning.', params: 'format?: "text" | "html" | "snapshot", viewport_only?: boolean', example: 'browser_get_page_content({"format": "snapshot", "viewport_only": true})' },
+    { name: 'browser_search_elements', category: 'developer', catLabel: 'Developer', tag: 'DOM', desc: 'Search for actionable elements by query or semantic role in sub-100 tokens, returning persistent handles.', params: 'query: string (required), role?: string', example: 'browser_search_elements({"query": "checkout button"})' },
+    { name: 'browser_screenshot', category: 'developer', catLabel: 'Developer', tag: 'Visual', desc: 'Capture visible viewport as a base64 PNG image or save directly to a designated disk path.', params: 'path?: string', example: 'browser_screenshot({"path": "/tmp/screen.png"})' },
+    { name: 'browser_get_cookies', category: 'developer', catLabel: 'Developer', tag: 'Storage', desc: 'Inspect active session cookies for the currently navigated domain.', params: 'domain?: string', example: 'browser_get_cookies({"domain": "enterprise.com"})' },
+    { name: 'browser_set_cookies', category: 'developer', catLabel: 'Developer', tag: 'Storage', desc: 'Inject or modify cookies for an active domain (single cookie or batch array).', params: 'cookies: Array<{name: string, value: string, domain?: string}>', example: 'browser_set_cookies({"cookies": [{"name": "session_id", "value": "tok_123"}]})' },
+    { name: 'browser_get_local_storage', category: 'developer', catLabel: 'Developer', tag: 'Storage', desc: 'Read localStorage key/value entries or extract full key dictionaries from the active page.', params: 'key?: string', example: 'browser_get_local_storage({"key": "jwt_token"})' },
+    { name: 'browser_set_local_storage', category: 'developer', catLabel: 'Developer', tag: 'Storage', desc: 'Write or update a localStorage key/value pair on the current page.', params: 'key: string (required), value: string (required)', example: 'browser_set_local_storage({"key": "theme", "value": "dark"})' },
+    { name: 'browser_list_frames', category: 'developer', catLabel: 'Developer', tag: 'Architecture', desc: 'Enumerate all nested iframes on the current page with frame IDs, indices, and URLs.', params: 'none', example: 'browser_list_frames({})' },
+    { name: 'browser_select_frame', category: 'developer', catLabel: 'Developer', tag: 'Architecture', desc: 'Target an isolated iframe by index for subsequent script execution and DOM queries.', params: 'frame_index: number (required)', example: 'browser_select_frame({"frame_index": 1})' },
+    { name: 'browser_reattach_debugger', category: 'developer', catLabel: 'Developer', tag: 'Recovery', desc: 'Detach and re-attach the Chrome DevTools Protocol debugger to unstick hung CDP sessions instantly.', params: 'none', example: 'browser_reattach_debugger({})' },
+    { name: 'browser_provide_feedback', category: 'developer', catLabel: 'Developer', tag: 'Diagnostics', desc: 'Record user feedback and diagnostic agent logs locally to ~/.browser-mcp/feedback.log.', params: 'feedback: string (required), category?: string', example: 'browser_provide_feedback({"feedback": "CDP input timed out on modal"})' },
+    { name: 'browser_about', category: 'developer', catLabel: 'Developer', tag: 'Meta', desc: 'Return Browser Control runtime information, version metadata, and bug report URLs.', params: 'none', example: 'browser_about({})' }
+  ];
+
+  var toolsGrid = document.getElementById('toolsGrid');
+  var curFilter = 'all';
+  var curQuery = '';
+
+  function renderTools() {
+    var filtered = allTools.filter(function(t) {
+      if (curFilter === 'everyday' && t.category !== 'everyday') return false;
+      if (curFilter === 'developer' && t.category !== 'developer') return false;
+      if (curFilter === 'forms' && t.tag !== 'Forms' && t.tag !== 'DOM') return false;
+      if (curFilter === 'network' && t.tag !== 'Network' && t.tag !== 'Debugging') return false;
+      if (curQuery) {
+        var q = curQuery.toLowerCase();
+        return t.name.toLowerCase().indexOf(q) !== -1 ||
+               t.desc.toLowerCase().indexOf(q) !== -1 ||
+               t.tag.toLowerCase().indexOf(q) !== -1;
+      }
+      return true;
+    });
+
+    toolsGrid.innerHTML = '';
+    filtered.forEach(function(t) {
+      var card = document.createElement('div');
+      card.className = 'tool-card';
+      var badgeCls = t.category === 'everyday' ? 'badge-everyday' : 'badge-developer';
+      card.innerHTML = 
+        '<div class="tool-card-head">' +
+          '<div class="tool-name">' + t.name + '</div>' +
+          '<div class="tool-category ' + badgeCls + '">' + t.catLabel + '</div>' +
+        '</div>' +
+        '<div class="tool-desc">' + t.desc + '</div>' +
+        '<div class="tool-footer">' +
+          '<span class="tool-tag">' + t.tag + '</span>' +
+          '<span style="color: var(--accent); font-weight: 600;">Inspect Schema &rarr;</span>' +
+        '</div>';
+      card.addEventListener('click', function() {
+        openToolModal(t);
+      });
+      toolsGrid.appendChild(card);
+    });
+  }
+
+  function openToolModal(t) {
+    document.getElementById('modalToolName').textContent = t.name;
+    document.getElementById('modalToolDesc').textContent = t.desc;
+    document.getElementById('modalCategory').textContent = t.catLabel;
+    document.getElementById('modalTier').textContent = t.tag;
+    document.getElementById('modalParams').querySelector('code').textContent = t.params;
+    document.getElementById('modalExample').querySelector('code').textContent = t.example;
+    document.getElementById('toolModalBackdrop').classList.add('open');
+  }
+
+  document.getElementById('modalCloseBtn').addEventListener('click', function() {
+    document.getElementById('toolModalBackdrop').classList.remove('open');
+  });
+
+  document.getElementById('toolModalBackdrop').addEventListener('click', function(e) {
+    if (e.target === this) {
+      this.classList.remove('open');
+    }
+  });
+
+  document.getElementById('toolSearch').addEventListener('input', function(e) {
+    curQuery = e.target.value;
+    renderTools();
+  });
+
+  document.querySelectorAll('.filter-pill').forEach(function(pill) {
+    pill.addEventListener('click', function() {
+      document.querySelectorAll('.filter-pill').forEach(function(p) { p.classList.remove('active'); });
+      pill.classList.add('active');
+      curFilter = pill.dataset.filter;
+      renderTools();
+    });
+  });
+
+  renderTools();
+})();
 </script>
+
 </body>
 </html>
