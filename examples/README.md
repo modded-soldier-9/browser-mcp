@@ -1,12 +1,14 @@
 # Turnkey MCP Client Configurations
 
-This directory contains turnkey configuration files for connecting **Browser MCP** to major AI editors, IDEs, and coding assistants.
+This directory contains turnkey configuration files for connecting **Browser Control** (formerly Browser MCP) to major AI editors, IDEs, and coding assistants.
 
-Ensure the `browser-mcp` binary is built and available on your system `PATH` (or replace `"browser-mcp"` in the JSON configuration with the absolute path to your binary):
+Ensure the `browser-control` binary is built and available on your system `PATH` (or replace `"browser-control"` in the JSON configuration with the absolute path to your binary):
 
 ```bash
 cargo build --release --manifest-path crates/browser-mcp-server/Cargo.toml
 ```
+
+*(Note: `browser-mcp` remains available as a backward-compatible alias).*
 
 ---
 
@@ -21,8 +23,8 @@ Copy or merge [claude-desktop/claude_desktop_config.json](claude-desktop/claude_
 ```json
 {
   "mcpServers": {
-    "browser-mcp": {
-      "command": "browser-mcp"
+    "browser-control": {
+      "command": "browser-control"
     }
   }
 }
@@ -40,8 +42,8 @@ Copy or merge [cursor/mcp.json](cursor/mcp.json) into:
 ```json
 {
   "mcpServers": {
-    "browser-mcp": {
-      "command": "browser-mcp"
+    "browser-control": {
+      "command": "browser-control"
     }
   }
 }
@@ -58,8 +60,8 @@ Copy or merge [windsurf/mcp_config.json](windsurf/mcp_config.json) into:
 ```json
 {
   "mcpServers": {
-    "browser-mcp": {
-      "command": "browser-mcp"
+    "browser-control": {
+      "command": "browser-control"
     }
   }
 }
@@ -79,8 +81,8 @@ Copy or merge [vscode/mcp.json](vscode/mcp.json) into:
 ```json
 {
   "servers": {
-    "browser-mcp": {
-      "command": "browser-mcp"
+    "browser-control": {
+      "command": "browser-control"
     }
   }
 }
@@ -90,10 +92,10 @@ Copy or merge [vscode/mcp.json](vscode/mcp.json) into:
 
 ## 5. Claude Code CLI
 
-Add `browser-mcp` via the CLI command:
+Add `browser-control` via the CLI command:
 
 ```bash
-claude mcp add browser-mcp -- browser-mcp
+claude mcp add browser-control -- browser-control
 ```
 
 Or copy [claude-code/mcp.json](claude-code/mcp.json) as `.mcp.json` in your project root.
@@ -109,8 +111,8 @@ Copy or merge [antigravity/mcp_config.json](antigravity/mcp_config.json) into:
 ```json
 {
   "mcpServers": {
-    "browser-mcp": {
-      "command": "browser-mcp"
+    "browser-control": {
+      "command": "browser-control"
     }
   }
 }

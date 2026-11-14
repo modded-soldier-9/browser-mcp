@@ -63,7 +63,12 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          cp target/release/${{ matrix.binary_name == 'browser-mcp-windows-x64.exe' && 'browser-mcp.exe' || 'browser-mcp' }} dist/${{ matrix.binary_name }}
+          SRC="target/release/browser-control"
+          [ -f "${SRC}.exe" ] && SRC="${SRC}.exe"
+          [ ! -f "$SRC" ] && SRC="target/release/browser-mcp"
+          [ -f "${SRC}.exe" ] && SRC="${SRC}.exe"
+          echo "Using binary source: $SRC"
+          cp "$SRC" "dist/${{ matrix.binary_name }}"
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.binary_name }}

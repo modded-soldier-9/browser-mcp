@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/logo.svg" width="128" height="128" alt="Browser MCP Logo">
+  <img src="assets/logo.svg" width="128" height="128" alt="Browser Control Logo">
 </p>
 
-# Browser MCP
+# Browser Control
 
 <p align="center">
   <a href="https://github.com/modded-soldier-9/browser-mcp/actions/workflows/ci.yml"><img src="https://github.com/modded-soldier-9/browser-mcp/actions/workflows/ci.yml/badge.svg" alt="CI Status"></a>
@@ -13,32 +13,42 @@
   <a href="https://browsermcp.dev/"><img src="https://img.shields.io/badge/docs-browsermcp.dev-blueviolet.svg?style=flat-square" alt="Documentation"></a>
 </p>
 
-**Browser MCP** is a standalone, ultra-low-latency Rust [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that connects AI coding assistants directly to your live, authenticated Chrome or Brave browser sessions.
+**Browser Control** (formerly Browser MCP) is a high-performance, ultra-low-latency Rust [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that gives AI coding assistants total, deterministic control over live, authenticated Chrome or Brave browser sessions.
 
 Engineered and actively maintained by **Mohamed Elsheikh** ([@modded-soldier-9](https://github.com/modded-soldier-9)).
 
 ---
 
-## Why Browser MCP?
+## Why Browser Control?
 
-Standard headless browser frameworks (Playwright, Puppeteer, Selenium) fail in real-world workflows: they break authenticated 2FA/SSO sessions, trigger Cloudflare anti-bot checks, and dump 30,000+ tokens of raw HTML into your LLM context window.
+Traditional headless automation tools (Playwright, Puppeteer, Selenium) fail in real-world scenarios: they run in empty sandboxes that trigger Cloudflare bot walls, cannot access your logged-in 2FA/SSO sessions, and dump 30,000+ tokens of raw HTML into LLM context windows.
 
-Browser MCP drives your everyday browser via a native compiled binary and persistent extension bridge:
+Browser Control bridges your everyday browser directly to AI models via a native compiled Rust binary and persistent extension bridge, architected for **both everyday automation and professional developer workflows**:
 
-- **Zero Runtime Dependencies**: Compiled standalone Rust binary (`browser-mcp`). Starts in **< 4 ms** and idles at **~3.8 MB RAM** without Node.js or Python runtime overhead.
-- **Context Shield & Semantic Distillation**: Converts bloated DOM trees into 400–1,200 token accessibility snapshots with stable monotonic handles (`[e1]`, `[e2]`). Payloads exceeding 2,500 tokens automatically spool to disk snapshots with in-band pagination.
+### 🛠️ Developer Workflows & Debugging
+- **Console Log Stream (`browser_console_logs`)**: Capture live `console.log`, `warn`, and uncaught runtime errors in real time.
+- **Network Failure Tracing (`browser_get_failed_requests`)**: Inspect HTTP 4xx/5xx network failures and failed API calls with sensitive credentials automatically sanitized.
+- **Live Script Execution (`browser_execute_script`)**: Evaluate arbitrary JavaScript with top-level `await` directly in the page context.
+- **Multi-Frame Piercing (`browser_list_frames`, `browser_select_frame`)**: Traverse and execute actions across nested `<iframe>` hierarchies.
+- **CDP Element Highlighting (`browser_highlight`)**: Render non-destructive visual highlight boxes via the Chrome DevTools Protocol (`Overlay.highlightQuad`) without mutating page DOM.
+- **State & Storage Inspection (`browser_get_cookies`, `browser_get_local_storage`)**: Inspect, inject, and verify cookies and `localStorage` state across test runs.
+
+### ⚡ Everyday User Automation & Token Efficiency
+- **Live Session Adoption**: Reuses your existing authenticated browser sessions (Google, GitHub, Stripe, AWS, Jira) without re-logging in or triggering CAPTCHAs.
+- **Zero Runtime Dependencies**: Standalone Rust binary (`browser-control`). Starts in **< 4 ms** and idles at **~3.8 MB RAM** without Node.js or Python runtime overhead.
+- **Context Shield & Semantic Distillation**: Converts complex DOM trees into 400–1,200 token accessibility snapshots with stable monotonic handles (`[e1]`, `[e2]`). Payloads exceeding 2,500 tokens automatically spool to disk snapshots with in-band pagination.
 - **Spatial Viewport Pruning (`viewport_only=true`)**: Strips out-of-viewport elements, saving **50–70% tokens** on infinite-scroll feeds and dense enterprise portals.
 - **Atomic Form Batching (`browser_fill`)**: Fills entire multi-field forms in a single atomic invocation (`fields: [{ selector, value }]`), cutting round-trip latency by 80%.
 - **Targeted Element Discovery (`browser_search_elements`)**: Finds actionable buttons, links, or inputs by semantic label in **sub-100 tokens**.
 - **State Mutation Deltas (`format="delta"`)**: Emits only added and removed DOM nodes after an action, slashing subsequent turn token consumption.
 - **Loopback Origin Security**: Rejects unauthorized local connections by enforcing strict `Origin: chrome-extension://[a-p]{32}` verification on ports `127.0.0.1:9876–9895`.
-- **43 Tools Green**: Comprehensive toolset covering tab lifecycle, hardware-level CDP interaction, storage, cookies, network inspection, and human-in-the-loop dialogs.
+- **43 Production Tools**: Complete coverage spanning navigation, hardware-level CDP mouse/keyboard interaction, forms, cookies, and human-in-the-loop dialogs.
 
 ---
 
 ## Architecture
 
-Browser MCP separates the stdio JSON-RPC transport from browser execution using a decoupled loopback bridge:
+Browser Control separates the stdio JSON-RPC transport from browser execution using a decoupled loopback bridge:
 
 ```mermaid
 flowchart LR
@@ -47,10 +57,11 @@ flowchart LR
         Cursor["Cursor IDE"]
         Antigravity["Antigravity / Gemini"]
         ClaudeCode["Claude Code CLI"]
+        VSCode["VS Code / Windsurf"]
     end
 
     subgraph Host["Host Machine"]
-        subgraph Server["Rust MCP Server (browser-mcp)"]
+        subgraph Server["Rust MCP Server (browser-control)"]
             JSONRPC["JSON-RPC 2.0 Dispatcher"]
             FastPath["Fast-Path Ping / Init"]
             Shield["Context Shield Spooler"]
@@ -60,7 +71,7 @@ flowchart LR
     end
 
     subgraph Browser["Live Browser (Chrome / Brave)"]
-        subgraph Extension["Browser MCP Extension (MV2)"]
+        subgraph Extension["Browser Control Extension (MV2)"]
             Offscreen["WebSocket Bridge (offscreen.js)"]
             Background["Action Dispatcher (background.js)"]
         end
@@ -87,7 +98,7 @@ flowchart LR
 [ AI Assistant ]
       │  Standard I/O (JSON-RPC 2.0)
       ▼
-[ browser-mcp Native Rust Binary ]
+[ browser-control Native Rust Binary ]
    ├── Stdio reader/writer with decoupled sub-millisecond ping loop
    ├── Context Shield: Token counting & snapshot spooling (~/.browser-mcp/snapshots)
    └── Loopback WebSocket server (127.0.0.1:9876-9895, Origin verification)
@@ -107,23 +118,24 @@ flowchart LR
 
 Setup takes under two minutes. Complete steps 1 and 2, then paste the configuration into your client of choice.
 
-### 1. Install `browser-mcp`
+### 1. Install `browser-control`
 
 #### Option A: Download Pre-built Binary (Recommended)
-Download the latest executable for your OS from [GitHub Releases](https://github.com/modded-soldier-9/browser-mcp/releases), place `browser-mcp` in your system `PATH`, and run:
+Download the latest executable for your OS from [GitHub Releases](https://github.com/modded-soldier-9/browser-mcp/releases), place `browser-control` in your system `PATH`, and run:
 ```bash
-browser-mcp install
+browser-control install
 ```
+*(Note: `browser-mcp install` remains fully supported as a backward-compatible alias).*
 
 #### Option B: Build from Source (Rust 2024 / Cargo required)
 ```bash
 git clone https://github.com/modded-soldier-9/browser-mcp.git
 cd browser-mcp
 cargo build --release --manifest-path crates/browser-mcp-server/Cargo.toml
-./target/release/browser-mcp install
+./target/release/browser-control install
 ```
 
-`browser-mcp install` automatically unpacks the companion browser extension into `~/.browser-mcp/extension/`.
+`browser-control install` automatically unpacks the companion browser extension into `~/.browser-mcp/extension/`.
 
 ---
 
@@ -140,7 +152,7 @@ cargo build --release --manifest-path crates/browser-mcp-server/Cargo.toml
 
 ### 3. Client Configuration
 
-Turnkey configurations for all major clients are provided in [`examples/`](examples/README.md). Add `browser-mcp` to your client configuration:
+Turnkey configurations for all major clients are provided in [`examples/`](examples/README.md). Add `browser-control` to your client configuration:
 
 #### Claude Desktop
 Add to your `claude_desktop_config.json`:
@@ -151,8 +163,8 @@ Add to your `claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "browser-mcp": {
-      "command": "browser-mcp"
+    "browser-control": {
+      "command": "browser-control"
     }
   }
 }
@@ -164,8 +176,8 @@ Add to your project's `.cursor/mcp.json` or global Cursor settings (`~/.cursor/m
 ```json
 {
   "mcpServers": {
-    "browser-mcp": {
-      "command": "browser-mcp"
+    "browser-control": {
+      "command": "browser-control"
     }
   }
 }
@@ -177,32 +189,44 @@ Add to `~/.gemini/config/mcp_config.json`:
 ```json
 {
   "mcpServers": {
-    "browser-mcp": {
-      "command": "browser-mcp"
+    "browser-control": {
+      "command": "browser-control"
+    }
+  }
+}
+```
+
+#### VS Code
+Add to `.vscode/mcp.json` or user settings:
+
+```json
+{
+  "servers": {
+    "browser-control": {
+      "command": "browser-control"
+    }
+  }
+}
+```
+
+#### Windsurf
+Add to `~/.codeium/windsurf/mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "browser-control": {
+      "command": "browser-control"
     }
   }
 }
 ```
 
 #### Claude Code CLI
-Register Browser MCP in one command:
+Register Browser Control in one command:
 
 ```bash
-claude mcp add browser-mcp -- browser-mcp
-```
-
-#### Generic Stdio MCP Clients (VS Code, Codex, Windsurf, Zed, Cline)
-Any client supporting the Model Context Protocol stdio transport connects with:
-
-```json
-{
-  "mcpServers": {
-    "browser-mcp": {
-      "command": "browser-mcp",
-      "args": []
-    }
-  }
-}
+claude mcp add browser-control -- browser-control
 ```
 
 ---
@@ -215,7 +239,7 @@ Make sure Chrome or Brave is running with the extension loaded, then invoke `bro
 
 ## Tool Surface (43 Tools)
 
-Browser MCP exposes 43 browser automation tools categorized by functional domain:
+Browser Control exposes 43 browser automation and dev tools categorized across 7 functional domains:
 
 ### 1. Navigation & Tab Management (7 tools)
 
@@ -299,7 +323,7 @@ Browser MCP exposes 43 browser automation tools categorized by functional domain
 
 ## Security & Privacy
 
-1. **Local-Only Communication**: All communication between the `browser-mcp` binary and the browser extension occurs exclusively over local loopback (`127.0.0.1:9876–9895`). No telemetry, analytics, or third-party servers are contacted.
+1. **Local-Only Communication**: All communication between the `browser-control` binary and the browser extension occurs exclusively over local loopback (`127.0.0.1:9876–9895`). No telemetry, analytics, or external servers are contacted.
 2. **Strict Origin Enforcement**: The WebSocket server strictly validates that the connecting client's `Origin` matches `chrome-extension://[a-p]{32}`, rejecting unauthorized local processes.
 3. **Sandbox Path Validation**: File upload tools (`browser_upload_file`) enforce path confinement checks to ensure that files referenced reside inside authorized working directories.
 4. **Credential Redaction**: Network inspection tools automatically redact sensitive cookies, tokens, and authorization headers from diagnostic output.
@@ -317,7 +341,7 @@ Browser MCP exposes 43 browser automation tools categorized by functional domain
 Only one debugger can attach to a browser tab at a time. If Chrome DevTools is open on the tab being automated, close the DevTools panel or use a separate tab.
 
 ### Inspect Connection Status
-Click the **Browser MCP** extension icon in your browser toolbar to view the live WebSocket connection status, active port, and connected client information.
+Click the **Browser Control** extension icon in your browser toolbar to view the live WebSocket connection status, active port, and connected client information.
 
 ---
 
