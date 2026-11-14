@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 use std::sync::Arc;
-use browser_mcp_server::bridge::Bridge;
-use browser_mcp_server::protocol::{CallToolResult, ImageContent, JsonRpcError, JsonRpcResponse, TextContent, ToolContent};
-use browser_mcp_server::tools::{get_tools_list, normalize_tool_name, METHOD_MAP};
+use browser_control_server::bridge::Bridge;
+use browser_control_server::protocol::{CallToolResult, ImageContent, JsonRpcError, JsonRpcResponse, TextContent, ToolContent};
+use browser_control_server::tools::{get_tools_list, normalize_tool_name, METHOD_MAP};
 use futures_util::{SinkExt, StreamExt};
 use serde_json::{json, Value};
 use tokio_tungstenite::connect_async;
@@ -191,10 +191,10 @@ async fn test_all_tools_bridge_dispatch_and_framing() {
     // Verify all 43 tools dispatch and return valid response framing
     for tool_name in METHOD_MAP.keys() {
         let method = METHOD_MAP.get(tool_name).unwrap();
-        if browser_mcp_server::tools::is_local_tool(method) {
+        if browser_control_server::tools::is_local_tool(method) {
             // Local tool test
             let (active_port, clients, profiles) = bridge.get_status().await;
-            let res = browser_mcp_server::tools::handle_local_tool(method, &json!({ "feedback": "test" }), active_port, clients, profiles).await;
+            let res = browser_control_server::tools::handle_local_tool(method, &json!({ "feedback": "test" }), active_port, clients, profiles).await;
             assert!(res.is_ok(), "Local tool {} should succeed", method);
         } else {
             // Remote tool test via bridge

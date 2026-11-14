@@ -1,10 +1,10 @@
 {
-  "name": "browser-mcp",
+  "name": "browser-control",
   "version": "1.0.0",
-  "description": "Any MCP client drives the browser you are already signed into, without approving every session. Browser MCP extension plus a local server. 43 tools, 20 sessions, MIT.",
+  "description": "Any MCP client drives the browser you are already signed into, without approving every session. Browser Control extension plus a local server. 43 tools, 20 sessions, MIT.",
   "mcpServers": {
-    "browser-mcp": {
-      "command": "browser-mcp",
+    "browser-control": {
+      "command": "browser-control",
       "args": []
     }
   }

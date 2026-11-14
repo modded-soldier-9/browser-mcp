@@ -95,9 +95,9 @@ pub async fn handle_local_tool(
 ) -> Result<Value, String> {
     match method {
         "about" => Ok(json!({
-            "name": "browser-mcp",
+            "name": "browser-control",
             "version": env!("CARGO_PKG_VERSION"),
-            "description": "Native standalone Rust MCP server driving Brave and Chrome",
+            "description": "Browser Control — Native standalone Rust MCP server driving Brave and Chrome",
             "runtime": "rust",
             "os": std::env::consts::OS,
             "arch": std::env::consts::ARCH,
@@ -119,7 +119,7 @@ pub async fn handle_local_tool(
             let home = std::env::var("USERPROFILE")
                 .or_else(|_| std::env::var("HOME"))
                 .unwrap_or_else(|_| ".".to_string());
-            let dir = PathBuf::from(home).join(".browser-mcp");
+            let dir = PathBuf::from(home).join(".browser-control");
             let _ = std::fs::create_dir_all(&dir);
             let log_file = dir.join("feedback.log");
 

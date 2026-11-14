@@ -304,10 +304,13 @@ impl Bridge {
         let id = self.cmd_id.fetch_add(1, Ordering::SeqCst);
 
         let parent_pid = std::process::id();
-        let session_id = std::env::var("BROWSER_MCP_SESSION_ID")
+        let session_id = std::env::var("BROWSER_CONTROL_SESSION_ID")
+            .or_else(|_| std::env::var("BROWSER_MCP_SESSION_ID"))
             .or_else(|_| std::env::var("JEIKCODE_SESSION_ID"))
-            .unwrap_or_else(|_| "browser-mcp".to_string());
-        let agent = std::env::var("BROWSER_MCP_AGENT").unwrap_or_else(|_| "browser-mcp".to_string());
+            .unwrap_or_else(|_| "browser-control".to_string());
+        let agent = std::env::var("BROWSER_CONTROL_AGENT")
+            .or_else(|_| std::env::var("BROWSER_MCP_AGENT"))
+            .unwrap_or_else(|_| "browser-control".to_string());
 
         let cmd_payload = json!({
             "id": id,

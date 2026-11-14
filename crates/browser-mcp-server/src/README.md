@@ -1,4 +1,4 @@
-# Browser MCP Server Source (`src`)
+# Browser Control Server Source (`src`)
 
 ## Overview
 Core implementation of the native Rust Model Context Protocol (MCP) server for browser automation. It connects LLM agent clients over stdio or persistent WebSocket bridge servers to local Chrome and Brave browser extensions, dispatching browser commands, validating security boundaries, and managing process lifecycles.

@@ -1,10 +1,10 @@
-# Browser MCP Developer Guide
+# Browser Control Developer Guide
 
 Standalone native Rust browser automation bridge for AI coding assistants (Claude Code, Cursor, Antigravity, OpenCode).
 
 ## Core Architecture
 
-- `crates/browser-mcp-server/`: Compiled native Rust server (`browser-mcp` / `browser-mcp.exe`).
+- `crates/browser-mcp-server/`: Compiled native Rust server (`browser-control` / `browser-control.exe`).
   - Stdio JSON-RPC 2.0 interface with asynchronous reader/writer tasks.
   - Immediate MCP `ping` fast-path handling.
   - Loopback WebSocket bridge on `127.0.0.1` (ports 9876–9895) with `Origin: chrome-extension://[a-p]{32}` verification.

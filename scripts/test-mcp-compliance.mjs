@@ -4,7 +4,9 @@ import { join } from 'node:path';
 import { existsSync } from 'node:fs';
 
 const rootDir = fileURLToPath(new URL('..', import.meta.url));
-const binName = process.platform === 'win32' ? 'browser-mcp.exe' : 'browser-mcp';
+const binName = process.platform === 'win32'
+  ? (existsSync(join(rootDir, 'target', 'release', 'browser-control.exe')) ? 'browser-control.exe' : 'browser-mcp.exe')
+  : (existsSync(join(rootDir, 'target', 'release', 'browser-control')) ? 'browser-control' : 'browser-mcp');
 const binPath = join(rootDir, 'target', 'release', binName);
 
 if (!existsSync(binPath)) {
@@ -144,7 +146,7 @@ async function runComplianceEvaluation() {
       initRes.result?.protocolVersion === '2024-11-05'
     );
     check('endpoints', 'initialize serverInfo contains name and version',
-      initRes.result?.serverInfo?.name === 'browser-mcp' && typeof initRes.result?.serverInfo?.version === 'string'
+      (initRes.result?.serverInfo?.name === 'browser-control' || initRes.result?.serverInfo?.name === 'browser-mcp') && typeof initRes.result?.serverInfo?.version === 'string'
     );
     check('endpoints', 'initialize capabilities advertises tools capability',
       typeof initRes.result?.capabilities?.tools === 'object'

@@ -1,8 +1,8 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "browser-mcp",
-  "title": "Browser MCP",
-  "description": "Drive your real, logged-in browser from any AI agent - 43 tools. Needs Browser MCP extension.",
+  "name": "browser-control",
+  "title": "Browser Control",
+  "description": "Drive your real, logged-in browser from any AI agent - 43 tools. Needs Browser Control extension.",
   "websiteUrl": "https://github.com/modded-soldier-9/browser-mcp",
   "repository": {
     "url": "https://github.com/modded-soldier-9/browser-mcp",
@@ -13,7 +13,7 @@
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
-      "identifier": "browser-mcp",
+      "identifier": "browser-control",
       "version": "1.0.0",
       "transport": {
         "type": "stdio"

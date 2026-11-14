@@ -1,7 +1,7 @@
 {
   "mcpServers": {
-    "browser-mcp": {
-      "command": "C:/Users/modded/Documents/GitHub/browser-mcp/bin/browser-mcp.exe",
+    "browser-control": {
+      "command": "C:/Users/modded/Documents/GitHub/browser-mcp/bin/browser-control.exe",
       "args": [],
       "timeout_ms": 30000,
       "maxConcurrentCalls": 1,

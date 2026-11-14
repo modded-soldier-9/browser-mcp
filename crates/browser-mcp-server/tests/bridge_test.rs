@@ -1,6 +1,6 @@
-use browser_mcp_server::bridge::Bridge;
-use browser_mcp_server::protocol::{JsonRpcRequest, JsonRpcResponse};
-use browser_mcp_server::tools::{get_tools_list, handle_local_tool, is_local_tool, normalize_tool_name};
+use browser_control_server::bridge::Bridge;
+use browser_control_server::protocol::{JsonRpcRequest, JsonRpcResponse};
+use browser_control_server::tools::{get_tools_list, handle_local_tool, is_local_tool, normalize_tool_name};
 use serde_json::json;
 
 #[tokio::test]
@@ -37,7 +37,7 @@ async fn test_local_tool_about_execution() {
     let res = handle_local_tool("about", &json!({}), Some(9876), 1, vec!["default".to_string()]).await;
     assert!(res.is_ok());
     let val = res.unwrap();
-    assert_eq!(val["name"], "browser-mcp");
+    assert_eq!(val["name"], "browser-control");
     assert_eq!(val["version"], env!("CARGO_PKG_VERSION"));
     assert_eq!(val["runtime"], "rust");
     assert_eq!(val["port"], 9876);
