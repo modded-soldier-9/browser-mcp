@@ -263,12 +263,12 @@ def head(title, desc, url):
     can='https://browsermcp.dev'+url+'/'
     t=html.escape(title); d=html.escape(desc)
     h=['<meta charset="utf-8">','<meta name="viewport" content="width=device-width,initial-scale=1">',
-      (('<title>%s</title>'%html.escape(TITLE_TAG[url])) if url in TITLE_TAG else ('<title>%s &middot; Browser MCP</title>'%t)),
+      (('<title>%s</title>'%html.escape(TITLE_TAG[url])) if url in TITLE_TAG else ('<title>%s &middot; Browser Control</title>'%t)),
       '<meta name="description" content="%s">'%d,
       '<link rel="canonical" href="%s">'%can,
       *(['<meta name="robots" content="noindex,follow">'] if url in NOINDEX else []),
       '<link rel="icon" type="image/svg+xml" href="/logo.svg"><link rel="icon" type="image/x-icon" href="/favicon.ico">',
-      '<meta property="og:type" content="article"><meta property="og:site_name" content="Browser MCP">',
+      '<meta property="og:type" content="article"><meta property="og:site_name" content="Browser Control">',
       '<meta property="og:title" content="%s">'%t,'<meta property="og:description" content="%s">'%d,
       '<meta property="og:url" content="%s">'%can,
       '<meta property="og:image" content="%s"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">'%OG,
@@ -336,7 +336,7 @@ def jsonld(title, desc, url, section, faq, datoer=None):
     _ta.update({
         "author":{"@type":"Person","name":"Mohamed Elsheikh","url":"https://github.com/modded-soldier-9/browser-mcp"},
         "publisher":{"@type":"Person","name":"Mohamed Elsheikh","url":"https://github.com/modded-soldier-9/browser-mcp"},
-        "about":{"@type":"SoftwareApplication","name":"Browser MCP","applicationCategory":"DeveloperApplication",
+        "about":{"@type":"SoftwareApplication","name":"Browser Control","applicationCategory":"DeveloperApplication",
             "operatingSystem":"Chrome","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}})
     blocks.append(_ta)
     # FAQPage
@@ -362,7 +362,7 @@ for fn,grp,label,url in LIVE:
     title=title_of(lines); desc=meta_desc(lines, SOURCES[url]); faq=extract_faq(lines); nfaq+=1 if faq else 0
     body=md_to_html(lines)
     page='<!doctype html><html lang="en"><head>\n'+head(title,desc,url)+'\n'+jsonld(title,desc,url,grp,faq,git_datoer(fn))+'\n</head><body>'
-    page+='<div class="top"><div class="top-in"><a class="logo" href="/" style="color:inherit"><img src="/logo.svg" alt="Browser MCP" width="24" height="24" style="border-radius:9999px;vertical-align:middle;display:inline-block"> Browser MCP</a><a class="star" href="https://github.com/modded-soldier-9/browser-mcp" style="color:inherit;text-decoration:none">GitHub &#8599;</a></div></div>'
+    page+='<div class="top"><div class="top-in"><a class="logo" href="/" style="color:inherit"><img src="/logo.svg" alt="Browser Control" width="24" height="24" style="border-radius:9999px;vertical-align:middle;display:inline-block"> Browser Control</a><div class="top-links"><a href="/#tools">Tools</a><a href="/#install">Setup</a><a href="/#architecture">Architecture</a><a href="/#demos">Demos</a><a href="/docs/what-is-browser-mcp/">Docs</a></div><a class="star" href="https://github.com/modded-soldier-9/browser-mcp" style="color:inherit;text-decoration:none">GitHub &#8599;</a></div></div>'
     page+='<div class="shell"><nav class="side">'+sidebar(url)+'</nav><main class="content">'+body+related(url)+'</main></div>'
     page+='<script src="/assets/docs.js"></script></body></html>'
     disk=REPO+url.strip('/')+'/index.html'
