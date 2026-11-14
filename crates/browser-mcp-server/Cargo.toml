@@ -5,7 +5,6 @@ edition = "2024"
 description = "Browser Control - Native Rust MCP server driving Brave and Chrome."
 authors = ["Mohamed Elsheikh <moddedsoldier@gmail.com>"]
 repository = "https://github.com/modded-soldier-9/browser-mcp"
-homepage = "https://github.com/modded-soldier-9/browser-mcp"
 license = "MIT"
 
 [lib]

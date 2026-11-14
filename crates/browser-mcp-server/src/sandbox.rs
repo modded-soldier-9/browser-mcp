@@ -65,11 +65,15 @@ pub fn strip_verbatim_prefix(path: &Path) -> PathBuf {
 }
 
 pub fn path_starts_with(path: &Path, base: &Path) -> bool {
-    if path.starts_with(base) {
-        return true;
+    #[cfg(not(windows))]
+    {
+        path.starts_with(base)
     }
     #[cfg(windows)]
     {
+        if path.starts_with(base) {
+            return true;
+        }
         let path_comps: Vec<_> = path.components().collect();
         let base_comps: Vec<_> = base.components().collect();
         if path_comps.len() < base_comps.len() {
@@ -95,10 +99,6 @@ pub fn path_starts_with(path: &Path, base: &Path) -> bool {
             }
         }
         true
-    }
-    #[cfg(not(windows))]
-    {
-        false
     }
 }
 

@@ -367,7 +367,7 @@ for fn,grp,label,url in LIVE:
     page+='<script src="/assets/docs.js"></script></body></html>'
     disk=REPO+url.strip('/')+'/index.html'
     os.makedirs(os.path.dirname(disk),exist_ok=True)
-    open(disk,'w', encoding='utf-8').write(page)
+    open(disk, 'w', encoding='utf-8', newline='\n').write(page)
     print('  %-32s desc=%dch faq=%d' % (url, len(desc), len(faq)))
 # MAALT 11/9 (SEO-teamet, curl 404): llms-install.md - installationsvejledningen som AI-assistenter laeser - laa i
 # repo-roden og blev aldrig lagt paa sitet. Den kopieres nu hertil ved hver genbygning, saa roden er eneste kilde,
@@ -415,11 +415,11 @@ for _fn, _grp, _label, _url in LIVE:
     _sm.append('  <url><loc>https://browsermcp.dev%s/</loc><lastmod>%s</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>'
                % (_url, git_datoer(_fn)[1]))
 _sm.append('</urlset>')
-open(REPO + 'sitemap.xml', 'w', encoding='utf-8').write('\n'.join(_sm) + '\n')
+open(REPO + 'sitemap.xml', 'w', encoding='utf-8', newline='\n').write('\n'.join(_sm) + '\n')
 print('  sitemap.xml: %d adresser, lastmod fra sidste commit (%d noindex holdt ude)'
       % (len(FASTE_URLS) + len(LIVE) - len(NOINDEX), len(NOINDEX)))
 
 _llms_kilde = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'llms-install.md')
-open(REPO + 'llms-install.md', 'w', encoding='utf-8').write(open(_llms_kilde, encoding='utf-8').read())
+open(REPO + 'llms-install.md', 'w', encoding='utf-8', newline='\n').write(open(_llms_kilde, encoding='utf-8').read())
 print('Regenerated %d pages · FAQPage schema on %d' % (len(LIVE), nfaq))
 
