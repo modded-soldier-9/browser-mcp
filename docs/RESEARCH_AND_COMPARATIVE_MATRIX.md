@@ -1,9 +1,8 @@
 # Browser Control: Research, Comparative Matrix & Architectural Blueprint
 
 > **Lead Browser Automation & Dev-Tools Research Deliverable**  
-> Prepared for: `@architect`, `@coordinator`, `@webdev`, and `@rebrander`  
 > Repository: `browser-control` (formerly `browser-mcp`)  
-> Author: Mohamed Elsheikh (@modded-soldier-9) & Swarm Research Team  
+> Author: Mohamed Elsheikh (@modded-soldier-9, moddedsoldier@gmail.com)  
 > Date: November 2026
 
 ---
@@ -281,20 +280,20 @@ The Browser Control tool suite is organized into 8 functional domains:
 
 ---
 
-## 7. Actionable Implementation Recommendations for the Swarm
+## 7. Actionable Implementation & Roadmap Guidelines
 
-1. **For `@architect`**:
+1. **Architecture Alignment**:
    - Reference Section 5's taxonomy when finalizing `ARCHITECTURE.md`.
    - Maintain the strict 43-tool schema parity across `tools_schema.json`, `METHOD_MAP` in `tools.rs`, and the `background.js` switch statement.
    - Plan the v1.1 developer tools expansion (`browser_network_requests`, `browser_get_response_body`, source-map resolution) as structured additions to the existing ring-buffer infrastructure.
-2. **For `@rebrander`**:
-   - Rename crates, manifest titles, and descriptions from `browser-mcp` to `Browser Control`.
-   - Maintain attribution strictly to **Mohamed Elsheikh (`@modded-soldier-9`)**.
+2. **Branding & Attribution**:
+   - Maintain naming across crates, manifest titles, and descriptions as `Browser Control`.
+   - Maintain attribution strictly to **Mohamed Elsheikh (`@modded-soldier-9`, `moddedsoldier@gmail.com`)**.
    - Keep tool names normalized (`browser_*` mapping to methods without prefix) to prevent breaking existing client configurations.
-3. **For `@webdev`**:
+3. **Portal & Documentation**:
    - Build the interactive tool directory on the website using the 8 functional domains outlined in Section 5.1.
    - Highlight the comparative advantages from Section 2 (Native Rust speed, Live Browser Auth, Context Shield token savings).
    - Provide copy-paste MCP configuration snippets for Claude Desktop, Cursor, Antigravity, and Claude Code.
-4. **For `@verifier`**:
+4. **Verification & Quality Gates**:
    - Enforce parity checks via `python scripts/verify_parity.py` and `python scripts/check-docs.py`.
    - Ensure all 43 tools maintain 100% agreement between Rust `METHOD_MAP`, `tools_schema.json`, and `extension/background.js`.
