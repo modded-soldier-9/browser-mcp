@@ -5,3 +5,7 @@ High-performance native Rust Model Context Protocol (MCP) server package for Bro
 
 ## Subdirectories & Boundaries
 - [src](./src/README.md): Core Rust implementation containing MCP protocol handlers, WebSocket extension bridge, sandbox validation, tool definitions, and process watchdog.
+
+## Author & Maintainer
+Mohamed Elsheikh ([@modded-soldier-9](https://github.com/modded-soldier-9), moddedsoldier@gmail.com)
+

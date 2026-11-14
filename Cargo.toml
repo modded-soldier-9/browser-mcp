@@ -4,6 +4,12 @@ members = [
 ]
 resolver = "2"
 
+[workspace.package]
+authors = ["Mohamed Elsheikh <moddedsoldier@gmail.com>"]
+license = "MIT"
+repository = "https://github.com/modded-soldier-9/browser-mcp"
+homepage = "https://github.com/modded-soldier-9/browser-mcp"
+
 [profile.release]
 opt-level = 3
 lto = true

@@ -35,3 +35,7 @@ Manifest V2 persistent browser extension connecting AI coding agents directly to
 
 ## Verification
 - Run: `node scripts/build-extension.mjs`
+
+## Author & Maintainer
+Mohamed Elsheikh ([@modded-soldier-9](https://github.com/modded-soldier-9), moddedsoldier@gmail.com)
+

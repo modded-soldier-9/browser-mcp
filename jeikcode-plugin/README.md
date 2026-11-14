@@ -35,3 +35,10 @@ browser-control/
 jeikcode plugin install browser-control
 ```
 Or place directly in `~/.jeikcode/plugins/browser-control` and run `/reload`.
+
+---
+
+## Author & Maintainer
+
+Mohamed Elsheikh ([@modded-soldier-9](https://github.com/modded-soldier-9), moddedsoldier@gmail.com)
+
