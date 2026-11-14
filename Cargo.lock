@@ -77,7 +77,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "browser-mcp-server"
+name = "browser-control-server"
 version = "1.0.0"
 dependencies = [
  "clap",

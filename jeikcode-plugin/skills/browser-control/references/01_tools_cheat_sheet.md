@@ -1,6 +1,6 @@
-﻿# 01 — Browser MCP Tool Catalog & Schemas
+﻿# 01 — Browser Control Tool Catalog & Schemas
 
-Browser MCP exposes 40 focused tools across 4 main functional domains:
+Browser Control exposes 43 focused tools across the functional domains:
 
 ---
 

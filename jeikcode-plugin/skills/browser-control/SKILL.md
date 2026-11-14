@@ -1,12 +1,12 @@
 ---
-name: browser-mcp
-description: Native browser automation for JeikCode driving real Brave and Chrome sessions. 43 tools covering navigation, focused DOM reading, real CDP mouse/keyboard interaction, styled toggle clicking, top-level await script execution, visual QA screenshots, CAPTCHA solving, and 2FA user interaction. Follows token-preservation and session-isolation principles. Use when interacting with live web applications, testing UIs, filling forms, extracting data behind logins, or automating real browser tasks.
+name: browser-control
+description: Native Browser Control for JeikCode driving real Brave and Chrome sessions. 43 tools covering navigation, focused DOM reading, real CDP mouse/keyboard interaction, styled toggle clicking, top-level await script execution, visual QA screenshots, CAPTCHA solving, and 2FA user interaction. Follows token-preservation and session-isolation principles. Use when interacting with live web applications, testing UIs, filling forms, extracting data behind logins, or automating real browser tasks.
 metadata:
   author: Mohamed Elsheikh (@modded-soldier-9, moddedsoldier@gmail.com)
   version: 1.0.0
 ---
 
-# Browser MCP — Native JeikCode Browser Automation
+# Browser Control — Native JeikCode Browser Automation
 
 Direct, persistent, and token-efficient AI agent bridge connecting JeikCode directly to your real Brave or Chrome browser session.
 

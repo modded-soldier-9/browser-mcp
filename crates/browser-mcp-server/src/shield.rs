@@ -15,7 +15,12 @@ pub struct ContextShield {
 impl ContextShield {
     pub fn new() -> Self {
         let base = dirs_home().unwrap_or_else(|| PathBuf::from("."));
-        let snapshots_dir = base.join(".browser-mcp").join("snapshots");
+        let control_dir = base.join(".browser-control").join("snapshots");
+        let snapshots_dir = if base.join(".browser-control").exists() || !base.join(".browser-mcp").exists() {
+            control_dir
+        } else {
+            base.join(".browser-mcp").join("snapshots")
+        };
         Self { snapshots_dir }
     }
 

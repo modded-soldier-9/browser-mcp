@@ -16,18 +16,18 @@ In Chromium, extensions control tabs via Chrome DevTools Protocol (`chrome.debug
    - **Fix**: Open a fresh tab via `browser_navigate(url, new_tab=true)` or restart the browser.
 2. **Anti-Automation SPA Eviction**:
    - SPAs like Apple App Store Connect, Salesforce, or Sentry detect active DevTools attachments and invoke `debugger` statements or detach events.
-   - **Fix**: Browser MCP incorporates 4 automatic backoff retries (100ms, 300ms, 500ms) with `debuggerAttach()` auto-healing. If detached, call `browser_reattach_debugger()`.
+   - **Fix**: Browser Control incorporates 4 automatic backoff retries (100ms, 300ms, 500ms) with `debuggerAttach()` auto-healing. If detached, call `browser_reattach_debugger()`.
 3. **Tab Closed by User**:
-   - If a tab is closed manually in Brave, Browser MCP marks the tab as closed and auto-cleans the session reference without terminating the bridge.
+   - If a tab is closed manually in Brave, Browser Control marks the tab as closed and auto-cleans the session reference without terminating the bridge.
 
 ---
 
 ## 2. Port Pool & Standby Daemon
 
-- Browser MCP dynamically scans and binds to ports **9876 through 9895**.
+- Browser Control dynamically scans and binds to ports **9876 through 9895**.
 - If port `9876` is in use by another session or client (e.g. OpenCode or Cursor), the server automatically claims `9877`, `9878`, etc.
 - The Brave extension probes all 20 ports every 2 seconds and connects immediately to any active bridge.
-- **Standby Mode**: Running `npx browser-mcp serve` (or the persistent background process) keeps port `9876` warm indefinitely so extension connections never drop during agent pauses.
+- **Standby Mode**: Running `browser-control --serve` (or the persistent background process) keeps port `9876` warm indefinitely so extension connections never drop during agent pauses.
 
 ---
 

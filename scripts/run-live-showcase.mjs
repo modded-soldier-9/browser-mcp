@@ -8,8 +8,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = join(__dirname, '..');
 const htmlPath = join(rootDir, 'assets', 'showcase-app.html');
 const rustExe = process.platform === 'win32'
-  ? join(rootDir, 'bin', 'browser-mcp.exe')
-  : join(rootDir, 'bin', 'browser-mcp');
+  ? (existsSync(join(rootDir, 'bin', 'browser-control.exe')) ? join(rootDir, 'bin', 'browser-control.exe') : join(rootDir, 'bin', 'browser-mcp.exe'))
+  : (existsSync(join(rootDir, 'bin', 'browser-control')) ? join(rootDir, 'bin', 'browser-control') : join(rootDir, 'bin', 'browser-mcp'));
 const screenshotPath = join(rootDir, 'assets', 'showcase-proof.png');
 
 console.log('===============================================================');

@@ -22,7 +22,7 @@ use shield::ContextShield;
 use tools::{get_tools_list, normalize_tool_name, METHOD_MAP};
 
 #[derive(Parser, Debug)]
-#[command(name = "browser-mcp", version = env!("CARGO_PKG_VERSION"), about = "Native Browser MCP Server driving Brave and Chrome")]
+#[command(name = "browser-control", version = env!("CARGO_PKG_VERSION"), about = "Native Browser Control Server driving Brave and Chrome")]
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
@@ -56,7 +56,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let strip_prefix = std::env::var("BROWSER_MCP_STRIP_TOOL_PREFIX").map(|v| v == "1").unwrap_or(false);
 
     if cli.serve || matches!(cli.command, Some(Commands::Serve)) {
-        eprintln!("[Browser MCP] Running persistent bridge server on ws://127.0.0.1:9876...");
+        eprintln!("[Browser Control] Running persistent bridge server on ws://127.0.0.1:9876...");
         let _ = bridge.ensure_port().await;
         tokio::signal::ctrl_c().await?;
         return Ok(());
@@ -196,7 +196,7 @@ async fn handle_request(
 
     match req.method.as_str() {
         "initialize" => {
-            let instructions = "You control the user's real Chrome/Brave browser via this native Rust MCP server. Each session gets its own color-coded tab group.";
+            let instructions = "You control the user's real Chrome/Brave browser via this native Rust Browser Control server. Each session gets its own color-coded tab group.";
             Some(JsonRpcResponse {
                 jsonrpc: "2.0".to_string(),
                 id,
@@ -204,7 +204,7 @@ async fn handle_request(
                     "protocolVersion": "2024-11-05",
                     "capabilities": { "tools": {} },
                     "serverInfo": {
-                        "name": "browser-mcp",
+                        "name": "browser-control",
                         "version": env!("CARGO_PKG_VERSION")
                     },
                     "instructions": instructions
