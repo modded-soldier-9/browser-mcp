@@ -3,34 +3,51 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Browser Control</title>
   <style>
     :root {
-      --bg: #090d15;
-      --card: #111724;
-      --card-border: #1f2a3d;
-      --card-hover: #162032;
+      --bg: #080c15;
+      --card: #0f172a;
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-hover: #152238;
       --text-main: #f8fafc;
       --text-muted: #cbd5e1;
-      --text-dim: #94a3b8;
+      --text-dim: #9bb0c9;
       --accent: #38bdf8;
       --accent-soft: rgba(56, 189, 248, 0.12);
       --green: #34d399;
+      --green-soft: rgba(52, 211, 153, 0.12);
       --amber: #fbbf24;
+      --amber-soft: rgba(251, 191, 36, 0.12);
       --red: #f87171;
-      --radius: 16px;
-      --radius-sm: 12px;
+      --red-soft: rgba(248, 113, 113, 0.12);
+      --radius: 14px;
+      --radius-sm: 10px;
       --radius-pill: 9999px;
+      --shadow-sm: 0 2px 8px -1px rgba(0, 0, 0, 0.4);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Helvetica, Arial, sans-serif;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    
     body {
-      width: 348px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      width: 356px;
+      font-family: var(--sans);
       background: var(--bg);
+      background-image: radial-gradient(120% 80% at 50% 0%, #10192e 0%, #080c15 100%);
       color: var(--text-main);
       padding: 16px;
       user-select: none;
       -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      line-height: 1.5;
+    }
+
+    /* Accessibility focus indicators */
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
     }
 
     /* Calm Rounded Header */
@@ -39,7 +56,7 @@
       align-items: center;
       justify-content: space-between;
       margin-bottom: 14px;
-      padding-bottom: 6px;
+      padding-bottom: 4px;
     }
     .brand {
       display: flex;
@@ -47,46 +64,52 @@
       gap: 10px;
     }
     .brand-icon {
-      width: 24px;
-      height: 24px;
+      width: 26px;
+      height: 26px;
       border-radius: var(--radius-pill);
       display: block;
       background: var(--card);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
     }
     h1 {
-      font-size: 14px;
-      font-weight: 600;
-      letter-spacing: -0.01em;
+      font-size: 14.5px;
+      font-weight: 700;
+      letter-spacing: -0.015em;
       color: var(--text-main);
     }
     .version-tag {
-      font-size: 11.5px;
-      font-weight: 600;
-      color: var(--text-muted);
-      background: #162032;
-      padding: 3px 9px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: var(--mono);
+      color: var(--text-dim);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      padding: 2px 8px;
       border-radius: var(--radius-pill);
+      letter-spacing: 0.02em;
     }
 
     /* Calm Status Card */
     .status-card {
       background: var(--card);
+      border: 1px solid var(--card-border);
       border-radius: var(--radius);
       padding: 12px 14px;
       margin-bottom: 12px;
+      box-shadow: var(--shadow-sm);
     }
     .status {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
     }
     .dot-wrapper {
       position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 16px;
-      height: 16px;
+      width: 18px;
+      height: 18px;
       border-radius: var(--radius-pill);
       background: rgba(255, 255, 255, 0.04);
       flex-shrink: 0;
@@ -96,40 +119,68 @@
       height: 8px;
       border-radius: var(--radius-pill);
       flex-shrink: 0;
-      transition: background 0.2s ease;
+      transition: background 0.2s ease, box-shadow 0.2s ease;
     }
     .dot.on {
       background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      animation: pulseGlowGreen 2.5s infinite ease-out;
     }
     .dot.off {
       background: var(--red);
+      box-shadow: 0 0 6px rgba(248, 113, 113, 0.6);
     }
     .dot.scanning {
       background: var(--amber);
+      box-shadow: 0 0 8px var(--amber);
+      animation: pulseGlowAmber 1.2s infinite ease-in-out;
     }
+
+    @keyframes pulseGlowGreen {
+      0% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6); }
+      70% { box-shadow: 0 0 0 7px rgba(52, 211, 153, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+    }
+    @keyframes pulseGlowAmber {
+      0% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.6); }
+      70% { box-shadow: 0 0 0 7px rgba(251, 191, 36, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); }
+    }
+
     .status-text {
       flex: 1;
       display: flex;
       flex-direction: column;
       gap: 2px;
+      min-width: 0;
     }
     .label {
       font-size: 13px;
-      font-weight: 600;
+      font-weight: 650;
       color: var(--text-main);
       line-height: 1.3;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .sublabel {
-      font-size: 12px;
+      font-size: 11.5px;
       color: var(--text-dim);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .port-pill {
-      font-size: 11.5px;
+      font-size: 11px;
+      font-family: var(--mono);
       color: var(--accent);
-      background: #162032;
+      background: var(--accent-soft);
+      border: 1px solid rgba(56, 189, 248, 0.25);
       border-radius: var(--radius-pill);
-      padding: 2px 8px;
-      font-weight: 600;
+      padding: 3px 9px;
+      font-weight: 700;
+      flex-shrink: 0;
     }
 
     /* Calm Profile Selector Card */
@@ -137,47 +188,55 @@
       background: var(--card);
       border: 1px solid var(--card-border);
       border-radius: var(--radius);
-      padding: 9px 12px;
+      padding: 8px 12px;
       margin-bottom: 12px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 8px;
+      box-shadow: var(--shadow-sm);
     }
     .profile-label {
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 650;
       color: var(--text-muted);
+      flex-shrink: 0;
     }
     .profile-input {
       flex: 1;
-      background: #090d15;
+      background: rgba(8, 12, 21, 0.8);
       border: 1px solid var(--card-border);
       border-radius: var(--radius-pill);
-      padding: 6px 12px;
+      padding: 5px 12px;
       color: var(--text-main);
       font-size: 12px;
+      font-family: var(--mono);
       outline: none;
-      font-family: inherit;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
     .profile-input:focus {
-      border-color: #38bdf8;
+      border-color: var(--accent);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
     }
     .profile-btn {
       flex: none;
-      padding: 6px 14px;
+      padding: 5px 14px;
       font-size: 11.5px;
       font-weight: 600;
-      background: #162032;
+      background: rgba(255, 255, 255, 0.05);
       color: var(--text-main);
       border: 1px solid var(--card-border);
       border-radius: var(--radius-pill);
       cursor: pointer;
-      transition: background 0.15s ease, border-color 0.15s ease;
+      transition: all 0.15s ease;
     }
     .profile-btn:hover {
-      background: #1f2a3d;
-      border-color: #38bdf8;
+      background: rgba(56, 189, 248, 0.12);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .profile-btn:active {
+      transform: scale(0.97);
     }
 
     /* Section Headers */
@@ -188,33 +247,39 @@
       margin: 14px 0 8px;
     }
     .section-title {
-      font-size: 12px;
-      color: var(--text-muted);
-      font-weight: 600;
+      font-size: 11.5px;
+      color: var(--text-dim);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
     }
     .badge-count {
-      font-size: 11.5px;
-      background: #162032;
+      font-size: 11px;
+      font-family: var(--mono);
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--card-border);
       color: var(--text-muted);
-      padding: 2px 8px;
+      padding: 1px 7px;
       border-radius: var(--radius-pill);
-      font-weight: 600;
+      font-weight: 650;
     }
 
     /* Setup Banner */
     .setup {
       display: none;
       background: var(--card);
+      border: 1px solid var(--card-border);
       border-left: 3px solid var(--accent);
       border-radius: var(--radius);
-      padding: 12px;
+      padding: 13px;
       margin-bottom: 12px;
-      animation: fadeIn 0.15s ease-out;
+      animation: fadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: var(--shadow-sm);
     }
     .setup.show { display: block; }
     .setup p {
       font-size: 12px;
-      line-height: 1.45;
+      line-height: 1.5;
       color: var(--text-muted);
       margin-bottom: 7px;
     }
@@ -225,15 +290,15 @@
     }
     .setup code {
       display: block;
-      background: #090d15;
+      background: #060911;
       border: 1px solid var(--card-border);
       border-radius: var(--radius-sm);
       padding: 8px 10px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-family: var(--mono);
       font-size: 11.5px;
-      color: #38bdf8;
+      color: var(--accent);
       word-break: break-all;
-      line-height: 1.4;
+      line-height: 1.45;
     }
     .setup p.clients {
       font-size: 11.5px;
@@ -245,33 +310,38 @@
       padding: 1px 5px;
       margin: 0;
       font-size: 11px;
-      background: #162032;
+      background: rgba(255, 255, 255, 0.05);
       color: var(--text-muted);
       border-radius: 4px;
+      border: 1px solid var(--card-border);
     }
     .setup .row {
       display: flex;
-      gap: 7px;
-      margin-top: 8px;
+      gap: 8px;
+      margin-top: 10px;
     }
     .setup .row button, .setup .row a {
       flex: 1;
       margin: 0;
       padding: 7px 11px;
       border-radius: var(--radius-pill);
-      background: #162032;
+      background: rgba(255, 255, 255, 0.05);
       color: var(--text-main);
       font-size: 11.5px;
-      font-weight: 500;
+      font-weight: 600;
       text-align: center;
       text-decoration: none;
       border: 1px solid var(--card-border);
       cursor: pointer;
-      transition: background 0.15s ease, border-color 0.15s ease;
+      transition: all 0.15s ease;
     }
     .setup .row button:hover, .setup .row a:hover {
-      background: #1f2a3d;
-      border-color: #38bdf8;
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .setup .row button:active, .setup .row a:active {
+      transform: scale(0.97);
     }
 
     /* Try Banner */
@@ -281,21 +351,22 @@
       border: 1px solid var(--card-border);
       border-left: 3px solid var(--green);
       border-radius: var(--radius);
-      padding: 12px;
+      padding: 13px;
       margin-bottom: 12px;
-      animation: fadeIn 0.15s ease-out;
+      animation: fadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: var(--shadow-sm);
     }
     .try.show { display: block; }
     .try p {
       font-size: 12px;
-      line-height: 1.45;
+      line-height: 1.5;
       color: var(--text-muted);
       margin-bottom: 7px;
     }
     .try p b { color: var(--text-main); }
     .try .prompt {
       display: block;
-      background: #090d15;
+      background: #060911;
       border: 1px solid var(--card-border);
       border-radius: var(--radius-sm);
       padding: 7px 10px;
@@ -309,36 +380,42 @@
       text-align: center;
       padding: 7px;
       border-radius: var(--radius-pill);
-      background: #162032;
+      background: rgba(255, 255, 255, 0.05);
       color: var(--text-main);
       font-size: 11.5px;
-      font-weight: 500;
+      font-weight: 600;
       text-decoration: none;
       border: 1px solid var(--card-border);
-      transition: background 0.15s ease, border-color 0.15s ease;
+      transition: all 0.15s ease;
     }
     .try a:hover {
-      background: #1f2a3d;
-      border-color: #34d399;
+      background: var(--green-soft);
+      border-color: var(--green);
+      color: var(--green);
+    }
+    .try a:active {
+      transform: scale(0.97);
     }
 
-    /* Calm Sessions Cards */
-    .sessions { display: flex; flex-direction: column; gap: 7px; }
+    /* Sessions Cards */
+    .sessions { display: flex; flex-direction: column; gap: 8px; }
     .session-card {
-      padding: 10px 12px;
+      padding: 11px 13px;
       background: var(--card);
       border-radius: var(--radius);
       border: 1px solid var(--card-border);
       border-left: 3px solid var(--accent);
-      transition: background 0.15s ease;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+      box-shadow: var(--shadow-sm);
     }
     .session-card:hover {
       background: var(--card-hover);
+      transform: translateY(-1px);
     }
     .session-header {
       font-size: 12px;
-      font-weight: 600;
-      margin-bottom: 5px;
+      font-weight: 650;
+      margin-bottom: 6px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -349,7 +426,7 @@
       color: var(--text-muted);
       display: flex;
       flex-direction: column;
-      gap: 3px;
+      gap: 4px;
     }
     .session-tabs div {
       overflow: hidden;
@@ -357,38 +434,39 @@
       white-space: nowrap;
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 6px;
     }
     .session-tabs div::before {
       content: "•";
       color: var(--text-dim);
-      font-size: 12px;
+      font-size: 13px;
       line-height: 1;
     }
     .empty {
       font-size: 12px;
       color: var(--text-dim);
       text-align: center;
-      padding: 14px;
-      background: var(--card);
+      padding: 16px;
+      background: rgba(15, 23, 42, 0.5);
       border-radius: var(--radius);
       border: 1px dashed var(--card-border);
     }
 
     /* Action Log */
     .log {
-      max-height: 125px;
+      max-height: 132px;
       overflow-y: auto;
       background: var(--card);
       border-radius: var(--radius);
       border: 1px solid var(--card-border);
-      padding: 7px 10px;
+      padding: 8px 11px;
+      box-shadow: var(--shadow-sm);
     }
     .log::-webkit-scrollbar {
       width: 4px;
     }
     .log::-webkit-scrollbar-thumb {
-      background: #1f2a3d;
+      background: rgba(255, 255, 255, 0.15);
       border-radius: var(--radius-pill);
     }
     .log-entry {
@@ -397,25 +475,30 @@
       display: flex;
       gap: 6px;
       align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    }
+    .log-entry:last-child {
+      border-bottom: none;
     }
     .log-time {
       color: var(--text-dim);
-      min-width: 46px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 11px;
+      min-width: 48px;
+      font-family: var(--mono);
+      font-size: 10.5px;
     }
     .log-method {
       font-weight: 600;
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 11px;
+      font-family: var(--mono);
+      font-size: 10.5px;
       padding: 2px 7px;
       border-radius: var(--radius-pill);
-      background: #162032;
+      background: rgba(255, 255, 255, 0.05);
       border: 1px solid var(--card-border);
       color: var(--text-main);
     }
     .log-session {
-      font-size: 11px;
+      font-size: 10.5px;
+      font-family: var(--mono);
       color: var(--text-dim);
       margin-left: auto;
     }
@@ -423,15 +506,16 @@
       color: var(--text-main);
     }
     .log-sensitive {
-      color: #38bdf8;
-      border-color: #38bdf8;
+      color: var(--accent);
+      border-color: rgba(56, 189, 248, 0.35);
+      background: var(--accent-soft);
     }
 
     /* Action Buttons */
     .btn-row {
       display: flex;
       gap: 8px;
-      margin-top: 12px;
+      margin-top: 14px;
     }
     button.btn-primary {
       flex: 2;
@@ -439,56 +523,58 @@
       border: 1px solid #f8fafc;
       border-radius: var(--radius-pill);
       background: #f8fafc;
-      color: #090d15;
+      color: #080c15;
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 700;
+      letter-spacing: -0.01em;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
-      transition: background 0.15s ease, transform 0.1s ease;
+      box-shadow: 0 0 16px rgba(255, 255, 255, 0.15);
+      transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
     }
     button.btn-primary:hover {
       background: #e2e8f0;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.25);
     }
     button.btn-primary:active {
-      transform: scale(0.98);
+      transform: scale(0.97);
     }
     button.btn-secondary {
       flex: 1;
       padding: 9px 12px;
       border: 1px solid var(--card-border);
       border-radius: var(--radius-pill);
-      background: #162032;
+      background: rgba(255, 255, 255, 0.05);
       color: var(--text-muted);
       font-size: 11.5px;
-      font-weight: 500;
+      font-weight: 600;
       cursor: pointer;
-      transition: background 0.15s ease, color 0.15s ease;
+      transition: all 0.15s ease;
     }
     button.btn-secondary:hover {
-      background: #1f2a3d;
+      background: rgba(255, 255, 255, 0.09);
       color: var(--text-main);
+      border-color: rgba(255, 255, 255, 0.15);
     }
     button.btn-secondary:active {
-      transform: scale(0.98);
+      transform: scale(0.97);
     }
 
-    /* Session Indicators */
-    .color-blue, .color-green, .color-yellow, .color-red,
-    .color-pink, .color-purple, .color-cyan, .color-orange {
-      border-left-color: var(--accent);
-    }
-    .color-blue .session-header, .color-green .session-header,
-    .color-yellow .session-header, .color-red .session-header,
-    .color-pink .session-header, .color-purple .session-header,
-    .color-cyan .session-header, .color-orange .session-header {
-      color: var(--text-main);
-    }
+    /* Vibrant Session Color Accent Themes */
+    .color-blue { border-left-color: #38bdf8; background: linear-gradient(90deg, rgba(56, 189, 248, 0.05) 0%, var(--card) 60%); }
+    .color-green { border-left-color: #34d399; background: linear-gradient(90deg, rgba(52, 211, 153, 0.05) 0%, var(--card) 60%); }
+    .color-yellow { border-left-color: #fbbf24; background: linear-gradient(90deg, rgba(251, 191, 36, 0.05) 0%, var(--card) 60%); }
+    .color-orange { border-left-color: #fb923c; background: linear-gradient(90deg, rgba(251, 146, 60, 0.05) 0%, var(--card) 60%); }
+    .color-red { border-left-color: #f87171; background: linear-gradient(90deg, rgba(248, 113, 113, 0.05) 0%, var(--card) 60%); }
+    .color-purple { border-left-color: #a78bfa; background: linear-gradient(90deg, rgba(167, 139, 250, 0.05) 0%, var(--card) 60%); }
+    .color-pink { border-left-color: #f472b6; background: linear-gradient(90deg, rgba(244, 114, 182, 0.05) 0%, var(--card) 60%); }
+    .color-cyan { border-left-color: #22d3ee; background: linear-gradient(90deg, rgba(34, 211, 238, 0.05) 0%, var(--card) 60%); }
 
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-3px); }
+      from { opacity: 0; transform: translateY(-4px); }
       to { opacity: 1; transform: translateY(0); }
     }
   </style>
@@ -499,7 +585,7 @@
       <img src="icons/icon-48.png" class="brand-icon" alt="Browser Control">
       <h1>Browser Control</h1>
     </div>
-    <span class="version-tag">v1.0.0</span>
+    <span class="version-tag">v1.30</span>
   </div>
 
   <div class="status-card">
@@ -525,10 +611,10 @@
     <p><b>MCP Server standby:</b> The bridge listens on ports 9876-9895 when an agent initiates browser tools.</p>
     <p><b>Register server locally:</b> Run the standalone native binary installer in your terminal:</p>
     <div class="cmd-box">
-      <code id="setupCmd">browser-mcp install</code>
+      <code id="setupCmd">browser-control install</code>
     </div>
-    <p class="clients">Claude Code: <code>claude mcp add browser-mcp -- browser-mcp</code><br>
-      Cursor, Antigravity, OpenCode: run <code>browser-mcp install</code> to configure automatically.</p>
+    <p class="clients">Claude Code: <code>claude mcp add browser-control -- browser-control</code><br>
+      Cursor, Antigravity, OpenCode: run <code>browser-control install</code> to configure automatically.</p>
     <div class="row">
       <button id="copyCmd">Copy command</button>
       <a href="https://browsermcp.dev/docs/install-claude-code/" target="_blank" rel="noopener">Documentation</a>
@@ -539,7 +625,7 @@
     <p><b>Connected and ready:</b> Ask your agent to interact with the browser:</p>
     <span class="prompt">"Take a screenshot of my current Chrome tab."</span>
     <span class="prompt">"Open my Gmail tab and check latest updates."</span>
-    <a href="https://browsermcp.dev/#try" target="_blank" rel="noopener">Explore capability matrix</a>
+    <a href="https://browsermcp.dev/#demos" target="_blank" rel="noopener">Explore capability matrix</a>
   </div>
 
   <div class="section-header">

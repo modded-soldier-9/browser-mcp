@@ -59,19 +59,19 @@
       --surface: #0e1424;
       --surface-2: #141d33;
       --surface-3: #1a2642;
-      --card-bg: rgba(14, 20, 36, 0.78);
+      --card-bg: rgba(14, 20, 36, 0.82);
       --line: rgba(255, 255, 255, 0.08);
       --line-hover: rgba(56, 189, 248, 0.35);
       --text: #f8fafc;
-      --text-dim: #cbd5e1;
-      --muted: #94a3b8;
+      --text-dim: #d1dceb;
+      --muted: #9bb0c9;
       --accent: #38bdf8;
       --accent-cyan: #06b6d4;
       --accent-emerald: #10b981;
       --accent-indigo: #818cf8;
       --accent-amber: #f59e0b;
       --green: #34d399;
-      --red: #f43f5e;
+      --red: #f87171;
       --glow: rgba(56, 189, 248, 0.15);
       --radius-card: 20px;
       --radius-pill: 9999px;
@@ -81,6 +81,12 @@
 
     html { scroll-behavior: smooth; color-scheme: dark; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+      border-radius: 4px;
+    }
 
     body {
       background: var(--bg);
@@ -889,6 +895,17 @@
       background: var(--accent);
       color: #040812;
       border-color: var(--accent);
+      font-weight: 700;
+    }
+
+    .tool-count-feedback {
+      font-size: 13px;
+      font-weight: 650;
+      color: var(--muted);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
     .tools-grid {
@@ -908,12 +925,17 @@
       flex-direction: column;
       justify-content: space-between;
       cursor: pointer;
+      position: relative;
     }
     .tool-card:hover {
       border-color: var(--line-hover);
       transform: translateY(-3px);
-      box-shadow: 0 10px 30px -10px rgba(56, 189, 248, 0.15);
+      box-shadow: 0 12px 32px -8px rgba(56, 189, 248, 0.18);
       background: var(--surface-2);
+    }
+    .tool-card:focus-visible {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.3);
     }
     .tool-card-head {
       display: flex;
@@ -968,8 +990,8 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0, 0, 0, 0.75);
-      backdrop-filter: blur(8px);
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(12px);
       z-index: 2000;
       display: none;
       align-items: center;
@@ -987,7 +1009,12 @@
       overflow-y: auto;
       padding: 28px;
       position: relative;
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(56, 189, 248, 0.15);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), 0 0 35px rgba(56, 189, 248, 0.18);
+      animation: modalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes modalPop {
+      from { opacity: 0; transform: scale(0.96) translateY(10px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
     }
     .modal-close {
       position: absolute;
@@ -1002,10 +1029,14 @@
       cursor: pointer;
       display: grid;
       place-items: center;
-      font-size: 16px;
-      transition: background 0.15s;
+      font-size: 18px;
+      transition: all 0.15s ease;
     }
-    .modal-close:hover { background: var(--surface-3); }
+    .modal-close:hover {
+      background: var(--surface-3);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
 
     /* Features Grid */
     .features-section {
@@ -1153,7 +1184,7 @@
     }
     tr:last-child td { border-bottom: none; }
     .check { color: var(--green); font-weight: 600; }
-    .cross { color: #64748b; }
+    .cross { color: #9bb0c9; }
 
     /* FAQ Section */
     .faq-section {
@@ -1252,7 +1283,7 @@
     .footer-links a:hover { color: var(--accent); }
     .footer-copy {
       font-size: 13.5px;
-      color: #64748b;
+      color: var(--muted);
     }
 
     /* Responsive */
@@ -1548,17 +1579,20 @@
     <div class="tools-search-bar">
       <div class="search-input-wrap">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        <input type="text" id="toolSearch" class="search-input" placeholder="Search 43 tools by name, parameter, or capability (e.g. 'fill', 'network', 'cookie', '2fa')...">
+        <input type="text" id="toolSearch" class="search-input" placeholder="Search 43 tools by name, parameter, or capability (press '/' to focus)..." aria-label="Search all 43 browser tools">
       </div>
 
-      <div class="tool-filter-pills" role="tablist">
-        <button class="filter-pill active" data-filter="all">All 43 Tools</button>
-        <button class="filter-pill" data-filter="everyday">Everyday Automation (25)</button>
-        <button class="filter-pill" data-filter="developer">Developer Workflows (18)</button>
-        <button class="filter-pill" data-filter="forms">Forms &amp; Input</button>
-        <button class="filter-pill" data-filter="network">Network &amp; Logs</button>
+      <div class="tool-filter-pills" role="tablist" aria-label="Filter tools by category">
+        <button class="filter-pill active" data-filter="all" role="tab" aria-selected="true">All 43 Tools</button>
+        <button class="filter-pill" data-filter="everyday" role="tab" aria-selected="false">Everyday Automation (25)</button>
+        <button class="filter-pill" data-filter="developer" role="tab" aria-selected="false">Developer Workflows (18)</button>
+        <button class="filter-pill" data-filter="forms" role="tab" aria-selected="false">Forms &amp; Input</button>
+        <button class="filter-pill" data-filter="network" role="tab" aria-selected="false">Network &amp; Logs</button>
+        <button class="filter-pill" data-filter="storage" role="tab" aria-selected="false">Storage &amp; Auth</button>
       </div>
     </div>
+
+    <div class="tool-count-feedback" id="toolCountFeedback">Showing 43 of 43 tools</div>
 
     <div class="tools-grid" id="toolsGrid">
       <!-- Injected by JavaScript -->
@@ -1808,12 +1842,20 @@
     <h3 id="modalToolName" style="font-family: var(--mono); font-size: 20px; color: #ffffff; margin-bottom: 12px;">browser_navigate</h3>
     <p id="modalToolDesc" style="font-size: 14.5px; color: var(--text-dim); line-height: 1.6; margin-bottom: 20px;"></p>
 
-    <div style="font-size: 13px; font-weight: 700; color: #ffffff; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px;">Parameters Schema</div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <div style="font-size: 13px; font-weight: 750; color: #ffffff; text-transform: uppercase; letter-spacing: 0.05em;">Parameters Schema</div>
+    </div>
     <div class="code-container" style="margin-bottom: 20px;">
       <pre id="modalParams"><code>// Loading schema...</code></pre>
     </div>
 
-    <div style="font-size: 13px; font-weight: 700; color: #ffffff; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px;">Example Assistant Invocation</div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <div style="font-size: 13px; font-weight: 750; color: #ffffff; text-transform: uppercase; letter-spacing: 0.05em;">Example Assistant Invocation</div>
+      <button class="copy-btn" id="modalExampleCopyBtn" style="position: static; padding: 4px 12px; font-size: 11.5px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        <span>Copy Invocation</span>
+      </button>
+    </div>
     <div class="code-container">
       <pre id="modalExample"><code>// Loading invocation...</code></pre>
     </div>
@@ -1883,42 +1925,42 @@
       macos: '~/Library/Application Support/Claude/claude_desktop_config.json',
       windows: '%APPDATA%\\Claude\\claude_desktop_config.json',
       linux: '~/.config/Claude/claude_desktop_config.json',
-      code: '{\n  "mcpServers": {\n    "browser-control": {\n      "command": "browser-mcp"\n    }\n  }\n}',
+      code: '{\n  "mcpServers": {\n    "browser-control": {\n      "command": "browser-control"\n    }\n  }\n}',
       note: 'Save this JSON snippet to your Claude Desktop config and restart Claude.'
     },
     'cursor': {
       macos: '~/.cursor/mcp.json (or Cursor Settings > Features > MCP)',
       windows: '%USERPROFILE%\\.cursor\\mcp.json',
       linux: '~/.cursor/mcp.json',
-      code: '{\n  "mcpServers": {\n    "browser-control": {\n      "command": "browser-mcp"\n    }\n  }\n}',
+      code: '{\n  "mcpServers": {\n    "browser-control": {\n      "command": "browser-control"\n    }\n  }\n}',
       note: 'Add this server to Cursor Settings > MCP Servers or save to ~/.cursor/mcp.json.'
     },
     'gemini': {
       macos: '~/.gemini/config/mcp_config.json',
       windows: '%USERPROFILE%\\.gemini\\config\\mcp_config.json',
       linux: '~/.gemini/config/mcp_config.json',
-      code: '{\n  "mcpServers": {\n    "browser-control": {\n      "command": "browser-mcp"\n    }\n  }\n}',
+      code: '{\n  "mcpServers": {\n    "browser-control": {\n      "command": "browser-control"\n    }\n  }\n}',
       note: 'Configure in Google Gemini CLI or Antigravity MCP settings.'
     },
     'windsurf': {
       macos: '~/.codeium/windsurf/mcp_config.json',
       windows: '%USERPROFILE%\\.codeium\\windsurf\\mcp_config.json',
       linux: '~/.codeium/windsurf/mcp_config.json',
-      code: '{\n  "mcpServers": {\n    "browser-control": {\n      "command": "browser-mcp"\n    }\n  }\n}',
+      code: '{\n  "mcpServers": {\n    "browser-control": {\n      "command": "browser-control"\n    }\n  }\n}',
       note: 'Add to Windsurf Cascade MCP configuration and restart Cascade.'
     },
     'vscode': {
       macos: '~/.vscode/extensions / Roo / Cline Settings',
       windows: '%USERPROFILE%\\.vscode / Cline Settings',
       linux: '~/.vscode / Cline Settings',
-      code: '{\n  "mcpServers": {\n    "browser-control": {\n      "command": "browser-mcp"\n    }\n  }\n}',
+      code: '{\n  "mcpServers": {\n    "browser-control": {\n      "command": "browser-control"\n    }\n  }\n}',
       note: 'Supported in VS Code Agent Mode, Roo Code, and Cline MCP profiles.'
     },
     'claude-code': {
       macos: 'Terminal CLI command',
       windows: 'Command Prompt / PowerShell',
       linux: 'Terminal CLI command',
-      code: 'claude mcp add browser-control -- browser-mcp',
+      code: 'claude mcp add browser-control -- browser-control',
       note: 'Run this single command in your terminal to register with Claude Code.'
     }
   };
@@ -2109,7 +2151,18 @@
   });
 
   document.getElementById('demoRerunBtn').addEventListener('click', function() {
-    renderScenario(curScenario);
+    var btn = this;
+    var orig = btn.textContent;
+    btn.textContent = 'Simulating…';
+    btn.disabled = true;
+    var logEl = document.getElementById('demoLog');
+    logEl.style.opacity = '0.3';
+    setTimeout(function() {
+      renderScenario(curScenario);
+      logEl.style.opacity = '1';
+      btn.textContent = orig;
+      btn.disabled = false;
+    }, 280);
   });
 
   renderScenario('everyday-checkout');
@@ -2167,8 +2220,10 @@
   ];
 
   var toolsGrid = document.getElementById('toolsGrid');
+  var toolCountFeedback = document.getElementById('toolCountFeedback');
   var curFilter = 'all';
   var curQuery = '';
+  var lastActiveElement = null;
 
   function renderTools() {
     var filtered = allTools.filter(function(t) {
@@ -2176,6 +2231,7 @@
       if (curFilter === 'developer' && t.category !== 'developer') return false;
       if (curFilter === 'forms' && t.tag !== 'Forms' && t.tag !== 'DOM') return false;
       if (curFilter === 'network' && t.tag !== 'Network' && t.tag !== 'Debugging') return false;
+      if (curFilter === 'storage' && t.tag !== 'Storage' && t.tag !== 'Auth') return false;
       if (curQuery) {
         var q = curQuery.toLowerCase();
         return t.name.toLowerCase().indexOf(q) !== -1 ||
@@ -2185,10 +2241,18 @@
       return true;
     });
 
+    if (toolCountFeedback) {
+      toolCountFeedback.textContent = 'Showing ' + filtered.length + ' of ' + allTools.length + ' tools' + (curQuery ? ' matching "' + curQuery + '"' : '');
+    }
+
     toolsGrid.innerHTML = '';
     filtered.forEach(function(t) {
       var card = document.createElement('div');
       card.className = 'tool-card';
+      card.setAttribute('tabindex', '0');
+      card.setAttribute('role', 'button');
+      card.setAttribute('aria-label', 'Inspect schema for ' + t.name);
+
       var badgeCls = t.category === 'everyday' ? 'badge-everyday' : 'badge-developer';
       card.innerHTML = 
         '<div class="tool-card-head">' +
@@ -2200,30 +2264,72 @@
           '<span class="tool-tag">' + t.tag + '</span>' +
           '<span style="color: var(--accent); font-weight: 600;">Inspect Schema &rarr;</span>' +
         '</div>';
+
       card.addEventListener('click', function() {
         openToolModal(t);
+      });
+      card.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openToolModal(t);
+        }
       });
       toolsGrid.appendChild(card);
     });
   }
 
   function openToolModal(t) {
+    lastActiveElement = document.activeElement;
     document.getElementById('modalToolName').textContent = t.name;
     document.getElementById('modalToolDesc').textContent = t.desc;
     document.getElementById('modalCategory').textContent = t.catLabel;
     document.getElementById('modalTier').textContent = t.tag;
     document.getElementById('modalParams').querySelector('code').textContent = t.params;
     document.getElementById('modalExample').querySelector('code').textContent = t.example;
+
+    var copyBtn = document.getElementById('modalExampleCopyBtn');
+    if (copyBtn) {
+      copyBtn.onclick = function() {
+        navigator.clipboard.writeText(t.example).then(function() {
+          copyBtn.classList.add('done');
+          copyBtn.querySelector('span').textContent = 'Copied!';
+          setTimeout(function() {
+            copyBtn.classList.remove('done');
+            copyBtn.querySelector('span').textContent = 'Copy Invocation';
+          }, 1600);
+        });
+      };
+    }
+
     document.getElementById('toolModalBackdrop').classList.add('open');
+    var closeBtn = document.getElementById('modalCloseBtn');
+    if (closeBtn) closeBtn.focus();
   }
 
-  document.getElementById('modalCloseBtn').addEventListener('click', function() {
+  function closeToolModal() {
     document.getElementById('toolModalBackdrop').classList.remove('open');
-  });
+    if (lastActiveElement && typeof lastActiveElement.focus === 'function') {
+      lastActiveElement.focus();
+    }
+  }
+
+  document.getElementById('modalCloseBtn').addEventListener('click', closeToolModal);
 
   document.getElementById('toolModalBackdrop').addEventListener('click', function(e) {
     if (e.target === this) {
-      this.classList.remove('open');
+      closeToolModal();
+    }
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && document.getElementById('toolModalBackdrop').classList.contains('open')) {
+      closeToolModal();
+    }
+    if (e.key === '/' && document.activeElement !== document.getElementById('toolSearch') &&
+        document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+      e.preventDefault();
+      var s = document.getElementById('toolSearch');
+      if (s) { s.focus(); s.select(); }
     }
   });
 
@@ -2234,8 +2340,12 @@
 
   document.querySelectorAll('.filter-pill').forEach(function(pill) {
     pill.addEventListener('click', function() {
-      document.querySelectorAll('.filter-pill').forEach(function(p) { p.classList.remove('active'); });
+      document.querySelectorAll('.filter-pill').forEach(function(p) {
+        p.classList.remove('active');
+        p.setAttribute('aria-selected', 'false');
+      });
       pill.classList.add('active');
+      pill.setAttribute('aria-selected', 'true');
       curFilter = pill.dataset.filter;
       renderTools();
     });
